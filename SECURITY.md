@@ -6,6 +6,6 @@ We take the security of our software seriously. If you find a security vulnerabi
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them by emailing us at [security@charpand.com](mailto:security@charpand.com).
+Instead, please report them by emailing us at [security@charpand.nl](mailto:security@charpand.nl).
 
 We will acknowledge your report within 48 hours and provide a timeline for a fix, if applicable. We request that you do not disclose the vulnerability publicly until we have had a chance to address it.
