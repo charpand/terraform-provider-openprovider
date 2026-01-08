@@ -8,11 +8,11 @@ func TestNewClient(t *testing.T) {
 	t.Run("Default configuration", func(t *testing.T) {
 		client := NewClient(Config{})
 
-		if client.baseURL != DefaultBaseURL {
-			t.Errorf("Expected baseURL %s, got %s", DefaultBaseURL, client.baseURL)
+		if client.BaseURL != DefaultBaseURL {
+			t.Errorf("Expected BaseURL %s, got %s", DefaultBaseURL, client.BaseURL)
 		}
-		if client.httpClient == nil {
-			t.Error("Expected default httpClient to be initialized, got nil")
+		if client.HTTPClient == nil {
+			t.Error("Expected default HTTPClient to be initialized, got nil")
 		}
 	})
 
@@ -22,8 +22,8 @@ func TestNewClient(t *testing.T) {
 			BaseURL: customURL,
 		})
 
-		if client.baseURL != customURL {
-			t.Errorf("Expected baseURL %s, got %s", customURL, client.baseURL)
+		if client.BaseURL != customURL {
+			t.Errorf("Expected BaseURL %s, got %s", customURL, client.BaseURL)
 		}
 	})
 }
