@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Running pre-commit checks..."
+
+# 1. Format code
+./scripts/format
+
+# 2. Tidy go.mod
+echo "==> Running go mod tidy"
+go mod tidy
+
+# 3. Lint / Build check
+./scripts/lint
+
+echo "==> All checks passed!"

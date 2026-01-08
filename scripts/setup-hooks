@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+HOOK_SOURCE="scripts/pre-commit"
+HOOK_DEST=".git/hooks/pre-commit"
+
+if [ ! -d ".git" ]; then
+    echo "Error: .git directory not found. Are you in the root of the project?"
+    exit 1
+fi
+
+echo "==> Installing git hooks..."
+
+cp "$HOOK_SOURCE" "$HOOK_DEST"
+chmod +x "$HOOK_DEST"
+
+echo "==> Git hooks installed successfully!"
