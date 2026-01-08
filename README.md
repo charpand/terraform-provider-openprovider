@@ -8,13 +8,9 @@ A Go client library for the Openprovider.org API.
 go get github.com/charpand/openprovider-go
 ```
 
-## Usage
+## Documentation
 
-```go
-import "github.com/charpand/openprovider-go"
-
-// More examples coming soon...
-```
+API documentation can be found in [API.md](API.md).
 
 ## Contributing
 
