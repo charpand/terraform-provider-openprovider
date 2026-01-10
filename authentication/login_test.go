@@ -1,5 +1,5 @@
-// Package domains_test contains tests for the domains package.
-package domains_test
+// Package authentication_test contains tests for the authentication package.
+package authentication_test
 
 import (
 	"net/http"
@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/charpand/openprovider-go"
-	"github.com/charpand/openprovider-go/domains"
+	"github.com/charpand/openprovider-go/authentication"
 	"github.com/charpand/openprovider-go/internal/testutils"
 )
 
-func TestListDomains(t *testing.T) {
+func TestLogin(t *testing.T) {
 	baseURL := os.Getenv("TEST_API_BASE_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:4010"
@@ -23,19 +23,17 @@ func TestListDomains(t *testing.T) {
 
 	config := openprovider.Config{
 		BaseURL:    baseURL,
-		Username:   "test",
-		Password:   "test",
 		HTTPClient: httpClient,
 	}
 	client := openprovider.NewClient(config)
 
-	resp, err := domains.List(client)
+	token, err := authentication.Login(client.HTTPClient, client.BaseURL, "127.0.0.1", "test", "test")
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if len(resp) == 0 {
-		t.Log("Note: No domains returned by mock server (check your swagger examples)")
+	if token == nil {
+		t.Log("Note: No token returned by mock server (check your swagger examples)")
 	}
 }

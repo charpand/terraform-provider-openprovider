@@ -35,7 +35,7 @@ func List(c *openprovider.Client) ([]Domain, error) {
 		return nil, err
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +46,6 @@ func List(c *openprovider.Client) ([]Domain, error) {
 			log.Fatal(err)
 		}
 	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("api error: status %d", resp.StatusCode)
-	}
 
 	var results ListDomainsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
