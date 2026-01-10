@@ -8,16 +8,8 @@ import (
 
 	"github.com/charpand/openprovider-go"
 	"github.com/charpand/openprovider-go/authentication"
+	"github.com/charpand/openprovider-go/internal/testutils"
 )
-
-type mockTransport struct {
-	rt http.RoundTripper
-}
-
-func (t *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", "Bearer dummy")
-	return t.rt.RoundTrip(req)
-}
 
 func TestLogin(t *testing.T) {
 	baseURL := os.Getenv("TEST_API_BASE_URL")
@@ -26,7 +18,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	httpClient := &http.Client{
-		Transport: &mockTransport{rt: http.DefaultTransport},
+		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
 	}
 
 	config := openprovider.Config{
