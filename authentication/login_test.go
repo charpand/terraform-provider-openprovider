@@ -1,5 +1,5 @@
-// Package authentication provides functionality for user authentication with the OpenProvider API.
-package authentication
+// Package authentication_test contains tests for the authentication package.
+package authentication_test
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/charpand/openprovider-go"
+	"github.com/charpand/openprovider-go/authentication"
 )
 
 type mockTransport struct {
@@ -34,7 +35,7 @@ func TestLogin(t *testing.T) {
 	}
 	client := openprovider.NewClient(config)
 
-	token, err := Login(client, "127.0.0.1", "test", "test")
+	token, err := authentication.Login(client.HTTPClient, client.BaseURL, "127.0.0.1", "test", "test")
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

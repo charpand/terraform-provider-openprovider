@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/charpand/openprovider-go"
 )
+
+// HTTPClient defines the interface for making HTTP requests.
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 // LoginRequest represents a request to authenticate a user.
 type LoginRequest struct {
@@ -28,7 +31,7 @@ type LoginResponse struct {
 }
 
 // Login authenticates a user and returns a token.
-func Login(c *openprovider.Client, ipAddress, username, password string) (*string, error) {
+func Login(c HTTPClient, baseURL, ipAddress, username, password string) (*string, error) {
 	request := LoginRequest{
 		IPAddress: ipAddress,
 		Username:  username,
@@ -39,13 +42,13 @@ func Login(c *openprovider.Client, ipAddress, username, password string) (*strin
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1beta/auth/login", c.BaseURL), bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1beta/auth/login", baseURL), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
