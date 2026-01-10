@@ -74,6 +74,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		// Update Authorization header and retry
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
 		resp, err = c.HTTPClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err != nil {

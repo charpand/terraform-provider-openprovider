@@ -1,3 +1,4 @@
+// Package testutils provides helpers for testing the openprovider client.
 package testutils
 
 import "net/http"
