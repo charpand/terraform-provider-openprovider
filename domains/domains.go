@@ -35,7 +35,7 @@ func List(c *openprovider.Client) ([]Domain, error) {
 		return nil, err
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
