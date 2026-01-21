@@ -4,3 +4,4 @@
 .prism.log
 codegen.log
 Brewfile.lock.json
+openapi-swagger.json
