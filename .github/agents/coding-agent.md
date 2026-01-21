@@ -164,14 +164,16 @@ func TestGetDomain(t *testing.T) {
 
 #### 3. Update API Documentation
 
-Add usage examples to `API.md`:
+Add usage examples to `API.md`. For example, when adding a Get endpoint, add:
 
+```markdown
 ### Get Domain
 
-```go
+\`\`\`go
 import "github.com/charpand/openprovider-go/domains"
 
 domain, err := domains.Get(client, 123)
+\`\`\`
 ```
 
 ## Code Style Guidelines
