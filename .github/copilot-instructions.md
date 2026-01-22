@@ -107,5 +107,5 @@ func TestGetResource(t *testing.T) {
 
 ## Key References
 - **API Documentation**: https://docs.openprovider.com/swagger.json
-- **Detailed Agent Instructions**: [.github/agents/coding-agent.md](.github/agents/coding-agent.md)
+- **Detailed Agent Instructions**: [agents/coding-agent.md](agents/coding-agent.md)
 - **Go Version**: 1.24 (see `go.mod`)
