@@ -22,6 +22,20 @@ jobs:
         with:
           go-version-file: ./go.mod
 
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          FINGERPRINT="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          if [ -z "$FINGERPRINT" ]; then
+            echo "Failed to extract GPG fingerprint" >&2
+            exit 1
+          fi
+          echo "fingerprint=$FINGERPRINT" >> "$GITHUB_OUTPUT"
+        id: import_gpg
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -30,3 +44,5 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
