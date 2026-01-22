@@ -11,7 +11,7 @@ import (
 )
 
 // Run the docs generation tool, check its pride for details.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
 
 var (
 	// these will be set by the goreleaser configuration to appropriate values
