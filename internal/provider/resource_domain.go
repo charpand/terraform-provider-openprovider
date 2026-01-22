@@ -168,7 +168,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// Create the domain
-	_, err := client.Create(r.client, createReq)
+	domain, err := client.Create(r.client, createReq)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Creating Domain",
@@ -179,22 +179,32 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Set ID to the domain name
 	plan.ID = types.StringValue(domainName)
-
-	// Save initial state
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	
+	// Update plan with computed values from the API response
+	plan.Status = types.StringValue(domain.Status)
+	
+	// Map contact handles from response
+	plan.OwnerHandle = types.StringValue(domain.OwnerHandle)
+	if domain.AdminHandle != "" {
+		plan.AdminHandle = types.StringValue(domain.AdminHandle)
+	}
+	if domain.TechHandle != "" {
+		plan.TechHandle = types.StringValue(domain.TechHandle)
+	}
+	if domain.BillingHandle != "" {
+		plan.BillingHandle = types.StringValue(domain.BillingHandle)
+	}
+	
+	// Map autorenew from response
+	if domain.Autorenew == "on" {
+		plan.Autorenew = types.BoolValue(true)
+	} else {
+		plan.Autorenew = types.BoolValue(false)
 	}
 
-	// Immediately call Read to normalize and hydrate the state
-	var readReq resource.ReadRequest
-	readReq.State = resp.State
-	var readResp resource.ReadResponse
-	readResp.State = resp.State
-	r.Read(ctx, readReq, &readResp)
-	resp.State = readResp.State
-	resp.Diagnostics.Append(readResp.Diagnostics...)
+	// Save state
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -280,16 +290,18 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Create update request with only changed mutable attributes
+	// Note: OwnerHandle is not updatable (typically immutable after domain creation)
 	updateReq := &client.UpdateDomainRequest{}
 
 	// Update contact handles if changed
-	if !plan.AdminHandle.Equal(state.AdminHandle) {
+	// Only set values if they are not null in the plan
+	if !plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull() {
 		updateReq.AdminHandle = plan.AdminHandle.ValueString()
 	}
-	if !plan.TechHandle.Equal(state.TechHandle) {
+	if !plan.TechHandle.Equal(state.TechHandle) && !plan.TechHandle.IsNull() {
 		updateReq.TechHandle = plan.TechHandle.ValueString()
 	}
-	if !plan.BillingHandle.Equal(state.BillingHandle) {
+	if !plan.BillingHandle.Equal(state.BillingHandle) && !plan.BillingHandle.IsNull() {
 		updateReq.BillingHandle = plan.BillingHandle.ValueString()
 	}
 
