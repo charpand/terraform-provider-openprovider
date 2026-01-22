@@ -17,7 +17,7 @@ func TestProviderSchema(t *testing.T) {
 		t.Fatal("Schema attributes should not be nil")
 	}
 
-	expectedAttrs := []string{"endpoint", "username", "password", "token"}
+	expectedAttrs := []string{"username", "password"}
 	for _, attr := range expectedAttrs {
 		if _, ok := resp.Schema.Attributes[attr]; !ok {
 			t.Errorf("Expected attribute %s not found in schema", attr)

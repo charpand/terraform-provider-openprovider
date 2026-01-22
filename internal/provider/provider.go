@@ -21,10 +21,8 @@ type OpenproviderProvider struct {
 
 // OpenproviderProviderModel describes the provider data model.
 type OpenproviderProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
-	Token    types.String `tfsdk:"token"`
 }
 
 // Metadata sets the provider type name and version.
@@ -37,22 +35,13 @@ func (p *OpenproviderProvider) Metadata(_ context.Context, _ provider.MetadataRe
 func (p *OpenproviderProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "OpenProvider API endpoint. Defaults to production API.",
-				Optional:            true,
-			},
 			"username": schema.StringAttribute{
 				MarkdownDescription: "OpenProvider username.",
-				Optional:            true,
+				Required:            true,
 			},
 			"password": schema.StringAttribute{
 				MarkdownDescription: "OpenProvider password.",
-				Optional:            true,
-				Sensitive:           true,
-			},
-			"token": schema.StringAttribute{
-				MarkdownDescription: "OpenProvider API token.",
-				Optional:            true,
+				Required:            true,
 				Sensitive:           true,
 			},
 		},
@@ -70,15 +59,7 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 	}
 
 	// Validation
-	var username, password, token, endpoint string
-
-	if !data.Endpoint.IsNull() {
-		endpoint = data.Endpoint.ValueString()
-	}
-
-	if !data.Token.IsNull() {
-		token = data.Token.ValueString()
-	}
+	var username, password string
 
 	if !data.Username.IsNull() {
 		username = data.Username.ValueString()
@@ -88,12 +69,10 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 		password = data.Password.ValueString()
 	}
 
-	// Validate authentication methods
-	// Requirements: either token is set or both username and password are set
-	if token == "" && (username == "" || password == "") {
+	if username == "" || password == "" {
 		resp.Diagnostics.AddError(
 			"Missing Authentication Configuration",
-			"The provider requires either an API token or both username and password for authentication.",
+			"The provider requires both username and password for authentication.",
 		)
 	}
 
@@ -103,10 +82,8 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 
 	// Client initialization
 	c := client.NewClient(client.Config{
-		BaseURL:  endpoint,
 		Username: username,
 		Password: password,
-		Token:    token,
 	})
 
 	// Make client available
