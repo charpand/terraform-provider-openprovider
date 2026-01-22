@@ -5,3 +5,4 @@
 codegen.log
 Brewfile.lock.json
 openapi-swagger.json
+/terraform-provider-openprovider
