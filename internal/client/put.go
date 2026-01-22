@@ -1,5 +1,5 @@
 // Package domains provides functionality for working with domains.
-package domains
+package client
 
 import (
 	"bytes"
@@ -8,39 +8,33 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/charpand/openprovider-go"
 )
 
-// CreateDomainRequest represents a request to create a domain.
-type CreateDomainRequest struct {
-	Domain struct {
-		Name      string `json:"name"`
-		Extension string `json:"extension"`
-	} `json:"domain"`
-	OwnerHandle   string `json:"owner_handle"`
+// UpdateDomainRequest represents a request to update a domain.
+type UpdateDomainRequest struct {
 	AdminHandle   string `json:"admin_handle,omitempty"`
 	TechHandle    string `json:"tech_handle,omitempty"`
 	BillingHandle string `json:"billing_handle,omitempty"`
-	Period        int    `json:"period,omitempty"`
 	Autorenew     string `json:"autorenew,omitempty"`
+	IsLocked      *bool  `json:"is_locked,omitempty"`
 }
 
-// CreateDomainResponse represents a response for creating a domain.
-type CreateDomainResponse struct {
+// UpdateDomainResponse represents a response for updating a domain.
+type UpdateDomainResponse struct {
 	Code int    `json:"code"`
 	Data Domain `json:"data"`
 }
 
-// Create creates a new domain via the Openprovider API.
+// Update updates an existing domain by ID via the Openprovider API.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/domains
-func Create(c *openprovider.Client, req *CreateDomainRequest) (*Domain, error) {
+// Endpoint: PUT https://api.eu/v1beta/domains/{id}
+func Update(c *Client, id int, req *UpdateDomainRequest) (*Domain, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/v1beta/domains", c.BaseURL), bytes.NewBuffer(body))
+	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s/v1beta/domains/%d", c.BaseURL, id), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +51,7 @@ func Create(c *openprovider.Client, req *CreateDomainRequest) (*Domain, error) {
 		}
 	}()
 
-	var result CreateDomainResponse
+	var result UpdateDomainResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}

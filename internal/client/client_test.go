@@ -1,4 +1,4 @@
-package openprovider
+package client
 
 import (
 	"testing"

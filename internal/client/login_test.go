@@ -1,13 +1,11 @@
 // Package authentication_test contains tests for the authentication package.
-package authentication_test
+package client
 
 import (
 	"net/http"
 	"os"
 	"testing"
 
-	"github.com/charpand/terraform-provider-openprovider"
-	"github.com/charpand/terraform-provider-openprovider/authentication"
 	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
 )
 
@@ -21,13 +19,13 @@ func TestLogin(t *testing.T) {
 		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
 	}
 
-	config := openprovider.Config{
+	config := Config{
 		BaseURL:    baseURL,
 		HTTPClient: httpClient,
 	}
-	client := openprovider.NewClient(config)
+	client := NewClient(config)
 
-	token, err := authentication.Login(client.HTTPClient, client.BaseURL, "127.0.0.1", "test", "test")
+	token, err := Login(client.HTTPClient, client.BaseURL, "127.0.0.1", "test", "test")
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
