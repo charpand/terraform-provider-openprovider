@@ -119,14 +119,18 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 	resp.ResourceData = c
 }
 
-// Resources returns the provider's resources. Currently none are registered.
+// Resources returns the provider's resources.
 func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewDomainResource,
+	}
 }
 
-// DataSources returns the provider's data sources. Currently none are registered.
+// DataSources returns the provider's data sources.
 func (p *OpenproviderProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewDomainDataSource,
+	}
 }
 
 // New returns a provider factory function that creates an `OpenproviderProvider` with the
