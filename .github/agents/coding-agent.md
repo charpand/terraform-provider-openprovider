@@ -1,10 +1,10 @@
 # Coding Agent Instructions for openprovider-go
 
-This document provides guidelines for AI coding agents working on the openprovider-go repository.
+This document provides guidelines for AI coding agents working on the terraform-provider-openprovider repository.
 
 ## Project Overview
 
-This is a Go client library for the Openprovider.org API. The library follows RESTful API patterns and uses the Openprovider API documented at https://docs.openprovider.com/swagger.json.
+This repository provides the OpenProvider Terraform provider and related Go client code. The code interacts with the Openprovider API documented at https://docs.openprovider.com/swagger.json.
 
 ## Development Workflow
 
@@ -48,12 +48,11 @@ openprovider-go/
 ├── .github/
 │   ├── workflows/        # CI/CD workflows
 │   └── agents/          # Coding agent instructions
-├── domains/             # Domain-related API endpoints
-├── authentication/      # Authentication functionality
 ├── internal/
+│   ├── client/          # API client implementation
 │   └── testutils/       # Test utilities and mock transport
 ├── scripts/             # Build, test, and lint scripts
-├── client.go            # Main client implementation
+├── main.go              # Provider entry point
 └── API.md              # API documentation with examples
 ```
 
@@ -75,7 +74,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/charpand/openprovider-go"
+	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
 // GetDomainResponse represents a response for a single domain.
@@ -87,7 +86,7 @@ type GetDomainResponse struct {
 // Get retrieves a single domain by ID from the Openprovider API.
 //
 // Endpoint: GET https://api.openprovider.eu/v1beta/domains/{id}
-func Get(c *openprovider.Client, id int) (*Domain, error) {
+func Get(c *client.Client, id int) (*Domain, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1beta/domains/%d", c.BaseURL, id), nil)
 	if err != nil {
 		return nil, err
@@ -126,9 +125,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/charpand/openprovider-go"
-	"github.com/charpand/openprovider-go/domains"
-	"github.com/charpand/openprovider-go/internal/testutils"
+	"github.com/charpand/terraform-provider-openprovider/internal/client"
+	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
+	"github.com/charpand/terraform-provider-openprovider/domains"
 )
 
 func TestGetDomain(t *testing.T) {
@@ -141,16 +140,16 @@ func TestGetDomain(t *testing.T) {
 		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
 	}
 
-	config := openprovider.Config{
+	config := client.Config{
 		BaseURL:    baseURL,
 		Username:   "test",
 		Password:   "test",
 		HTTPClient: httpClient,
 	}
-	client := openprovider.NewClient(config)
+	c := client.NewClient(config)
 
 	// Use an example ID that exists in your OpenAPI examples/mock
-	domain, err := domains.Get(client, 123)
+	domain, err := domains.Get(c, 123)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -170,7 +169,7 @@ Add usage examples to `API.md`. For example, when adding a Get endpoint, add:
 ### Get Domain
 
 \`\`\`go
-import "github.com/charpand/openprovider-go/domains"
+import "github.com/charpand/terraform-provider-openprovider/domains"
 
 domain, err := domains.Get(client, 123)
 \`\`\`
@@ -190,6 +189,7 @@ domain, err := domains.Get(client, 123)
 ### API Client Patterns
 
 - All API functions take `*openprovider.Client` as the first parameter
+ - All API functions take `*client.Client` as the first parameter (from `internal/client`)
 - Use proper error handling and return errors up the stack
 - Close response bodies in defer statements with proper error checking
 - Use `json.NewDecoder` for parsing JSON responses
@@ -256,7 +256,7 @@ The project uses GitHub Actions for CI/CD (`.github/workflows/ci.yml`):
 
 ## Notes
 
-- The project uses Go 1.23 (see `go.mod`)
+ - The project uses Go 1.24 (see `go.mod`)
 - Prism mock server runs on port 4010 by default
 - The test script automatically starts/stops the mock server
 - All public functions should have documentation comments

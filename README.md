@@ -8,6 +8,10 @@ A Go client library for the Openprovider.org API.
 go get github.com/charpand/terraform-provider-openprovider
 ```
 
+## Overview
+
+This is a Go client library for the Openprovider.org API, primarily intended for use in the Openprovider Terraform provider.
+
 ## Documentation
 
 API documentation can be found in [API.md](API.md).

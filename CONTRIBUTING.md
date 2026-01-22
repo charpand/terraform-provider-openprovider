@@ -28,7 +28,7 @@ This section guides you through submitting an enhancement suggestion, including 
 
 *   Fill in the required template (if available).
 *   Do not include issue numbers in the PR title.
-*   Follow the Go style guidelines (use `go fmt`).
+*   Follow the Go style guidelines (use `gofmt`).
 *   Ensure the test suite passes by running `./scripts/test`.
 *   Ensure the linter passes by running `./scripts/lint`.
 
