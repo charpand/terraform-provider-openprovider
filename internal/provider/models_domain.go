@@ -8,9 +8,13 @@ import (
 // DomainModel represents the Terraform state model for a domain.
 // This is separate from the API model and uses Terraform framework types.
 type DomainModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Status      types.String `tfsdk:"status"`
-	Autorenew   types.Bool   `tfsdk:"autorenew"`
-	Nameservers types.List   `tfsdk:"nameservers"`
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	Status       types.String `tfsdk:"status"`
+	Autorenew    types.Bool   `tfsdk:"autorenew"`
+	OwnerHandle  types.String `tfsdk:"owner_handle"`
+	AdminHandle  types.String `tfsdk:"admin_handle"`
+	TechHandle   types.String `tfsdk:"tech_handle"`
+	BillingHandle types.String `tfsdk:"billing_handle"`
+	Period       types.Int64  `tfsdk:"period"`
 }

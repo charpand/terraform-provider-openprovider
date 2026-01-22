@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -68,14 +67,29 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
-			"nameservers": schema.ListAttribute{
-				MarkdownDescription: "List of nameservers for the domain.",
-				ElementType:         types.StringType,
+			"owner_handle": schema.StringAttribute{
+				MarkdownDescription: "The owner contact handle for the domain.",
+				Required:            true,
+			},
+			"admin_handle": schema.StringAttribute{
+				MarkdownDescription: "The admin contact handle for the domain.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
-				},
+			},
+			"tech_handle": schema.StringAttribute{
+				MarkdownDescription: "The tech contact handle for the domain.",
+				Optional:            true,
+				Computed:            true,
+			},
+			"billing_handle": schema.StringAttribute{
+				MarkdownDescription: "The billing contact handle for the domain.",
+				Optional:            true,
+				Computed:            true,
+			},
+			"period": schema.Int64Attribute{
+				MarkdownDescription: "Registration period in years.",
+				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}
@@ -127,16 +141,31 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	createReq.Domain.Name = name
 	createReq.Domain.Extension = extension
 	
+	// Set required owner handle
+	createReq.OwnerHandle = plan.OwnerHandle.ValueString()
+	
+	// Set optional contact handles
+	if !plan.AdminHandle.IsNull() {
+		createReq.AdminHandle = plan.AdminHandle.ValueString()
+	}
+	if !plan.TechHandle.IsNull() {
+		createReq.TechHandle = plan.TechHandle.ValueString()
+	}
+	if !plan.BillingHandle.IsNull() {
+		createReq.BillingHandle = plan.BillingHandle.ValueString()
+	}
+	
+	// Set period if specified
+	if !plan.Period.IsNull() {
+		createReq.Period = int(plan.Period.ValueInt64())
+	}
+	
 	// Set autorenew
 	if !plan.Autorenew.IsNull() && plan.Autorenew.ValueBool() {
 		createReq.Autorenew = "on"
 	} else {
 		createReq.Autorenew = "off"
 	}
-
-	// Note: OwnerHandle is required by the API but not included in minimal spec
-	// For now, we'll need to handle this - the API will return an error if missing
-	// This is a limitation that should be documented
 
 	// Create the domain
 	_, err := client.Create(r.client, createReq)
@@ -200,17 +229,17 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 	state.Name = types.StringValue(domainName)
 	state.Status = types.StringValue(domain.Status)
 	
+	// Map contact handles
+	state.OwnerHandle = types.StringValue(domain.OwnerHandle)
+	state.AdminHandle = types.StringValue(domain.AdminHandle)
+	state.TechHandle = types.StringValue(domain.TechHandle)
+	state.BillingHandle = types.StringValue(domain.BillingHandle)
+	
 	// Map autorenew
 	if domain.Autorenew == "on" {
 		state.Autorenew = types.BoolValue(true)
 	} else {
 		state.Autorenew = types.BoolValue(false)
-	}
-
-	// TODO: Map nameservers when API support is added
-	// For now, keep existing state value if set
-	if state.Nameservers.IsNull() {
-		state.Nameservers = types.ListNull(types.StringType)
 	}
 
 	diags = resp.State.Set(ctx, &state)
@@ -252,6 +281,17 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	// Create update request with only changed mutable attributes
 	updateReq := &client.UpdateDomainRequest{}
+
+	// Update contact handles if changed
+	if !plan.AdminHandle.Equal(state.AdminHandle) {
+		updateReq.AdminHandle = plan.AdminHandle.ValueString()
+	}
+	if !plan.TechHandle.Equal(state.TechHandle) {
+		updateReq.TechHandle = plan.TechHandle.ValueString()
+	}
+	if !plan.BillingHandle.Equal(state.BillingHandle) {
+		updateReq.BillingHandle = plan.BillingHandle.ValueString()
+	}
 
 	// Update autorenew if changed
 	if !plan.Autorenew.Equal(state.Autorenew) {

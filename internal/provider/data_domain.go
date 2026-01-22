@@ -53,9 +53,24 @@ func (d *DomainDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				MarkdownDescription: "Whether the domain is set to auto-renew.",
 				Computed:            true,
 			},
-			"nameservers": schema.ListAttribute{
-				MarkdownDescription: "List of nameservers for the domain.",
-				ElementType:         types.StringType,
+			"owner_handle": schema.StringAttribute{
+				MarkdownDescription: "The owner contact handle for the domain.",
+				Computed:            true,
+			},
+			"admin_handle": schema.StringAttribute{
+				MarkdownDescription: "The admin contact handle for the domain.",
+				Computed:            true,
+			},
+			"tech_handle": schema.StringAttribute{
+				MarkdownDescription: "The tech contact handle for the domain.",
+				Computed:            true,
+			},
+			"billing_handle": schema.StringAttribute{
+				MarkdownDescription: "The billing contact handle for the domain.",
+				Computed:            true,
+			},
+			"period": schema.Int64Attribute{
+				MarkdownDescription: "Registration period in years.",
 				Computed:            true,
 			},
 		},
@@ -115,15 +130,18 @@ func (d *DomainDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	state.Name = types.StringValue(domainName)
 	state.Status = types.StringValue(domain.Status)
 	
+	// Map contact handles
+	state.OwnerHandle = types.StringValue(domain.OwnerHandle)
+	state.AdminHandle = types.StringValue(domain.AdminHandle)
+	state.TechHandle = types.StringValue(domain.TechHandle)
+	state.BillingHandle = types.StringValue(domain.BillingHandle)
+	
 	// Map autorenew
 	if domain.Autorenew == "on" {
 		state.Autorenew = types.BoolValue(true)
 	} else {
 		state.Autorenew = types.BoolValue(false)
 	}
-
-	// TODO: Map nameservers when API support is added
-	state.Nameservers = types.ListNull(types.StringType)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
