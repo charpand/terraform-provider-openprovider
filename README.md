@@ -5,7 +5,7 @@ A Go client library for the Openprovider.org API.
 ## Installation
 
 ```bash
-go get github.com/charpand/openprovider-go
+go get github.com/charpand/terraform-provider-openprovider
 ```
 
 ## Documentation

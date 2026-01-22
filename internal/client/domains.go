@@ -1,13 +1,11 @@
-// Package domains provides functionality for working with domains.
-package domains
+// Package client provides functionality for working with domains.
+package client
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/charpand/openprovider-go"
 )
 
 // Domain represents a domain entity.
@@ -44,7 +42,7 @@ type ListDomainsResponse struct {
 }
 
 // List retrieves a list of domains from the Openprovider API.
-func List(c *openprovider.Client) ([]Domain, error) {
+func List(c *Client) ([]Domain, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1beta/domains", c.BaseURL), nil)
 	if err != nil {
 		return nil, err

@@ -1,17 +1,15 @@
 // Package domains_test contains tests for the domains package.
-package domains_test
+package client
 
 import (
 	"net/http"
 	"os"
 	"testing"
 
-	"github.com/charpand/openprovider-go"
-	"github.com/charpand/openprovider-go/domains"
-	"github.com/charpand/openprovider-go/internal/testutils"
+	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
 )
 
-func TestUpdateDomain(t *testing.T) {
+func TestCreateDomain(t *testing.T) {
 	baseURL := os.Getenv("TEST_API_BASE_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:4010"
@@ -21,20 +19,22 @@ func TestUpdateDomain(t *testing.T) {
 		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
 	}
 
-	config := openprovider.Config{
+	config := Config{
 		BaseURL:    baseURL,
 		Username:   "test",
 		Password:   "test",
 		HTTPClient: httpClient,
 	}
-	client := openprovider.NewClient(config)
+	client := NewClient(config)
 
-	// Update a test domain
-	req := &domains.UpdateDomainRequest{
-		Autorenew: "on",
-	}
+	// Create a test domain request
+	req := &CreateDomainRequest{}
+	req.Domain.Name = "example"
+	req.Domain.Extension = "com"
+	req.OwnerHandle = "testowner"
+	req.Period = 1
 
-	domain, err := domains.Update(client, 123, req)
+	domain, err := Create(client, req)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

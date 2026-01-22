@@ -1,12 +1,10 @@
-// Package openprovider provides a client for interacting with the OpenProvider API.
-package openprovider
+// Package client provides a client for interacting with the OpenProvider API.
+package client
 
 import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/charpand/openprovider-go/authentication"
 )
 
 const (
@@ -65,7 +63,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.HTTPClient.Do(req)
 	if err == nil && resp.StatusCode == http.StatusUnauthorized && c.Username != "" && c.Password != "" {
 		// Try to login and retry the request
-		token, err := authentication.Login(c.HTTPClient, c.BaseURL, "127.0.0.1", c.Username, c.Password)
+		token, err := Login(c.HTTPClient, c.BaseURL, "127.0.0.1", c.Username, c.Password)
 		if err != nil {
 			return nil, fmt.Errorf("authentication failed: %w", err)
 		}

@@ -1,5 +1,5 @@
 // Package domains provides functionality for working with domains.
-package domains
+package client
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/charpand/openprovider-go"
 )
 
 // DeleteDomainResponse represents a response for deleting a domain.
@@ -20,8 +19,8 @@ type DeleteDomainResponse struct {
 
 // Delete deletes a domain by ID from the Openprovider API.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/domains/{id}
-func Delete(c *openprovider.Client, id int) error {
+// Endpoint: DELETE https://api.eu/v1beta/domains/{id}
+func Delete(c *Client, id int) error {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/v1beta/domains/%d", c.BaseURL, id), nil)
 	if err != nil {
 		return err

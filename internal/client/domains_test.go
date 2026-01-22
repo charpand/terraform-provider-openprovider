@@ -1,14 +1,12 @@
 // Package domains_test contains tests for the domains package.
-package domains_test
+package client
 
 import (
 	"net/http"
 	"os"
 	"testing"
 
-	"github.com/charpand/openprovider-go"
-	"github.com/charpand/openprovider-go/domains"
-	"github.com/charpand/openprovider-go/internal/testutils"
+	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
 )
 
 func TestListDomains(t *testing.T) {
@@ -21,15 +19,15 @@ func TestListDomains(t *testing.T) {
 		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
 	}
 
-	config := openprovider.Config{
+	config := Config{
 		BaseURL:    baseURL,
 		Username:   "test",
 		Password:   "test",
 		HTTPClient: httpClient,
 	}
-	client := openprovider.NewClient(config)
+	client := NewClient(config)
 
-	resp, err := domains.List(client)
+	resp, err := List(client)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

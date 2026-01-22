@@ -3,7 +3,7 @@
 ## Initialization
 
 ```go
-import "github.com/charpand/openprovider-go"
+import "github.com/charpand/terraform-provider-openprovider"
 
 client := openprovider.NewClient(openprovider.Config{
 BaseURL: "https://api.openprovider.eu",
@@ -15,7 +15,7 @@ BaseURL: "https://api.openprovider.eu",
 ### List Domains
 
 ```go
-import "github.com/charpand/openprovider-go/domains"
+import "github.com/charpand/terraform-provider-openprovider/domains"
 
 results, err := domains.List(client)
 ```
@@ -23,7 +23,7 @@ results, err := domains.List(client)
 ### Get Domain
 
 ```go
-import "github.com/charpand/openprovider-go/domains"
+import "github.com/charpand/terraform-provider-openprovider/domains"
 
 domain, err := domains.Get(client, 123)
 ```

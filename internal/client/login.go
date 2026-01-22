@@ -1,5 +1,5 @@
 // Package authentication provides functionality for user authentication with the OpenProvider API.
-package authentication
+package client
 
 import (
 	"bytes"

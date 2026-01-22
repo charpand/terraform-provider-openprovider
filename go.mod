@@ -1,3 +1,3 @@
-module github.com/charpand/openprovider-go
+module github.com/charpand/terraform-provider-openprovider
 
 go 1.23
