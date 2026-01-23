@@ -16,12 +16,13 @@ type CreateDomainRequest struct {
 		Name      string `json:"name"`
 		Extension string `json:"extension"`
 	} `json:"domain"`
-	OwnerHandle   string `json:"owner_handle"`
-	AdminHandle   string `json:"admin_handle,omitempty"`
-	TechHandle    string `json:"tech_handle,omitempty"`
-	BillingHandle string `json:"billing_handle,omitempty"`
-	Period        int    `json:"period,omitempty"`
-	Autorenew     string `json:"autorenew,omitempty"`
+	OwnerHandle   string       `json:"owner_handle"`
+	AdminHandle   string       `json:"admin_handle,omitempty"`
+	TechHandle    string       `json:"tech_handle,omitempty"`
+	BillingHandle string       `json:"billing_handle,omitempty"`
+	Period        int          `json:"period,omitempty"`
+	Autorenew     string       `json:"autorenew,omitempty"`
+	Nameservers   []Nameserver `json:"name_servers,omitempty"`
 }
 
 // CreateDomainResponse represents a response for creating a domain.

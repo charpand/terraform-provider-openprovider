@@ -12,11 +12,12 @@ import (
 
 // UpdateDomainRequest represents a request to update a domain.
 type UpdateDomainRequest struct {
-	AdminHandle   string `json:"admin_handle,omitempty"`
-	TechHandle    string `json:"tech_handle,omitempty"`
-	BillingHandle string `json:"billing_handle,omitempty"`
-	Autorenew     string `json:"autorenew,omitempty"`
-	IsLocked      *bool  `json:"is_locked,omitempty"`
+	AdminHandle   string       `json:"admin_handle,omitempty"`
+	TechHandle    string       `json:"tech_handle,omitempty"`
+	BillingHandle string       `json:"billing_handle,omitempty"`
+	Autorenew     string       `json:"autorenew,omitempty"`
+	IsLocked      *bool        `json:"is_locked,omitempty"`
+	Nameservers   []Nameserver `json:"name_servers,omitempty"`
 }
 
 // UpdateDomainResponse represents a response for updating a domain.

@@ -93,6 +93,19 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Computed:            true,
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"nameserver": schema.ListNestedBlock{
+				MarkdownDescription: "List of nameservers for the domain.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"hostname": schema.StringAttribute{
+							MarkdownDescription: "The hostname of the nameserver (e.g., ns1.example.com).",
+							Required:            true,
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -168,6 +181,16 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		createReq.Autorenew = "off"
 	}
 
+	// Set nameservers if specified
+	if len(plan.Nameservers) > 0 {
+		createReq.Nameservers = make([]domains.Nameserver, len(plan.Nameservers))
+		for i, ns := range plan.Nameservers {
+			createReq.Nameservers[i] = domains.Nameserver{
+				Hostname: ns.Hostname.ValueString(),
+			}
+		}
+	}
+
 	// Create the domain
 	domain, err := domains.Create(r.client, createReq)
 	if err != nil {
@@ -201,6 +224,16 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.Autorenew = types.BoolValue(true)
 	} else {
 		plan.Autorenew = types.BoolValue(false)
+	}
+
+	// Map nameservers from response
+	if len(domain.Nameservers) > 0 {
+		plan.Nameservers = make([]NameserverModel, len(domain.Nameservers))
+		for i, ns := range domain.Nameservers {
+			plan.Nameservers[i] = NameserverModel{
+				Hostname: types.StringValue(ns.Hostname),
+			}
+		}
 	}
 
 	// Save state
@@ -251,6 +284,18 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 		state.Autorenew = types.BoolValue(true)
 	} else {
 		state.Autorenew = types.BoolValue(false)
+	}
+
+	// Map nameservers
+	if len(domain.Nameservers) > 0 {
+		state.Nameservers = make([]NameserverModel, len(domain.Nameservers))
+		for i, ns := range domain.Nameservers {
+			state.Nameservers[i] = NameserverModel{
+				Hostname: types.StringValue(ns.Hostname),
+			}
+		}
+	} else {
+		state.Nameservers = []NameserverModel{}
 	}
 
 	diags = resp.State.Set(ctx, &state)
@@ -312,6 +357,25 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 			updateReq.Autorenew = "on"
 		} else {
 			updateReq.Autorenew = "off"
+		}
+	}
+
+	// Update nameservers if changed
+	planNsChanged := len(plan.Nameservers) != len(state.Nameservers)
+	if !planNsChanged && len(plan.Nameservers) > 0 {
+		for i := range plan.Nameservers {
+			if !plan.Nameservers[i].Hostname.Equal(state.Nameservers[i].Hostname) {
+				planNsChanged = true
+				break
+			}
+		}
+	}
+	if planNsChanged {
+		updateReq.Nameservers = make([]domains.Nameserver, len(plan.Nameservers))
+		for i, ns := range plan.Nameservers {
+			updateReq.Nameservers[i] = domains.Nameserver{
+				Hostname: ns.Hostname.ValueString(),
+			}
 		}
 	}
 

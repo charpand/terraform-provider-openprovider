@@ -6,4 +6,12 @@ resource "openprovider_domain" "prod" {
   billing_handle = "bill001"
   period         = 2
   autorenew      = true
+
+  nameserver {
+    hostname = "ns1.example.com"
+  }
+
+  nameserver {
+    hostname = "ns2.example.com"
+  }
 }

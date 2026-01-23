@@ -9,24 +9,30 @@ import (
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
+// Nameserver represents a domain nameserver.
+type Nameserver struct {
+	Hostname string `json:"hostname"`
+}
+
 // Domain represents a domain entity.
 type Domain struct {
-	ID             int    `json:"id"`
-	ActiveDate     string `json:"active_date"`
-	AdminHandle    string `json:"admin_handle"`
-	AuthCode       string `json:"auth_code"`
-	Autorenew      string `json:"autorenew"`
-	BillingHandle  string `json:"billing_handle"`
-	CanRenew       bool   `json:"can_renew"`
-	CreationDate   string `json:"creation_date"`
-	ExpirationDate string `json:"expiration_date"`
-	IsAbusive      bool   `json:"is_abusive"`
-	IsLocked       bool   `json:"is_locked"`
-	LastChanged    string `json:"last_changed"`
-	OrderDate      string `json:"order_date"`
-	OwnerHandle    string `json:"owner_handle"`
-	Status         string `json:"status"`
-	TechHandle     string `json:"tech_handle"`
+	ID             int          `json:"id"`
+	ActiveDate     string       `json:"active_date"`
+	AdminHandle    string       `json:"admin_handle"`
+	AuthCode       string       `json:"auth_code"`
+	Autorenew      string       `json:"autorenew"`
+	BillingHandle  string       `json:"billing_handle"`
+	CanRenew       bool         `json:"can_renew"`
+	CreationDate   string       `json:"creation_date"`
+	ExpirationDate string       `json:"expiration_date"`
+	IsAbusive      bool         `json:"is_abusive"`
+	IsLocked       bool         `json:"is_locked"`
+	LastChanged    string       `json:"last_changed"`
+	OrderDate      string       `json:"order_date"`
+	OwnerHandle    string       `json:"owner_handle"`
+	Status         string       `json:"status"`
+	TechHandle     string       `json:"tech_handle"`
+	Nameservers    []Nameserver `json:"name_servers,omitempty"`
 	Domain         struct {
 		Name      string `json:"name"`
 		Extension string `json:"extension"`

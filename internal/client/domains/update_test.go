@@ -50,3 +50,47 @@ func TestUpdateDomain(t *testing.T) {
 		t.Log("Note: Domain name not populated by mock server")
 	}
 }
+
+func TestUpdateDomainWithNameservers(t *testing.T) {
+	baseURL := os.Getenv("TEST_API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:4010"
+	}
+
+	httpClient := &http.Client{
+		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
+	}
+
+	config := client.Config{
+		BaseURL:    baseURL,
+		Username:   "test",
+		Password:   "test",
+		HTTPClient: httpClient,
+	}
+	apiClient := client.NewClient(config)
+
+	// Update a test domain with nameservers
+	req := &domains.UpdateDomainRequest{
+		Autorenew: "on",
+		Nameservers: []domains.Nameserver{
+			{Hostname: "ns1.cloudflare.com"},
+			{Hostname: "ns2.cloudflare.com"},
+		},
+	}
+
+	domain, err := domains.Update(apiClient, 123, req)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if domain == nil {
+		t.Log("Note: No domain returned by mock server (check your swagger examples)")
+		return
+	}
+
+	// Optional: check if nameservers are populated (not a hard failure)
+	if len(domain.Nameservers) == 0 {
+		t.Log("Note: Nameservers not populated by mock server")
+	}
+}
