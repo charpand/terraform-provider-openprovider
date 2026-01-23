@@ -1,5 +1,5 @@
 resource "openprovider_domain" "prod" {
-  name           = "mydomain.com"
+  domain         = "mydomain.com"
   owner_handle   = "owner123"
   admin_handle   = "admin456"
   tech_handle    = "tech789"

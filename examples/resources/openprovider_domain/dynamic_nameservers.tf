@@ -19,7 +19,7 @@ variable "nameservers" {
 }
 
 resource "openprovider_domain" "domain" {
-  name         = var.domain_name
+  domain       = var.domain_name
   owner_handle = "owner123"
 
   dynamic "nameserver" {

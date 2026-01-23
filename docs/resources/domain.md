@@ -15,7 +15,7 @@ Manages an OpenProvider domain.
 
 ```terraform
 resource "openprovider_domain" "example" {
-  name         = "example.com"
+  domain       = "example.com"
   owner_handle = "owner123"
   period       = 1
 }
@@ -25,7 +25,7 @@ resource "openprovider_domain" "example" {
 
 ```terraform
 resource "openprovider_domain" "prod" {
-  name           = "mydomain.com"
+  domain         = "mydomain.com"
   owner_handle   = "owner123"
   admin_handle   = "admin456"
   tech_handle    = "tech789"
@@ -51,7 +51,7 @@ resource "openprovider_domain" "prod" {
 
 ### Required
 
-- `name` (String) The domain name (e.g., example.com).
+- `domain` (String) The domain name (e.g., example.com).
 - `owner_handle` (String) The owner contact handle for the domain.
 
 ### Optional

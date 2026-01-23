@@ -51,7 +51,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"name": schema.StringAttribute{
+			"domain": schema.StringAttribute{
 				MarkdownDescription: "The domain name (e.g., example.com).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -442,9 +442,9 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	// The import ID is the domain name
 	domainName := req.ID
 
-	// Set both id and name to the import ID
+	// Set both id and domain to the import ID
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), domainName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), domainName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain"), domainName)...)
 }
 
 // getDomainByName finds a domain by its name using the List API.

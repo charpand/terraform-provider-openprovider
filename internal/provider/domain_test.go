@@ -18,7 +18,7 @@ func TestDomainResourceSchema(t *testing.T) {
 		t.Fatal("Schema attributes should not be nil")
 	}
 
-	expectedAttrs := []string{"id", "name", "status", "autorenew", "owner_handle", "admin_handle", "tech_handle", "billing_handle", "period"}
+	expectedAttrs := []string{"id", "domain", "status", "autorenew", "owner_handle", "admin_handle", "tech_handle", "billing_handle", "period"}
 	for _, attr := range expectedAttrs {
 		if _, ok := resp.Schema.Attributes[attr]; !ok {
 			t.Errorf("Expected attribute %s not found in schema", attr)

@@ -13,7 +13,7 @@ Retrieves information about an OpenProvider domain.
 
 ```terraform
 data "openprovider_domain" "example" {
-  name = "example.com"
+  domain = "example.com"
 }
 ```
 
