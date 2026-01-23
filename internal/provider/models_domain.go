@@ -23,4 +23,5 @@ type DomainModel struct {
 	BillingHandle types.String      `tfsdk:"billing_handle"`
 	Period        types.Int64       `tfsdk:"period"`
 	Nameservers   []NameserverModel `tfsdk:"nameserver"`
+	NSGroup       types.String      `tfsdk:"ns_group"`
 }
