@@ -251,6 +251,8 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Map ns_group from response
 	if domain.NSGroup != "" {
 		plan.NSGroup = types.StringValue(domain.NSGroup)
+	} else {
+		plan.NSGroup = types.StringNull()
 	}
 
 	// Map nameservers from response (for backward compatibility)
@@ -316,6 +318,8 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 	// Map ns_group from response
 	if domain.NSGroup != "" {
 		state.NSGroup = types.StringValue(domain.NSGroup)
+	} else {
+		state.NSGroup = types.StringNull()
 	}
 
 	// Map nameservers (for backward compatibility)
@@ -408,6 +412,9 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if !plan.NSGroup.Equal(state.NSGroup) {
 		if hasNSGroup {
 			updateReq.NSGroup = plan.NSGroup.ValueString()
+		} else {
+			// Explicitly clear ns_group if it's being removed
+			updateReq.NSGroup = ""
 		}
 	}
 

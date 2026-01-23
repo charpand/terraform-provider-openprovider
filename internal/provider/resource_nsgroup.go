@@ -148,9 +148,13 @@ func (r *NSGroupResource) Create(ctx context.Context, req resource.CreateRequest
 			}
 			if ns.IP != "" {
 				plan.Nameservers[i].IP = types.StringValue(ns.IP)
+			} else {
+				plan.Nameservers[i].IP = types.StringNull()
 			}
 			if ns.IP6 != "" {
 				plan.Nameservers[i].IP6 = types.StringValue(ns.IP6)
+			} else {
+				plan.Nameservers[i].IP6 = types.StringNull()
 			}
 		}
 	}
@@ -208,9 +212,13 @@ func (r *NSGroupResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 			if ns.IP != "" {
 				state.Nameservers[i].IP = types.StringValue(ns.IP)
+			} else {
+				state.Nameservers[i].IP = types.StringNull()
 			}
 			if ns.IP6 != "" {
 				state.Nameservers[i].IP6 = types.StringValue(ns.IP6)
+			} else {
+				state.Nameservers[i].IP6 = types.StringNull()
 			}
 		}
 	} else {
