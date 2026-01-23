@@ -95,6 +95,7 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewDomainResource,
+		NewNSGroupResource,
 	}
 }
 
