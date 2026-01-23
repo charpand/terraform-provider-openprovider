@@ -39,6 +39,11 @@ This section guides you through submitting an enhancement suggestion, including 
 *   Use the present tense ("Add feature" not "Added feature").
 *   Use the imperative mood ("Move cursor to..." not "Moves cursor to...").
 *   Limit the first line to 72 characters or less.
+*   Commit messages must follow the changelog-valid convention described at
+    https://ec.europa.eu/component-library/v1.15.0/eu/docs/conventions/git/.
+    This applies to all commits, including AI-assisted commits.
+*   Optional template: `templates/commit-message.txt`. Enable with
+    `git config commit.template templates/commit-message.txt`.
 
 ### Go Styleguide
 

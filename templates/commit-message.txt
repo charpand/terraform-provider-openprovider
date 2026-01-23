@@ -1,0 +1,13 @@
+# Changelog-valid commit message format (EU Component Library convention)
+#
+# type(scope): subject
+#
+# Types: feat, fix, docs, style, refactor, perf, test, chore, ci, build
+# Scope: optional, concise area (e.g. domains, dns, api, docs)
+# Subject: imperative, <= 72 chars, no trailing period
+#
+# Examples:
+# feat(domains): add dns zone transfer helper
+# fix(api): handle empty response from zones list
+# docs(readme): document token configuration
+
