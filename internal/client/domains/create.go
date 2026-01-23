@@ -23,6 +23,7 @@ type CreateDomainRequest struct {
 	Period        int          `json:"period,omitempty"`
 	Autorenew     string       `json:"autorenew,omitempty"`
 	Nameservers   []Nameserver `json:"name_servers,omitempty"`
+	NSGroup       string       `json:"ns_group,omitempty"`
 }
 
 // CreateDomainResponse represents a response for creating a domain.

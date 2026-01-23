@@ -18,6 +18,7 @@ type UpdateDomainRequest struct {
 	Autorenew     string       `json:"autorenew,omitempty"`
 	IsLocked      *bool        `json:"is_locked,omitempty"`
 	Nameservers   []Nameserver `json:"name_servers,omitempty"`
+	NSGroup       string       `json:"ns_group,omitempty"`
 }
 
 // UpdateDomainResponse represents a response for updating a domain.

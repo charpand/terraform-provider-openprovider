@@ -33,6 +33,7 @@ type Domain struct {
 	Status         string       `json:"status"`
 	TechHandle     string       `json:"tech_handle"`
 	Nameservers    []Nameserver `json:"name_servers,omitempty"`
+	NSGroup        string       `json:"ns_group,omitempty"`
 	Domain         struct {
 		Name      string `json:"name"`
 		Extension string `json:"extension"`
