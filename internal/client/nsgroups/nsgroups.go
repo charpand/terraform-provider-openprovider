@@ -11,9 +11,11 @@ import (
 
 // Nameserver represents a nameserver in a nameserver group.
 type Nameserver struct {
-	Name string `json:"name"`
-	IP   string `json:"ip,omitempty"`
-	IP6  string `json:"ip6,omitempty"`
+	ID    int    `json:"id,omitempty"`
+	Name  string `json:"name"`
+	IP    string `json:"ip,omitempty"`
+	IP6   string `json:"ip6,omitempty"`
+	SeqNr int    `json:"seq_nr,omitempty"`
 }
 
 // NSGroup represents a nameserver group entity.
@@ -21,6 +23,8 @@ type NSGroup struct {
 	ID          int          `json:"id"`
 	Name        string       `json:"ns_group"`
 	Nameservers []Nameserver `json:"name_servers"`
+	DomainCount int          `json:"domain_count,omitempty"`
+	NsCount     int          `json:"ns_count,omitempty"`
 	CreatedAt   string       `json:"created_at,omitempty"`
 	UpdatedAt   string       `json:"updated_at,omitempty"`
 }
