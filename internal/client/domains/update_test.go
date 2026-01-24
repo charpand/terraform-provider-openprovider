@@ -73,8 +73,8 @@ func TestUpdateDomainWithNameservers(t *testing.T) {
 	req := &domains.UpdateDomainRequest{
 		Autorenew: "on",
 		Nameservers: []domains.Nameserver{
-			{Hostname: "ns1.cloudflare.com"},
-			{Hostname: "ns2.cloudflare.com"},
+			{Name: "ns1.cloudflare.com"},
+			{Name: "ns2.cloudflare.com"},
 		},
 	}
 

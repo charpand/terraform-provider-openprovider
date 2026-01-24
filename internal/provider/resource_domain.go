@@ -208,7 +208,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		createReq.Nameservers = make([]domains.Nameserver, len(plan.Nameservers))
 		for i, ns := range plan.Nameservers {
 			createReq.Nameservers[i] = domains.Nameserver{
-				Hostname: ns.Hostname.ValueString(),
+				Name: ns.Hostname.ValueString(),
 			}
 		}
 	}
@@ -260,7 +260,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.Nameservers = make([]NameserverModel, len(domain.Nameservers))
 		for i, ns := range domain.Nameservers {
 			plan.Nameservers[i] = NameserverModel{
-				Hostname: types.StringValue(ns.Hostname),
+				Hostname: types.StringValue(ns.Name),
 			}
 		}
 	}
@@ -327,7 +327,7 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 		state.Nameservers = make([]NameserverModel, len(domain.Nameservers))
 		for i, ns := range domain.Nameservers {
 			state.Nameservers[i] = NameserverModel{
-				Hostname: types.StringValue(ns.Hostname),
+				Hostname: types.StringValue(ns.Name),
 			}
 		}
 	} else {
@@ -433,7 +433,7 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		updateReq.Nameservers = make([]domains.Nameserver, len(plan.Nameservers))
 		for i, ns := range plan.Nameservers {
 			updateReq.Nameservers[i] = domains.Nameserver{
-				Hostname: ns.Hostname.ValueString(),
+				Name: ns.Hostname.ValueString(),
 			}
 		}
 	}

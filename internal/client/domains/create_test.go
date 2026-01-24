@@ -78,8 +78,8 @@ func TestCreateDomainWithNameservers(t *testing.T) {
 	req.OwnerHandle = "testowner"
 	req.Period = 1
 	req.Nameservers = []domains.Nameserver{
-		{Hostname: "ns1.example.com"},
-		{Hostname: "ns2.example.com"},
+		{Name: "ns1.example.com"},
+		{Name: "ns2.example.com"},
 	}
 
 	domain, err := domains.Create(apiClient, req)

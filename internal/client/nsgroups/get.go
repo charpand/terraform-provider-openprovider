@@ -26,7 +26,7 @@ type GetNSGroupByNameResponse struct {
 // GetByName retrieves a nameserver group by name from the Openprovider API.
 // This is useful for import operations where the name is known but not the ID.
 func GetByName(c *client.Client, name string) (*NSGroup, error) {
-	path := fmt.Sprintf("/v1beta/dns/nameservers/groups?name_pattern=%s", name)
+	path := fmt.Sprintf("/v1beta/dns/nameservers/groups?ns_group_pattern=%s", name)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

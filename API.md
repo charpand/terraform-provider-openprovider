@@ -25,7 +25,7 @@ groups, err := nsgroups.List(c)
 ```go
 import "github.com/charpand/terraform-provider-openprovider/internal/client/nsgroups"
 
-group, err := nsgroups.Get(c, 123)
+group, err := nsgroups.Get(c, "my-ns-group")
 ```
 
 ### Get NS Group by Name
@@ -64,7 +64,7 @@ req := &nsgroups.UpdateNSGroupRequest{
 	},
 }
 
-group, err := nsgroups.Update(c, 123, req)
+group, err := nsgroups.Update(c, "my-ns-group", req)
 ```
 
 ### Delete NS Group
@@ -72,7 +72,7 @@ group, err := nsgroups.Update(c, 123, req)
 ```go
 import "github.com/charpand/terraform-provider-openprovider/internal/client/nsgroups"
 
-err := nsgroups.Delete(c, 123)
+err := nsgroups.Delete(c, "my-ns-group")
 ```
 
 ## Domains
@@ -133,8 +133,8 @@ req.Domain.Extension = "com"
 req.OwnerHandle = "owner123"
 req.Period = 1
 req.Nameservers = []domains.Nameserver{
-	{Hostname: "ns1.example.com"},
-	{Hostname: "ns2.example.com"},
+	{Name: "ns1.example.com"},
+	{Name: "ns2.example.com"},
 }
 
 domain, err := domains.Create(c, req)
@@ -159,8 +159,8 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/doma
 
 req := &domains.UpdateDomainRequest{
     Nameservers: []domains.Nameserver{
-        {Hostname: "ns1.cloudflare.com"},
-        {Hostname: "ns2.cloudflare.com"},
+        {Name: "ns1.cloudflare.com"},
+        {Name: "ns2.cloudflare.com"},
     },
 }
 
