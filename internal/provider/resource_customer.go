@@ -176,9 +176,46 @@ func (r *CustomerResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	// Validate required nested blocks
+	if plan.Phone == nil {
+		resp.Diagnostics.AddError(
+			"Missing Required Block",
+			"The phone block is required for creating a customer.",
+		)
+	}
+	if plan.Address == nil {
+		resp.Diagnostics.AddError(
+			"Missing Required Block",
+			"The address block is required for creating a customer.",
+		)
+	}
+	if plan.Name == nil {
+		resp.Diagnostics.AddError(
+			"Missing Required Block",
+			"The name block is required for creating a customer.",
+		)
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Create customer request
 	createReq := &customers.CreateCustomerRequest{
 		Email: plan.Email.ValueString(),
+		Phone: customers.Phone{
+			CountryCode: plan.Phone.CountryCode.ValueString(),
+			AreaCode:    plan.Phone.AreaCode.ValueString(),
+			Number:      plan.Phone.Number.ValueString(),
+		},
+		Address: customers.Address{
+			Street:  plan.Address.Street.ValueString(),
+			City:    plan.Address.City.ValueString(),
+			Country: plan.Address.Country.ValueString(),
+		},
+		Name: customers.Name{
+			FirstName: plan.Name.FirstName.ValueString(),
+			LastName:  plan.Name.LastName.ValueString(),
+		},
 	}
 
 	if !plan.CompanyName.IsNull() {
@@ -191,48 +228,26 @@ func (r *CustomerResource) Create(ctx context.Context, req resource.CreateReques
 		createReq.Comments = plan.Comments.ValueString()
 	}
 
-	// Set phone
-	if plan.Phone != nil {
-		createReq.Phone = customers.Phone{
-			CountryCode: plan.Phone.CountryCode.ValueString(),
-			AreaCode:    plan.Phone.AreaCode.ValueString(),
-			Number:      plan.Phone.Number.ValueString(),
-		}
+	// Set optional address fields
+	if !plan.Address.Number.IsNull() {
+		createReq.Address.Number = plan.Address.Number.ValueString()
+	}
+	if !plan.Address.Suffix.IsNull() {
+		createReq.Address.Suffix = plan.Address.Suffix.ValueString()
+	}
+	if !plan.Address.State.IsNull() {
+		createReq.Address.State = plan.Address.State.ValueString()
+	}
+	if !plan.Address.Zipcode.IsNull() {
+		createReq.Address.Zipcode = plan.Address.Zipcode.ValueString()
 	}
 
-	// Set address
-	if plan.Address != nil {
-		createReq.Address = customers.Address{
-			Street:  plan.Address.Street.ValueString(),
-			City:    plan.Address.City.ValueString(),
-			Country: plan.Address.Country.ValueString(),
-		}
-		if !plan.Address.Number.IsNull() {
-			createReq.Address.Number = plan.Address.Number.ValueString()
-		}
-		if !plan.Address.Suffix.IsNull() {
-			createReq.Address.Suffix = plan.Address.Suffix.ValueString()
-		}
-		if !plan.Address.State.IsNull() {
-			createReq.Address.State = plan.Address.State.ValueString()
-		}
-		if !plan.Address.Zipcode.IsNull() {
-			createReq.Address.Zipcode = plan.Address.Zipcode.ValueString()
-		}
+	// Set optional name fields
+	if !plan.Name.Initials.IsNull() {
+		createReq.Name.Initials = plan.Name.Initials.ValueString()
 	}
-
-	// Set name
-	if plan.Name != nil {
-		createReq.Name = customers.Name{
-			FirstName: plan.Name.FirstName.ValueString(),
-			LastName:  plan.Name.LastName.ValueString(),
-		}
-		if !plan.Name.Initials.IsNull() {
-			createReq.Name.Initials = plan.Name.Initials.ValueString()
-		}
-		if !plan.Name.Prefix.IsNull() {
-			createReq.Name.Prefix = plan.Name.Prefix.ValueString()
-		}
+	if !plan.Name.Prefix.IsNull() {
+		createReq.Name.Prefix = plan.Name.Prefix.ValueString()
 	}
 
 	// Create the customer
