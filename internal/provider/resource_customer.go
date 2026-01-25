@@ -297,77 +297,7 @@ func (r *CustomerResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	// Map to state
-	state.Handle = types.StringValue(customer.Handle)
-	state.ID = types.StringValue(customer.Handle)
-	state.Email = types.StringValue(customer.Email)
-	
-	if customer.CompanyName != "" {
-		state.CompanyName = types.StringValue(customer.CompanyName)
-	} else {
-		state.CompanyName = types.StringNull()
-	}
-	
-	if customer.Locale != "" {
-		state.Locale = types.StringValue(customer.Locale)
-	} else {
-		state.Locale = types.StringNull()
-	}
-	
-	if customer.Comments != "" {
-		state.Comments = types.StringValue(customer.Comments)
-	} else {
-		state.Comments = types.StringNull()
-	}
-
-	// Map phone
-	state.Phone = &PhoneModel{
-		CountryCode: types.StringValue(customer.Phone.CountryCode),
-		AreaCode:    types.StringValue(customer.Phone.AreaCode),
-		Number:      types.StringValue(customer.Phone.Number),
-	}
-
-	// Map address
-	state.Address = &AddressModel{
-		Street:  types.StringValue(customer.Address.Street),
-		City:    types.StringValue(customer.Address.City),
-		Country: types.StringValue(customer.Address.Country),
-	}
-	if customer.Address.Number != "" {
-		state.Address.Number = types.StringValue(customer.Address.Number)
-	} else {
-		state.Address.Number = types.StringNull()
-	}
-	if customer.Address.Suffix != "" {
-		state.Address.Suffix = types.StringValue(customer.Address.Suffix)
-	} else {
-		state.Address.Suffix = types.StringNull()
-	}
-	if customer.Address.State != "" {
-		state.Address.State = types.StringValue(customer.Address.State)
-	} else {
-		state.Address.State = types.StringNull()
-	}
-	if customer.Address.Zipcode != "" {
-		state.Address.Zipcode = types.StringValue(customer.Address.Zipcode)
-	} else {
-		state.Address.Zipcode = types.StringNull()
-	}
-
-	// Map name
-	state.Name = &NameModel{
-		FirstName: types.StringValue(customer.Name.FirstName),
-		LastName:  types.StringValue(customer.Name.LastName),
-	}
-	if customer.Name.Initials != "" {
-		state.Name.Initials = types.StringValue(customer.Name.Initials)
-	} else {
-		state.Name.Initials = types.StringNull()
-	}
-	if customer.Name.Prefix != "" {
-		state.Name.Prefix = types.StringValue(customer.Name.Prefix)
-	} else {
-		state.Name.Prefix = types.StringNull()
-	}
+	state = *mapCustomerToModel(customer)
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
