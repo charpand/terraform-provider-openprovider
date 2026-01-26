@@ -71,8 +71,8 @@ Required:
 
 Optional:
 
-- `ip` (String) The IPv4 address of the nameserver (optional).
-- `ip6` (String) The IPv6 address of the nameserver (optional).
+- `ip` (String) The IPv4 address of the nameserver. Optional - will be automatically populated by the API if a valid hostname is provided.
+- `ip6` (String) The IPv6 address of the nameserver. Optional - will be automatically populated by the API if a valid hostname is provided.
 
 
 
