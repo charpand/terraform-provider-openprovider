@@ -327,13 +327,14 @@ func (r *CustomerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update optional fields if changed
-	if !plan.CompanyName.Equal(state.CompanyName) && !plan.CompanyName.IsNull() {
+	// Allow clearing fields by sending empty string when null
+	if !plan.CompanyName.Equal(state.CompanyName) {
 		updateReq.CompanyName = plan.CompanyName.ValueString()
 	}
-	if !plan.Locale.Equal(state.Locale) && !plan.Locale.IsNull() {
+	if !plan.Locale.Equal(state.Locale) {
 		updateReq.Locale = plan.Locale.ValueString()
 	}
-	if !plan.Comments.Equal(state.Comments) && !plan.Comments.IsNull() {
+	if !plan.Comments.Equal(state.Comments) {
 		updateReq.Comments = plan.Comments.ValueString()
 	}
 
