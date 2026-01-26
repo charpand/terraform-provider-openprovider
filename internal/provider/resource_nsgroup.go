@@ -63,12 +63,14 @@ func (r *NSGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Required:            true,
 						},
 						"ip": schema.StringAttribute{
-							MarkdownDescription: "The IPv4 address of the nameserver (optional).",
+							MarkdownDescription: "The IPv4 address of the nameserver. Optional - will be automatically populated by the API if a valid hostname is provided.",
 							Optional:            true,
+							Computed:            true,
 						},
 						"ip6": schema.StringAttribute{
-							MarkdownDescription: "The IPv6 address of the nameserver (optional).",
+							MarkdownDescription: "The IPv6 address of the nameserver. Optional - will be automatically populated by the API if a valid hostname is provided.",
 							Optional:            true,
+							Computed:            true,
 						},
 					},
 				},
