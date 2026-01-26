@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Health check documentation and improvements
+- Contributor Covenant code of conduct
+- .editorconfig for editor defaults
+- Makefile shortcuts for common scripts
+- Dependabot updates for Go modules
 
 ## [0.1.0] - Initial Release
 
