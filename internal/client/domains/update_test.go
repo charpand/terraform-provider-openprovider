@@ -2,32 +2,14 @@
 package domains_test
 
 import (
-	"net/http"
-	"os"
 	"testing"
 
-	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/charpand/terraform-provider-openprovider/internal/client/domains"
 	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
 )
 
 func TestUpdateDomain(t *testing.T) {
-	baseURL := os.Getenv("TEST_API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:4010"
-	}
-
-	httpClient := &http.Client{
-		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
-	}
-
-	config := client.Config{
-		BaseURL:    baseURL,
-		Username:   "test",
-		Password:   "test",
-		HTTPClient: httpClient,
-	}
-	apiClient := client.NewClient(config)
+	apiClient := testutils.SetupTestClient()
 
 	// Update a test domain
 	req := &domains.UpdateDomainRequest{
@@ -52,22 +34,7 @@ func TestUpdateDomain(t *testing.T) {
 }
 
 func TestUpdateDomainWithNameservers(t *testing.T) {
-	baseURL := os.Getenv("TEST_API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:4010"
-	}
-
-	httpClient := &http.Client{
-		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
-	}
-
-	config := client.Config{
-		BaseURL:    baseURL,
-		Username:   "test",
-		Password:   "test",
-		HTTPClient: httpClient,
-	}
-	apiClient := client.NewClient(config)
+	apiClient := testutils.SetupTestClient()
 
 	// Update a test domain with nameservers
 	req := &domains.UpdateDomainRequest{
