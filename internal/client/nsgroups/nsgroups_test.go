@@ -11,7 +11,8 @@ import (
 	"github.com/charpand/terraform-provider-openprovider/internal/testutils"
 )
 
-func TestListNSGroups(t *testing.T) {
+// setupTestClient creates a test client with default configuration.
+func setupTestClient() *client.Client {
 	baseURL := os.Getenv("TEST_API_BASE_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:4010"
@@ -27,7 +28,11 @@ func TestListNSGroups(t *testing.T) {
 		Password:   "test",
 		HTTPClient: httpClient,
 	}
-	apiClient := client.NewClient(config)
+	return client.NewClient(config)
+}
+
+func TestListNSGroups(t *testing.T) {
+	apiClient := setupTestClient()
 
 	groups, err := nsgroups.List(apiClient)
 
@@ -41,22 +46,7 @@ func TestListNSGroups(t *testing.T) {
 }
 
 func TestGetNSGroup(t *testing.T) {
-	baseURL := os.Getenv("TEST_API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:4010"
-	}
-
-	httpClient := &http.Client{
-		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
-	}
-
-	config := client.Config{
-		BaseURL:    baseURL,
-		Username:   "test",
-		Password:   "test",
-		HTTPClient: httpClient,
-	}
-	apiClient := client.NewClient(config)
+	apiClient := setupTestClient()
 
 	group, err := nsgroups.Get(apiClient, "test-group")
 
@@ -70,22 +60,7 @@ func TestGetNSGroup(t *testing.T) {
 }
 
 func TestCreateNSGroupPreservesIPFromAPI(t *testing.T) {
-	baseURL := os.Getenv("TEST_API_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:4010"
-	}
-
-	httpClient := &http.Client{
-		Transport: &testutils.MockTransport{RT: http.DefaultTransport},
-	}
-
-	config := client.Config{
-		BaseURL:    baseURL,
-		Username:   "test",
-		Password:   "test",
-		HTTPClient: httpClient,
-	}
-	apiClient := client.NewClient(config)
+	apiClient := setupTestClient()
 
 	// Create a NS group with only hostname (no IP/IP6)
 	req := &nsgroups.CreateNSGroupRequest{
