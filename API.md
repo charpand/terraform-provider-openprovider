@@ -241,3 +241,49 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/doma
 
 err := domains.Delete(c, 123)
 ```
+
+### Transfer Domain
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.TransferDomainRequest{}
+req.Domain.Name = "example"
+req.Domain.Extension = "com"
+req.AuthCode = "12345678"
+req.OwnerHandle = "owner123"
+req.Autorenew = "on"
+
+domain, err := domains.Transfer(c, req)
+```
+
+#### Transfer Domain with NS Group
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.TransferDomainRequest{}
+req.Domain.Name = "example"
+req.Domain.Extension = "com"
+req.AuthCode = "12345678"
+req.OwnerHandle = "owner123"
+req.NSGroup = "my-ns-group"
+
+domain, err := domains.Transfer(c, req)
+```
+
+#### Transfer Domain with Import Options
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.TransferDomainRequest{}
+req.Domain.Name = "example"
+req.Domain.Extension = "com"
+req.AuthCode = "12345678"
+req.OwnerHandle = "owner123"
+req.ImportContactsFromRegistry = true
+req.ImportNameserversFromRegistry = true
+
+domain, err := domains.Transfer(c, req)
+```
