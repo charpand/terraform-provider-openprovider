@@ -57,8 +57,16 @@ func Transfer(c *client.Client, req *TransferDomainRequest) (*Domain, error) {
 	}
 
 	defer func() {
-		_ = resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// Note: we can't return this error since we're in a defer
+			// In production code, you might want to log this
+			_ = closeErr
+		}
 	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
 
 	var result TransferDomainResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

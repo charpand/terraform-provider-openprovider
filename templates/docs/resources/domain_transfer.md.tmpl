@@ -14,7 +14,8 @@ Manages domain transfer to OpenProvider. Transfers a domain from another registr
 - **Transfer Process**: Domain transfers typically take 5-7 days to complete. The resource is created once the transfer is initiated (status: `REQ`), not when it completes (status: `ACT`).
 - **Auth Code**: The authorization code (EPP code) must be obtained from your current registrar before initiating the transfer.
 - **Security**: The auth code is marked as sensitive and should be stored securely (e.g., using variables with encrypted state backend).
-- **Delete Behavior**: Destroying this resource removes it from Terraform state only; the domain remains at Openprovider.
+- **Delete Behavior**: Destroying this resource removes it from Terraform state only; the domain remains at OpenProvider.
+- **Import Note**: After importing a transferred domain, you must provide the auth_code in your configuration, as it cannot be retrieved from the API.
 
 ## Example Usage
 

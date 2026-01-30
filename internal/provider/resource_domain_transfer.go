@@ -274,9 +274,21 @@ func (r *DomainTransferResource) Read(ctx context.Context, req resource.ReadRequ
 	state.Status = types.StringValue(domain.Status)
 
 	state.OwnerHandle = types.StringValue(domain.OwnerHandle)
-	state.AdminHandle = types.StringValue(domain.AdminHandle)
-	state.TechHandle = types.StringValue(domain.TechHandle)
-	state.BillingHandle = types.StringValue(domain.BillingHandle)
+	if domain.AdminHandle != "" {
+		state.AdminHandle = types.StringValue(domain.AdminHandle)
+	} else {
+		state.AdminHandle = types.StringNull()
+	}
+	if domain.TechHandle != "" {
+		state.TechHandle = types.StringValue(domain.TechHandle)
+	} else {
+		state.TechHandle = types.StringNull()
+	}
+	if domain.BillingHandle != "" {
+		state.BillingHandle = types.StringValue(domain.BillingHandle)
+	} else {
+		state.BillingHandle = types.StringNull()
+	}
 
 	if domain.Autorenew == "on" {
 		state.Autorenew = types.BoolValue(true)
@@ -397,4 +409,11 @@ func (r *DomainTransferResource) ImportState(ctx context.Context, req resource.I
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), domainName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain"), domainName)...)
+
+	// Note: auth_code cannot be retrieved from the API after transfer is initiated
+	// Users must provide it in their configuration after import
+	resp.Diagnostics.AddWarning(
+		"Auth Code Required",
+		"The authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import, or the resource will show a diff on the next plan.",
+	)
 }
