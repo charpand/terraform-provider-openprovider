@@ -1,3 +1,9 @@
+variable "auth_code" {
+  description = "Domain authorization code from current registrar"
+  type        = string
+  sensitive   = true
+}
+
 resource "openprovider_customer" "owner" {
   email = "owner@example.com"
 

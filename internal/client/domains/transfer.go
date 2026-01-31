@@ -57,11 +57,7 @@ func Transfer(c *client.Client, req *TransferDomainRequest) (*Domain, error) {
 	}
 
 	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			// Note: we can't return this error since we're in a defer
-			// In production code, you might want to log this
-			_ = closeErr
-		}
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

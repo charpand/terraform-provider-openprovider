@@ -98,9 +98,16 @@ terraform state rm openprovider_domain_transfer.example
 
 ### 3c. Import as Domain Resource
 
-```bash
-terraform import openprovider_domain.example example.com
+Use Terraform's declarative `import` block to bring the domain under management as a regular domain resource:
+
+```hcl
+import {
+  to = openprovider_domain.example
+  id = "example.com"
+}
 ```
+
+Add this import block to your Terraform configuration file alongside the `openprovider_domain` resource definition. When you run `terraform plan`, Terraform will show that it will import the domain into state.
 
 ### 3d. Apply Configuration
 
@@ -108,45 +115,59 @@ terraform import openprovider_domain.example example.com
 terraform apply
 ```
 
-Terraform should show no changes, confirming the transition is complete.
+Terraform will import the domain and should show no changes, confirming the transition is complete. After the import is successful, you can remove the `import` block from your configuration.
 
-## Complete Example Script
+## Complete Example
 
-Here's a shell script that automates the transition:
+Here's a complete example showing the configuration changes needed for the transition:
 
-```bash
-#!/bin/bash
+**Before (Transfer Configuration):**
 
-DOMAIN="example.com"
+```hcl
+resource "openprovider_customer" "owner" {
+  email = "owner@example.com"
+  # ... other customer details
+}
 
-echo "Checking transfer status..."
-terraform refresh
-
-# Check if status is ACT (transfer complete)
-STATUS=$(terraform show -json | jq -r '.values.root_module.resources[] | select(.address=="openprovider_domain_transfer.example") | .values.status')
-
-if [ "$STATUS" != "ACT" ]; then
-    echo "Transfer not complete yet. Status: $STATUS"
-    echo "Please wait for the transfer to complete (status: ACT) before transitioning."
-    exit 1
-fi
-
-echo "Transfer complete! Starting transition..."
-
-# Remove transfer resource from state
-echo "Removing transfer resource from state..."
-terraform state rm openprovider_domain_transfer.example
-
-# Import as domain resource
-echo "Importing as domain resource..."
-terraform import openprovider_domain.example "$DOMAIN"
-
-# Verify no changes needed
-echo "Verifying configuration..."
-terraform plan
-
-echo "Transition complete!"
+resource "openprovider_domain_transfer" "example" {
+  domain       = "example.com"
+  auth_code    = var.auth_code
+  owner_handle = openprovider_customer.owner.handle
+  autorenew    = true
+  ns_group     = "my-ns-group"
+}
 ```
+
+**After (Domain Resource Configuration with Import):**
+
+```hcl
+resource "openprovider_customer" "owner" {
+  email = "owner@example.com"
+  # ... other customer details (unchanged)
+}
+
+# First, remove the old transfer resource and add:
+resource "openprovider_domain" "example" {
+  domain       = "example.com"
+  owner_handle = openprovider_customer.owner.handle
+  autorenew    = true
+  ns_group     = "my-ns-group"
+}
+
+# Add this import block temporarily
+import {
+  to = openprovider_domain.example
+  id = "example.com"
+}
+```
+
+**Steps:**
+1. Verify transfer is complete: `terraform refresh` and check that `status = "ACT"`
+2. Remove the transfer resource from state: `terraform state rm openprovider_domain_transfer.example`
+3. Update your `.tf` files with the new configuration above
+4. Run `terraform plan` to see the import operation
+5. Run `terraform apply` to complete the import
+6. Remove the `import` block from your configuration after successful import
 
 ## Notes
 

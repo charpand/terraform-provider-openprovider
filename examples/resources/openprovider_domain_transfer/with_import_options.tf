@@ -1,3 +1,9 @@
+variable "auth_code" {
+  description = "Domain authorization code from current registrar"
+  type        = string
+  sensitive   = true
+}
+
 resource "openprovider_domain_transfer" "example" {
   domain                            = "example.com"
   auth_code                         = var.auth_code

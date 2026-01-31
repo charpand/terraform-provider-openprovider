@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -104,18 +105,27 @@ func (r *DomainTransferResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"import_nameservers_from_registry": schema.BoolAttribute{
 				MarkdownDescription: "Import nameservers from registry after transfer. When enabled, nameserver parameters can be omitted.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"is_private_whois_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Enable WHOIS privacy protection for the domain.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"expiration_date": schema.StringAttribute{
 				MarkdownDescription: "The domain expiration date.",
@@ -216,12 +226,18 @@ func (r *DomainTransferResource) Create(ctx context.Context, req resource.Create
 	plan.OwnerHandle = types.StringValue(domain.OwnerHandle)
 	if domain.AdminHandle != "" {
 		plan.AdminHandle = types.StringValue(domain.AdminHandle)
+	} else {
+		plan.AdminHandle = types.StringNull()
 	}
 	if domain.TechHandle != "" {
 		plan.TechHandle = types.StringValue(domain.TechHandle)
+	} else {
+		plan.TechHandle = types.StringNull()
 	}
 	if domain.BillingHandle != "" {
 		plan.BillingHandle = types.StringValue(domain.BillingHandle)
+	} else {
+		plan.BillingHandle = types.StringNull()
 	}
 
 	if domain.Autorenew == "on" {
