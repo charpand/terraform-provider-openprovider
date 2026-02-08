@@ -84,17 +84,18 @@ resource "openprovider_domain" "example" {
 
 ```terraform
 resource "openprovider_domain" "dnssec" {
-  domain       = "example.com"
+  domain       = "mydomain.com"
   owner_handle = "owner123"
   period       = 1
   autorenew    = true
 
+  # Optional DS records for DNSSEC
   ds_records = [
     {
       algorithm  = 8
       flags      = 257
       protocol   = 3
-      public_key = "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3..."
+      public_key = "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3+/4RgWOq7HrxRixHlFlExOLAJr5emLvN7SWXgnLh4+B5xQlNVz8Og8kvArMtNROxVQuCaSnIDdD5LKyWbRd2n9WGe2R8PzgCmr3EgVLrjyBxWezF0jLHwVN8efS3rCj/EWgvIWgb9tarpVUDK/b58Da+sqqls3eNbuv7pr+eoZG+SrDK6nWeL3c6H5Apxz7LjVc1uTIdsIXxuOLYA4/ilBmSVIzuDWfdRUfhHdY6+cn8HFRm+2hM8AnXGXws9555KrUB5qihylGa8subX2Nn6UwNR1AkUTV74bU="
     }
   ]
 }
@@ -130,7 +131,7 @@ resource "openprovider_domain" "prod" {
 - `admin_handle` (String) The admin contact handle for the domain.
 - `autorenew` (Boolean) Whether the domain should auto-renew.
 - `billing_handle` (String) The billing contact handle for the domain.
-- `ds_records` (List of Object) DS records for DNSSEC. Optional. (see [below for nested schema](#nestedblock--ds_records))
+- `ds_records` (Attributes List) DS records for DNSSEC. Optional. (see [below for nested schema](#nestedatt--ds_records))
 - `ns_group` (String) The nameserver group to use for this domain. Use this instead of nameserver blocks.
 - `period` (Number) Registration period in years.
 - `tech_handle` (String) The tech contact handle for the domain.
@@ -140,7 +141,7 @@ resource "openprovider_domain" "prod" {
 - `id` (String) The domain identifier (domain name).
 - `status` (String) The current status of the domain.
 
-<a id="nestedblock--ds_records"></a>
+<a id="nestedatt--ds_records"></a>
 ### Nested Schema for `ds_records`
 
 Required:
@@ -149,6 +150,7 @@ Required:
 - `flags` (Number) The flags field (typically 257 for KSK or 256 for ZSK).
 - `protocol` (Number) The protocol field (typically 3 for DNSSEC).
 - `public_key` (String) The public key.
+
 
 
 
