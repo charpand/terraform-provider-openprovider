@@ -1,7 +1,10 @@
 // Package testutils provides helpers for testing the openprovider client.
 package testutils
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 // MockTransport is a custom http.RoundTripper for testing against the Prism mock server.
 type MockTransport struct {
@@ -24,6 +27,6 @@ type ErrorMockTransport struct {
 // RoundTrip adds headers to request a specific error status code from Prism.
 func (t *ErrorMockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer dummy")
-	req.Header.Set("Prefer", "code="+http.StatusText(t.StatusCode))
+	req.Header.Set("Prefer", fmt.Sprintf("code=%d", t.StatusCode))
 	return t.RT.RoundTrip(req)
 }

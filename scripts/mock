@@ -33,7 +33,7 @@ if [[ "$URL" =~ ^https?:// ]]; then
   downloaded_spec="${tmpfile}"
   
   # Setup cleanup trap for the temp file
-  trap "rm -f '${downloaded_spec}'" EXIT ERR
+  trap "rm -f '${tmpfile}'" EXIT ERR
   
   echo "Downloading ${URL} to ${tmpfile}"
   if command -v curl >/dev/null 2>&1; then
