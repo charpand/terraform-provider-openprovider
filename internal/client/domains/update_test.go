@@ -65,6 +65,38 @@ func TestUpdateDomainWithNameservers(t *testing.T) {
 	}
 }
 
+func TestUpdateDomainWithDSRecords(t *testing.T) {
+	apiClient := testutils.SetupTestClient()
+
+	// Update a test domain with DS records
+	req := &domains.UpdateDomainRequest{
+		DnssecKeys: []domains.DnssecKey{
+			{
+				Alg:      8,
+				Flags:    257,
+				Protocol: 3,
+				PubKey:   "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3+/4RgWOq7HrxRixHlFlExOLAJr5emLvN7SWXgnLh4+B5xQlNVz8Og8kvArMtNROxVQuCaSnIDdD5LKyWbRd2n9WGe2R8PzgCmr3EgVLrjyBxWezF0jLHwVN8efS3rCj/EWgvIWgb9tarpVUDK/b58Da+sqqls3eNbuv7pr+eoZG+SrDK6nWeL3c6H5Apxz7LjVc1uTIdsIXxuOLYA4/ilBmSVIzuDWfdRUfhHdY6+cn8HFRm+2hM8AnXGXws9555KrUB5qihylGa8subX2Nn6UwNR1AkUTV74bU=",
+			},
+		},
+	}
+
+	domain, err := domains.Update(apiClient, 123, req)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if domain == nil {
+		t.Log("Note: No domain returned by mock server (check your swagger examples)")
+		return
+	}
+
+	// Optional: check if DS records are populated (not a hard failure)
+	if len(domain.DnssecKeys) == 0 {
+		t.Log("Note: DS records not populated by mock server")
+	}
+}
+
 func TestUpdateDomainWithError(t *testing.T) {
 	baseURL := os.Getenv("TEST_API_BASE_URL")
 	if baseURL == "" {

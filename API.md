@@ -207,6 +207,28 @@ req.Nameservers = []domains.Nameserver{
 domain, err := domains.Create(c, req)
 ```
 
+#### Create Domain with DS Records (DNSSEC)
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.CreateDomainRequest{}
+req.Domain.Name = "example"
+req.Domain.Extension = "com"
+req.OwnerHandle = "owner123"
+req.Period = 1
+req.DnssecKeys = []domains.DnssecKey{
+	{
+		Alg:      8,
+		Flags:    257,
+		Protocol: 3,
+		PubKey:   "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3...",
+	},
+}
+
+domain, err := domains.Create(c, req)
+```
+
 ### Update Domain
 
 ```go
@@ -228,6 +250,25 @@ req := &domains.UpdateDomainRequest{
     Nameservers: []domains.Nameserver{
         {Name: "ns1.cloudflare.com"},
         {Name: "ns2.cloudflare.com"},
+    },
+}
+
+domain, err := domains.Update(c, 123, req)
+```
+
+#### Update Domain DS Records
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.UpdateDomainRequest{
+    DnssecKeys: []domains.DnssecKey{
+        {
+            Alg:      8,
+            Flags:    257,
+            Protocol: 3,
+            PubKey:   "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3...",
+        },
     },
 }
 
