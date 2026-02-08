@@ -52,6 +52,10 @@ func Update(c *client.Client, id int, req *UpdateDomainRequest) (*Domain, error)
 		_ = resp.Body.Close()
 	}()
 
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
+
 	var result UpdateDomainResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err

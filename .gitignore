@@ -5,6 +5,8 @@
 codegen.log
 Brewfile.lock.json
 openapi-swagger.json
+.tmp-openapi-swagger.json.*
+test_output.log
 /terraform-provider-openprovider
 bin/
 docs/commit-message.txt

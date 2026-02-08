@@ -29,7 +29,7 @@ echo "==> Starting mock server with ${URL}"
 # certain Node/Prism resolver issues related to AbortSignal instances.
 downloaded_spec=""
 if [[ "$URL" =~ ^https?:// ]]; then
-  tmpfile=$(mktemp .tmp-openapi-swagger.json)
+  tmpfile=$(mktemp .tmp-openapi-swagger.json.XXXXXX)
   echo "Downloading ${URL} to ${tmpfile}"
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "${URL}" -o "${tmpfile}"

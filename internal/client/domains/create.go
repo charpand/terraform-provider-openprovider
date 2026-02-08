@@ -57,6 +57,10 @@ func Create(c *client.Client, req *CreateDomainRequest) (*Domain, error) {
 		_ = resp.Body.Close()
 	}()
 
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
+
 	var result CreateDomainResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
