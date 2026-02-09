@@ -19,12 +19,12 @@ type DomainModel struct {
 	BillingHandle  types.String `tfsdk:"billing_handle"`
 	Period         types.Int64  `tfsdk:"period"`
 	NSGroup        types.String `tfsdk:"ns_group"`
-	DSRecords      types.List   `tfsdk:"ds_records"`
+	DnssecKeys     types.List   `tfsdk:"dnssec_keys"`
 	ExpirationDate types.String `tfsdk:"expiration_date"`
 }
 
-// DSRecordModel represents a DS record in Terraform state.
-type DSRecordModel struct {
+// DnssecKeyModel represents a DNSSEC key in Terraform state.
+type DnssecKeyModel struct {
 	Algorithm types.Int64  `tfsdk:"algorithm"`
 	Flags     types.Int64  `tfsdk:"flags"`
 	Protocol  types.Int64  `tfsdk:"protocol"`

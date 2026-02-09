@@ -27,9 +27,9 @@ var (
 	_ resource.ResourceWithImportState = &DomainResource{}
 )
 
-// dsRecordsAttrTypes defines the attribute types for DS records.
+// dnssecKeysAttrTypes defines the attribute types for DNSSEC keys.
 // This is used consistently across Create, Read, and Update operations.
-var dsRecordsAttrTypes = map[string]attr.Type{
+var dnssecKeysAttrTypes = map[string]attr.Type{
 	"algorithm":  types.Int64Type,
 	"flags":      types.Int64Type,
 	"protocol":   types.Int64Type,
@@ -41,41 +41,41 @@ type DomainResource struct {
 	client *client.Client
 }
 
-// convertDSRecordsToAPI converts DS records from Terraform state to API format.
-func convertDSRecordsToAPI(ctx context.Context, dsRecordsList types.List, diags *diag.Diagnostics) []domains.DnssecKey {
-	if dsRecordsList.IsNull() || len(dsRecordsList.Elements()) == 0 {
+// convertDnssecKeysToAPI converts DNSSEC keys from Terraform state to API format.
+func convertDnssecKeysToAPI(ctx context.Context, keysList types.List, diags *diag.Diagnostics) []domains.DnssecKey {
+	if keysList.IsNull() || len(keysList.Elements()) == 0 {
 		return nil
 	}
 
-	var dsRecords []DSRecordModel
-	diags.Append(dsRecordsList.ElementsAs(ctx, &dsRecords, false)...)
+	var keys []DnssecKeyModel
+	diags.Append(keysList.ElementsAs(ctx, &keys, false)...)
 	if diags.HasError() {
 		return nil
 	}
 
-	apiKeys := make([]domains.DnssecKey, 0, len(dsRecords))
-	for _, dsRecord := range dsRecords {
+	apiKeys := make([]domains.DnssecKey, 0, len(keys))
+	for _, key := range keys {
 		apiKeys = append(apiKeys, domains.DnssecKey{
-			Alg:      int(dsRecord.Algorithm.ValueInt64()),
-			Flags:    int(dsRecord.Flags.ValueInt64()),
-			Protocol: int(dsRecord.Protocol.ValueInt64()),
-			PubKey:   dsRecord.PublicKey.ValueString(),
+			Alg:      int(key.Algorithm.ValueInt64()),
+			Flags:    int(key.Flags.ValueInt64()),
+			Protocol: int(key.Protocol.ValueInt64()),
+			PubKey:   key.PublicKey.ValueString(),
 		})
 	}
 	return apiKeys
 }
 
-// mapDnssecKeysToState converts DS records from API format to Terraform state.
+// mapDnssecKeysToState converts DNSSEC keys from API format to Terraform state.
 func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *diag.Diagnostics) types.List {
 	if len(keys) == 0 {
 		return types.ListNull(types.ObjectType{
-			AttrTypes: dsRecordsAttrTypes,
+			AttrTypes: dnssecKeysAttrTypes,
 		})
 	}
 
-	dsRecords := make([]DSRecordModel, 0, len(keys))
+	stateKeys := make([]DnssecKeyModel, 0, len(keys))
 	for _, key := range keys {
-		dsRecords = append(dsRecords, DSRecordModel{
+		stateKeys = append(stateKeys, DnssecKeyModel{
 			Algorithm: types.Int64Value(int64(key.Alg)),
 			Flags:     types.Int64Value(int64(key.Flags)),
 			Protocol:  types.Int64Value(int64(key.Protocol)),
@@ -83,8 +83,8 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 		})
 	}
 	listValue, listDiags := types.ListValueFrom(ctx, types.ObjectType{
-		AttrTypes: dsRecordsAttrTypes,
-	}, dsRecords)
+		AttrTypes: dnssecKeysAttrTypes,
+	}, stateKeys)
 	diags.Append(listDiags...)
 	return listValue
 }
@@ -164,8 +164,8 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "The nameserver group to use for this domain. Use this instead of nameserver blocks.",
 				Optional:            true,
 			},
-			"ds_records": schema.ListNestedAttribute{
-				MarkdownDescription: "DS records for DNSSEC. Optional.",
+			"dnssec_keys": schema.ListNestedAttribute{
+				MarkdownDescription: "DNSSEC keys for the domain. Optional.",
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -345,8 +345,8 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			createReq.NSGroup = plan.NSGroup.ValueString()
 		}
 
-		// Set DS records if specified
-		createReq.DnssecKeys = convertDSRecordsToAPI(ctx, plan.DSRecords, &resp.Diagnostics)
+		// Set DNSSEC keys if specified
+		createReq.DnssecKeys = convertDnssecKeysToAPI(ctx, plan.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -394,8 +394,8 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.NSGroup = types.StringNull()
 	}
 
-	// Map DS records from response
-	plan.DSRecords = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+	// Map DNSSEC keys from response
+	plan.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -464,8 +464,8 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 		state.NSGroup = types.StringNull()
 	}
 
-	// Map DS records from response
-	state.DSRecords = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+	// Map DNSSEC keys from response
+	state.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -551,13 +551,13 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
-	// Update DS records if changed
-	if !plan.DSRecords.Equal(state.DSRecords) {
-		updateReq.DnssecKeys = convertDSRecordsToAPI(ctx, plan.DSRecords, &resp.Diagnostics)
+	// Update DNSSEC keys if changed
+	if !plan.DnssecKeys.Equal(state.DnssecKeys) {
+		updateReq.DnssecKeys = convertDnssecKeysToAPI(ctx, plan.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		// If nil, convert to empty slice to explicitly clear DS records
+		// If nil, convert to empty slice to explicitly clear DNSSEC keys
 		if updateReq.DnssecKeys == nil {
 			updateReq.DnssecKeys = []domains.DnssecKey{}
 		}

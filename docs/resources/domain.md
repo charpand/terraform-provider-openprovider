@@ -271,7 +271,7 @@ resource "openprovider_domain" "transferred" {
 - `auth_code` (String, Sensitive) The EPP/Authorization code for domain transfer (also known as transfer code or auth code). This is obtained from the current registrar. When provided, the domain will be transferred instead of registered.
 - `autorenew` (Boolean) Whether the domain should auto-renew.
 - `billing_handle` (String) The billing contact handle for the domain.
-- `ds_records` (Attributes List) DS records for DNSSEC. Optional. (see [below for nested schema](#nestedatt--ds_records))
+- `dnssec_keys` (Attributes List) DNSSEC keys for the domain. Optional. (see [below for nested schema](#nestedatt--dnssec_keys))
 - `import_contacts_from_registry` (Boolean) Import contact data from registry and create handles after transfer. Only applicable for domain transfers. When enabled, contact handle parameters can be omitted.
 - `import_nameservers_from_registry` (Boolean) Import nameservers from registry after transfer. Only applicable for domain transfers. When enabled, nameserver parameters can be omitted.
 - `is_private_whois_enabled` (Boolean) Enable WHOIS privacy protection for the domain. Only applicable for domain transfers.
@@ -285,8 +285,8 @@ resource "openprovider_domain" "transferred" {
 - `id` (String) The domain identifier (domain name).
 - `status` (String) The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).
 
-<a id="nestedatt--ds_records"></a>
-### Nested Schema for `ds_records`
+<a id="nestedatt--dnssec_keys"></a>
+### Nested Schema for `dnssec_keys`
 
 Required:
 
