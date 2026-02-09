@@ -382,18 +382,12 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.OwnerHandle = types.StringValue(domain.OwnerHandle)
 	if domain.AdminHandle != "" {
 		plan.AdminHandle = types.StringValue(domain.AdminHandle)
-	} else {
-		plan.AdminHandle = types.StringNull()
 	}
 	if domain.TechHandle != "" {
 		plan.TechHandle = types.StringValue(domain.TechHandle)
-	} else {
-		plan.TechHandle = types.StringNull()
 	}
 	if domain.BillingHandle != "" {
 		plan.BillingHandle = types.StringValue(domain.BillingHandle)
-	} else {
-		plan.BillingHandle = types.StringNull()
 	}
 
 	// Map autorenew from response
@@ -649,7 +643,7 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	// Users must provide it in their configuration if the domain was transferred
 	resp.Diagnostics.AddWarning(
 		"Auth Code Required for Transferred Domains",
-		"If this domain was transferred to OpenProvider, the authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import if you want to avoid drift detection, or the resource will show a diff on the next plan.",
+		"If this domain was transferred to OpenProvider, the authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import, or the resource will show a diff on the next plan.",
 	)
 }
 
