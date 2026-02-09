@@ -608,41 +608,12 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	resp.Diagnostics.Append(readResp.Diagnostics...)
 }
 
-// Delete deletes the resource and removes the Terraform state on success.
-func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state DomainModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	domainName := state.Domain.ValueString()
-
-	// Get domain to get its ID
-	domain, err := getDomainByName(r.client, domainName)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Finding Domain",
-			fmt.Sprintf("Could not find domain %s: %s", domainName, err.Error()),
-		)
-		return
-	}
-
-	if domain == nil {
-		// Domain already doesn't exist
-		return
-	}
-
-	// Delete the domain
-	err = domains.Delete(r.client, domain.ID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Deleting Domain",
-			fmt.Sprintf("Could not delete domain %s: %s", domainName, err.Error()),
-		)
-		return
-	}
+// Delete prevents deletion of domains as a safety measure.
+func (r *DomainResource) Delete(_ context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+	resp.Diagnostics.AddError(
+		"Domain Deletion Not Allowed",
+		"Domains cannot be deleted through this provider as a safety measure. Domain deletions are irreversible and must be performed manually outside of Terraform. To stop managing a domain, remove it from your Terraform configuration.",
+	)
 }
 
 // ImportState imports an existing resource into Terraform.
