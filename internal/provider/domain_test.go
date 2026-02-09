@@ -18,10 +18,24 @@ func TestDomainResourceSchema(t *testing.T) {
 		t.Fatal("Schema attributes should not be nil")
 	}
 
-	expectedAttrs := []string{"id", "domain", "status", "autorenew", "owner_handle", "admin_handle", "tech_handle", "billing_handle", "period"}
+	expectedAttrs := []string{
+		"id", "domain", "auth_code", "status", "autorenew",
+		"owner_handle", "admin_handle", "tech_handle", "billing_handle",
+		"period", "ns_group", "ds_records",
+		"import_contacts_from_registry", "import_nameservers_from_registry",
+		"is_private_whois_enabled", "expiration_date",
+	}
 	for _, attr := range expectedAttrs {
 		if _, ok := resp.Schema.Attributes[attr]; !ok {
 			t.Errorf("Expected attribute %s not found in schema", attr)
+		}
+	}
+
+	// Verify auth_code is sensitive
+	authCodeAttr := resp.Schema.Attributes["auth_code"]
+	if strAttr, ok := authCodeAttr.(interface{ IsSensitive() bool }); ok {
+		if !strAttr.IsSensitive() {
+			t.Error("auth_code attribute should be sensitive")
 		}
 	}
 }
