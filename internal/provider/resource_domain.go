@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -101,7 +102,7 @@ func (r *DomainResource) Metadata(_ context.Context, req resource.MetadataReques
 // Schema defines the schema for the resource.
 func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages an OpenProvider domain.",
+		MarkdownDescription: "Manages an OpenProvider domain. Supports both domain registration and domain transfer. To transfer a domain, provide an auth_code.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "The domain identifier (domain name).",
@@ -117,8 +118,16 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"auth_code": schema.StringAttribute{
+				MarkdownDescription: "The EPP/Authorization code for domain transfer (also known as transfer code or auth code). This is obtained from the current registrar. When provided, the domain will be transferred instead of registered.",
+				Optional:            true,
+				Sensitive:           true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the domain.",
+				MarkdownDescription: "The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).",
 				Computed:            true,
 			},
 			"autorenew": schema.BoolAttribute{
@@ -147,7 +156,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Computed:            true,
 			},
 			"period": schema.Int64Attribute{
-				MarkdownDescription: "Registration period in years.",
+				MarkdownDescription: "Registration period in years. Only applicable for domain registration (not transfers).",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -178,6 +187,37 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 				},
+			},
+			"import_contacts_from_registry": schema.BoolAttribute{
+				MarkdownDescription: "Import contact data from registry and create handles after transfer. Only applicable for domain transfers. When enabled, contact handle parameters can be omitted.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"import_nameservers_from_registry": schema.BoolAttribute{
+				MarkdownDescription: "Import nameservers from registry after transfer. Only applicable for domain transfers. When enabled, nameserver parameters can be omitted.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"is_private_whois_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Enable WHOIS privacy protection for the domain. Only applicable for domain transfers.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"expiration_date": schema.StringAttribute{
+				MarkdownDescription: "The domain expiration date.",
+				Computed:            true,
 			},
 		},
 	}
@@ -224,58 +264,112 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	name := strings.Join(parts[:len(parts)-1], ".")
 	extension := parts[len(parts)-1]
 
-	// Create domain request
-	createReq := &domains.CreateDomainRequest{}
-	createReq.Domain.Name = name
-	createReq.Domain.Extension = extension
+	var domain *domains.Domain
+	var err error
 
-	// Set required owner handle
-	createReq.OwnerHandle = plan.OwnerHandle.ValueString()
+	// Check if this is a transfer (auth_code provided) or a new registration
+	isTransfer := !plan.AuthCode.IsNull() && plan.AuthCode.ValueString() != ""
 
-	// Set optional contact handles
-	if !plan.AdminHandle.IsNull() {
-		createReq.AdminHandle = plan.AdminHandle.ValueString()
-	}
-	if !plan.TechHandle.IsNull() {
-		createReq.TechHandle = plan.TechHandle.ValueString()
-	}
-	if !plan.BillingHandle.IsNull() {
-		createReq.BillingHandle = plan.BillingHandle.ValueString()
-	}
+	if isTransfer {
+		// Domain Transfer
+		transferReq := &domains.TransferDomainRequest{}
+		transferReq.Domain.Name = name
+		transferReq.Domain.Extension = extension
+		transferReq.AuthCode = plan.AuthCode.ValueString()
+		transferReq.OwnerHandle = plan.OwnerHandle.ValueString()
 
-	// Set period if specified
-	if !plan.Period.IsNull() {
-		createReq.Period = int(plan.Period.ValueInt64())
-	}
+		if !plan.AdminHandle.IsNull() {
+			transferReq.AdminHandle = plan.AdminHandle.ValueString()
+		}
+		if !plan.TechHandle.IsNull() {
+			transferReq.TechHandle = plan.TechHandle.ValueString()
+		}
+		if !plan.BillingHandle.IsNull() {
+			transferReq.BillingHandle = plan.BillingHandle.ValueString()
+		}
 
-	// Set autorenew
-	if !plan.Autorenew.IsNull() && plan.Autorenew.ValueBool() {
-		createReq.Autorenew = "on"
+		if !plan.Autorenew.IsNull() && plan.Autorenew.ValueBool() {
+			transferReq.Autorenew = "on"
+		} else {
+			transferReq.Autorenew = "off"
+		}
+
+		if !plan.NSGroup.IsNull() && plan.NSGroup.ValueString() != "" {
+			transferReq.NSGroup = plan.NSGroup.ValueString()
+		}
+
+		if !plan.ImportContactsFromRegistry.IsNull() {
+			transferReq.ImportContactsFromRegistry = plan.ImportContactsFromRegistry.ValueBool()
+		}
+		if !plan.ImportNameserversFromRegistry.IsNull() {
+			transferReq.ImportNameserversFromRegistry = plan.ImportNameserversFromRegistry.ValueBool()
+		}
+		if !plan.IsPrivateWhoisEnabled.IsNull() {
+			transferReq.IsPrivateWhoisEnabled = plan.IsPrivateWhoisEnabled.ValueBool()
+		}
+
+		domain, err = domains.Transfer(r.client, transferReq)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Transferring Domain",
+				fmt.Sprintf("Could not transfer domain %s: %s", domainName, err.Error()),
+			)
+			return
+		}
 	} else {
-		createReq.Autorenew = "off"
-	}
+		// Domain Registration
+		createReq := &domains.CreateDomainRequest{}
+		createReq.Domain.Name = name
+		createReq.Domain.Extension = extension
 
-	hasNSGroup := !plan.NSGroup.IsNull() && plan.NSGroup.ValueString() != ""
+		// Set required owner handle
+		createReq.OwnerHandle = plan.OwnerHandle.ValueString()
 
-	// Set ns_group if specified (preferred method)
-	if hasNSGroup {
-		createReq.NSGroup = plan.NSGroup.ValueString()
-	}
+		// Set optional contact handles
+		if !plan.AdminHandle.IsNull() {
+			createReq.AdminHandle = plan.AdminHandle.ValueString()
+		}
+		if !plan.TechHandle.IsNull() {
+			createReq.TechHandle = plan.TechHandle.ValueString()
+		}
+		if !plan.BillingHandle.IsNull() {
+			createReq.BillingHandle = plan.BillingHandle.ValueString()
+		}
 
-	// Set DS records if specified
-	createReq.DnssecKeys = convertDSRecordsToAPI(ctx, plan.DSRecords, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+		// Set period if specified
+		if !plan.Period.IsNull() {
+			createReq.Period = int(plan.Period.ValueInt64())
+		}
 
-	// Create the domain
-	domain, err := domains.Create(r.client, createReq)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Creating Domain",
-			fmt.Sprintf("Could not create domain %s: %s", domainName, err.Error()),
-		)
-		return
+		// Set autorenew
+		if !plan.Autorenew.IsNull() && plan.Autorenew.ValueBool() {
+			createReq.Autorenew = "on"
+		} else {
+			createReq.Autorenew = "off"
+		}
+
+		hasNSGroup := !plan.NSGroup.IsNull() && plan.NSGroup.ValueString() != ""
+
+		// Set ns_group if specified (preferred method)
+		if hasNSGroup {
+			createReq.NSGroup = plan.NSGroup.ValueString()
+		}
+
+		// Set DS records if specified
+		createReq.DnssecKeys = convertDSRecordsToAPI(ctx, plan.DSRecords, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Create the domain
+		domain, err = domains.Create(r.client, createReq)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Creating Domain",
+				fmt.Sprintf("Could not create domain %s: %s", domainName, err.Error()),
+			)
+			return
+		}
 	}
 
 	// Set ID to the domain name
@@ -288,12 +382,18 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.OwnerHandle = types.StringValue(domain.OwnerHandle)
 	if domain.AdminHandle != "" {
 		plan.AdminHandle = types.StringValue(domain.AdminHandle)
+	} else {
+		plan.AdminHandle = types.StringNull()
 	}
 	if domain.TechHandle != "" {
 		plan.TechHandle = types.StringValue(domain.TechHandle)
+	} else {
+		plan.TechHandle = types.StringNull()
 	}
 	if domain.BillingHandle != "" {
 		plan.BillingHandle = types.StringValue(domain.BillingHandle)
+	} else {
+		plan.BillingHandle = types.StringNull()
 	}
 
 	// Map autorenew from response
@@ -314,6 +414,13 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.DSRecords = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Map expiration date if present
+	if domain.ExpirationDate != "" {
+		plan.ExpirationDate = types.StringValue(domain.ExpirationDate)
+	} else {
+		plan.ExpirationDate = types.StringNull()
 	}
 
 	// Save state
@@ -377,6 +484,13 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 	state.DSRecords = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Map expiration date if present
+	if domain.ExpirationDate != "" {
+		state.ExpirationDate = types.StringValue(domain.ExpirationDate)
+	} else {
+		state.ExpirationDate = types.StringNull()
 	}
 
 	diags = resp.State.Set(ctx, &state)
@@ -530,6 +644,13 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	// Set both id and domain to the import ID
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), domainName)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain"), domainName)...)
+
+	// Note: auth_code cannot be retrieved from the API after transfer is initiated
+	// Users must provide it in their configuration if the domain was transferred
+	resp.Diagnostics.AddWarning(
+		"Auth Code Required for Transferred Domains",
+		"If this domain was transferred to OpenProvider, the authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import if you want to avoid drift detection, or the resource will show a diff on the next plan.",
+	)
 }
 
 // getDomainByName finds a domain by its name using the List API.
