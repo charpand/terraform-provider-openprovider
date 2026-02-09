@@ -298,16 +298,6 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			transferReq.NSGroup = plan.NSGroup.ValueString()
 		}
 
-		if !plan.ImportContactsFromRegistry.IsNull() {
-			transferReq.ImportContactsFromRegistry = plan.ImportContactsFromRegistry.ValueBool()
-		}
-		if !plan.ImportNameserversFromRegistry.IsNull() {
-			transferReq.ImportNameserversFromRegistry = plan.ImportNameserversFromRegistry.ValueBool()
-		}
-		if !plan.IsPrivateWhoisEnabled.IsNull() {
-			transferReq.IsPrivateWhoisEnabled = plan.IsPrivateWhoisEnabled.ValueBool()
-		}
-
 		domain, err = domains.Transfer(r.client, transferReq)
 		if err != nil {
 			resp.Diagnostics.AddError(

@@ -69,8 +69,6 @@ func TestTransferDomainWithImportOptions(t *testing.T) {
 	req.Domain.Extension = "com"
 	req.AuthCode = "12345678"
 	req.OwnerHandle = "testowner"
-	req.ImportContactsFromRegistry = true
-	req.ImportNameserversFromRegistry = true
 
 	domain, err := domains.Transfer(apiClient, req)
 
