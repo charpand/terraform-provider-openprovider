@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -188,37 +187,10 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
-			"import_contacts_from_registry": schema.BoolAttribute{
-				MarkdownDescription: "Import contact data from registry and create handles after transfer. Only applicable for domain transfers. When enabled, contact handle parameters can be omitted.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
-			},
-			"import_nameservers_from_registry": schema.BoolAttribute{
-				MarkdownDescription: "Import nameservers from registry after transfer. Only applicable for domain transfers. When enabled, nameserver parameters can be omitted.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
-			},
 			"is_dnssec_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Enable DNSSEC for the domain.",
 				Optional:            true,
 				Computed:            true,
-			},
-			"is_private_whois_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Enable WHOIS privacy protection for the domain. Only applicable for domain transfers.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 			"expiration_date": schema.StringAttribute{
 				MarkdownDescription: "The domain expiration date.",
