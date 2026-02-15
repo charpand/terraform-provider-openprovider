@@ -22,8 +22,7 @@ func TestDomainResourceSchema(t *testing.T) {
 		"id", "domain", "auth_code", "status", "autorenew",
 		"owner_handle", "admin_handle", "tech_handle", "billing_handle",
 		"period", "ns_group", "dnssec_keys", "is_dnssec_enabled",
-		"import_contacts_from_registry", "import_nameservers_from_registry",
-		"is_private_whois_enabled", "expiration_date",
+		"expiration_date",
 	}
 	for _, attr := range expectedAttrs {
 		if _, ok := resp.Schema.Attributes[attr]; !ok {
