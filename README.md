@@ -19,7 +19,7 @@ terraform {
   required_providers {
     openprovider = {
       source  = "charpand/openprovider"
-      version = ">= 0.1.0"
+      version = ">= 1.0.0"
     }
   }
 }

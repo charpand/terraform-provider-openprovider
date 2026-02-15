@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-02-15
+
 ### Added
 - DNS record management resource (openprovider_dns_record)
   - Full CRUD operations for DNS records (A, AAAA, CNAME, MX, TXT, NS, SRV, etc.)
@@ -28,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makefile shortcuts for common scripts
 - Dependabot updates for Go modules
 
+### Removed
+- Deprecated transfer-only domain attributes (import_contacts_from_registry, import_nameservers_from_registry, is_private_whois_enabled)
+
 ## [0.1.0] - Initial Release
 
 ### Added
@@ -46,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic token refresh and authentication handling
 - Support for Terraform >= 1.3
 
-[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v1.0.0
 [0.1.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v0.1.0
