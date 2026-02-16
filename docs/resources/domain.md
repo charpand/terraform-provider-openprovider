@@ -159,7 +159,7 @@ resource "openprovider_domain" "transferred" {
 }
 ```
 
-#### Transfer with Multiple Contact Handles
+#### Transfer with Import Options
 
 ```terraform
 # Transfer a domain with multiple contact handles
