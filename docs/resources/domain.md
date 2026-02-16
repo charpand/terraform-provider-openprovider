@@ -159,7 +159,7 @@ resource "openprovider_domain" "transferred" {
 }
 ```
 
-#### Transfer with Contact and Autorenew Settings
+#### Transfer with Import Options
 
 ```terraform
 # Transfer a domain with contact and autorenew settings
