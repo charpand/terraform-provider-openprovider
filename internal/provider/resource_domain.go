@@ -512,6 +512,27 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
+	// Check if there are any actual user-configured changes
+	hasChanges := (!plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull()) ||
+		(!plan.TechHandle.Equal(state.TechHandle) && !plan.TechHandle.IsNull()) ||
+		(!plan.BillingHandle.Equal(state.BillingHandle) && !plan.BillingHandle.IsNull()) ||
+		!plan.Autorenew.Equal(state.Autorenew) ||
+		!plan.NSGroup.Equal(state.NSGroup) ||
+		!plan.DnssecKeys.Equal(state.DnssecKeys) ||
+		!plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled)
+
+	// If no changes detected, skip the API call and just refresh state
+	if !hasChanges {
+		var readReq resource.ReadRequest
+		readReq.State = resp.State
+		var readResp resource.ReadResponse
+		readResp.State = resp.State
+		r.Read(ctx, readReq, &readResp)
+		resp.State = readResp.State
+		resp.Diagnostics.Append(readResp.Diagnostics...)
+		return
+	}
+
 	// Create update request with only changed mutable attributes
 	// Note: OwnerHandle is not updatable (typically immutable after domain creation)
 	updateReq := &domains.UpdateDomainRequest{}
