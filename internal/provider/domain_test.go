@@ -206,6 +206,29 @@ func TestMapDnssecKeysToStatePreservesValues(t *testing.T) {
 				if len(result.Elements()) != len(tc.keys) {
 					t.Errorf("Expected %d elements, got %d", len(tc.keys), len(result.Elements()))
 				}
+
+				// For non-nil, non-empty keys, verify that the mapped values are preserved
+				// by converting back and comparing with the original keys.
+				if len(tc.keys) > 0 {
+					var stateKeys []DnssecKeyModel
+					diags.Append(result.ElementsAs(ctx, &stateKeys, false)...)
+					if diags.HasError() {
+						t.Fatalf("Failed to convert result elements: %v", diags)
+					}
+
+					if stateKeys[0].Algorithm.ValueInt64() != int64(tc.keys[0].Alg) {
+						t.Errorf("Expected algorithm %d, got %d", tc.keys[0].Alg, stateKeys[0].Algorithm.ValueInt64())
+					}
+					if stateKeys[0].Flags.ValueInt64() != int64(tc.keys[0].Flags) {
+						t.Errorf("Expected flags %d, got %d", tc.keys[0].Flags, stateKeys[0].Flags.ValueInt64())
+					}
+					if stateKeys[0].Protocol.ValueInt64() != int64(tc.keys[0].Protocol) {
+						t.Errorf("Expected protocol %d, got %d", tc.keys[0].Protocol, stateKeys[0].Protocol.ValueInt64())
+					}
+					if stateKeys[0].PublicKey.ValueString() != tc.keys[0].PubKey {
+						t.Errorf("Expected public_key %q, got %q", tc.keys[0].PubKey, stateKeys[0].PublicKey.ValueString())
+					}
+				}
 			}
 		})
 	}
