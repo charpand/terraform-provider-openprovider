@@ -526,7 +526,12 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		!plan.DnssecKeys.Equal(state.DnssecKeys) ||
 		!plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled)
 
-	// If no changes detected, skip the API call and just refresh state
+	// If no changes detected, skip the API call and just refresh state to pick up any
+	// server-side changes (e.g., DNSSEC keys or other computed fields updated by the API).
+	// This optimization reduces unnecessary API calls when no user-configurable fields change.
+	// Unlike other resources that always call Update regardless of field changes, this manual
+	// change detection prevents redundant API calls for resources with computed fields that
+	// can be updated by the API independently.
 	if !hasChanges {
 		var readReq resource.ReadRequest
 		readReq.State = resp.State
