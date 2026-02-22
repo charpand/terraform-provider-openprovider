@@ -512,7 +512,12 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// Check if there are any actual user-configured changes
+	// Check if there are any actual user-configured changes.
+	// Note: Handle fields (AdminHandle, TechHandle, BillingHandle) only detect changes when
+	// the plan value is non-null. This is intentional: clearing a handle (changing from value
+	// to null) is not a supported operation in the Openprovider API, so we don't detect it
+	// as a change. Users cannot use Terraform to clear handles to null. If a handle in the
+	// plan is null, it should match the state value.
 	hasChanges := (!plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull()) ||
 		(!plan.TechHandle.Equal(state.TechHandle) && !plan.TechHandle.IsNull()) ||
 		(!plan.BillingHandle.Equal(state.BillingHandle) && !plan.BillingHandle.IsNull()) ||
