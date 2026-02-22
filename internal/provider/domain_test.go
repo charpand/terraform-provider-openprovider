@@ -191,6 +191,10 @@ func TestMapDnssecKeysToStatePreservesValues(t *testing.T) {
 			diags := &diag.Diagnostics{}
 			result := mapDnssecKeysToState(ctx, tc.keys, diags)
 
+			if diags.HasError() {
+				t.Fatalf("Unexpected error in mapDnssecKeysToState: %v", diags)
+			}
+
 			if tc.expectNil {
 				if !result.IsNull() {
 					t.Errorf("Expected null list for %s, got non-null", tc.name)
