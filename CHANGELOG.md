@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-02-22
+
+### Fixed
+- Minor bug fixes and improvements for DNSSEC key mapping and conversion
+
 ## [1.0.0] - 2026-02-15
 
 ### Added
@@ -51,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic token refresh and authentication handling
 - Support for Terraform >= 1.3
 
-[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v1.0.0
 [0.1.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v0.1.0
