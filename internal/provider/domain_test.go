@@ -236,6 +236,10 @@ func TestConvertDnssecKeysToAPIHandlesNull(t *testing.T) {
 			diags := &diag.Diagnostics{}
 			result := convertDnssecKeysToAPI(ctx, tc.keysList, diags)
 
+			if diags.HasError() {
+				t.Fatalf("Unexpected error in convertDnssecKeysToAPI: %v", diags)
+			}
+
 			if tc.expectEmpty {
 				if len(result) > 0 {
 					t.Errorf("Expected empty or nil result for %s, got %v", tc.name, result)
