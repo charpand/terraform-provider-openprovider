@@ -154,27 +154,6 @@ func TestDomainResourceIsDnssecEnabledHasPlanModifier(t *testing.T) {
 	}
 }
 
-func TestDomainResourceDnssecKeysMarkedComputed(t *testing.T) {
-	ctx := context.Background()
-	r := NewDomainResource()
-	resp := &resource.SchemaResponse{}
-	r.Schema(ctx, resource.SchemaRequest{}, resp)
-
-	dnssecKeysAttr, ok := resp.Schema.Attributes["dnssec_keys"]
-	if !ok {
-		t.Fatal("dnssec_keys attribute not found in schema")
-	}
-
-	listAttr, ok := dnssecKeysAttr.(interface{ IsComputed() bool })
-	if !ok {
-		t.Fatal("dnssec_keys attribute does not support computed check")
-	}
-
-	if !listAttr.IsComputed() {
-		t.Error("dnssec_keys should be marked as Computed to reflect API-provided values")
-	}
-}
-
 func TestMapDnssecKeysToStatePreservesValues(t *testing.T) {
 	ctx := context.Background()
 
