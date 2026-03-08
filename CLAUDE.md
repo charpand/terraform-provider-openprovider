@@ -1,6 +1,6 @@
-# Augment Guidelines
+# Claude Agent Instructions
 
-These guidelines apply to Augment-based agents working in this repository.
+These guidelines apply to Claude-based agents working in this repository.
 
 ## References
 
@@ -26,4 +26,3 @@ These guidelines apply to Augment-based agents working in this repository.
 - Commit messages must follow the changelog-valid convention at
   https://ec.europa.eu/component-library/v1.15.0/eu/docs/conventions/git/
 - Optional template: `templates/commit-message.txt`
-
