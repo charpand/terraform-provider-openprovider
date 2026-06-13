@@ -4,11 +4,31 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     commit-message:
       prefix: "chore"
+    groups:
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      google-golang:
+        patterns:
+          - "google.golang.org/*"
+      hashicorp:
+        patterns:
+          - "github.com/hashicorp/*"
+      go-dependencies:
+        patterns:
+          - "*"
