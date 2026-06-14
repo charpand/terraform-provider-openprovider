@@ -26,6 +26,9 @@ jobs:
         with:
           go-version-file: ./go.mod
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Generate docs
         run: ./scripts/docs
 
