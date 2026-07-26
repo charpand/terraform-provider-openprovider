@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `mise.toml` for local tool version management
+- `CLAUDE.md` with project-specific development guidelines
+
+### Changed
+- Migrated dependency management from Dependabot to Renovate
+- Updated Go version to 1.26
+- Replaced `mergo` module with `dario.cat/mergo`
+- Updated various Go dependencies and GitHub Actions to their latest versions
+- Improved repository maintenance by removing obsolete agent configurations
+
+### Fixed
+- Resolved `openpgp: key expired` error in documentation workflow by explicitly setting up Terraform
+
 ## [1.0.1] - 2026-02-22
 
 ### Fixed

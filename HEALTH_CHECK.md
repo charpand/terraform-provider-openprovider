@@ -44,7 +44,7 @@ This Terraform provider for Openprovider is in good working condition with:
 - Go 1.24 (latest)
 - All modules verified (go mod verify ✓)
 - Terraform Plugin Framework v1.17.0
-- Dependabot configured for GitHub Actions
+- Renovate configured for GitHub Actions and Go modules
 
 ## Areas for Improvement
 
@@ -87,16 +87,17 @@ This Terraform provider for Openprovider is in good working condition with:
 
 **Recommendation:**
 - Review and update dependencies periodically
-- Add Go module updates to dependabot.yml
 - Test thoroughly after updates
 
 **Impact:** Low - Maintenance hygiene
 
-### 4. Dependabot Configuration ✅
+### 4. Renovate Configuration ✅
 
 **Current State:**
 - Watches github-actions
 - Watches Go modules
+- Watches Terraform
+- Watches mise
 
 **Impact:** Low - Better dependency management
 
@@ -165,7 +166,6 @@ None - repository is in good working order
 ### Medium Priority
 1. Install and configure golangci-lint properly
 2. Add comprehensive linter configuration
-3. Update dependabot to watch Go modules
 
 ### Low Priority
 1. Add CHANGELOG.md
@@ -181,7 +181,7 @@ None - repository is in good working order
 1. CHANGELOG.md template aligned with Keep a Changelog
 2. CODE_OF_CONDUCT.md with Contributor Covenant v2.1
 3. .editorconfig for consistent formatting
-4. Dependabot updates for Go modules
+4. Renovate updates for all ecosystems
 5. Makefile shortcut targets for scripts
 
 ## Conclusion
