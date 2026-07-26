@@ -4,7 +4,7 @@
   "name": "OpenProvider Go SDK Development",
   "image": "mcr.microsoft.com/devcontainers/go:2-1.24-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/node:2": {},
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
     "ghcr.io/devcontainers-contrib/features/golangci-lint:1": {},
     "ghcr.io/devcontainers-contrib/features/goreleaser:1": {}
