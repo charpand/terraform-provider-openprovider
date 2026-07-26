@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved repository maintenance by removing obsolete agent configurations
 
 ### Fixed
+- Resolved `go get -u all` failure by fixing `mergo` module path conflict
 - Resolved `openpgp: key expired` error in documentation workflow by explicitly setting up Terraform
 
 ## [1.0.1] - 2026-02-22
