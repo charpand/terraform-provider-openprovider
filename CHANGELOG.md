@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Go version to 1.26
 - Replaced `mergo` module with `dario.cat/mergo`
 - Updated various Go dependencies and GitHub Actions to their latest versions
+- Consolidated AI agent documentation into `AGENTS.md` and removed duplication across `CLAUDE.md` and GitHub Copilot instructions
 - Improved repository maintenance by removing obsolete agent configurations
 
 ### Fixed
