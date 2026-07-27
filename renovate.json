@@ -1,79 +1,46 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "dependencyDashboard": true,
   "semanticCommits": "enabled",
   "rebaseWhen": "behind-base-branch",
-  "reviewers": [
-    "dsdeboer"
-  ],
+  "reviewers": ["dsdeboer"],
   "timezone": "UTC",
-  "schedule": [
-    "on monday"
-  ],
+  "schedule": ["on monday"],
   "packageRules": [
     {
-      "matchManagers": [
-        "github-actions"
-      ],
+      "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest"
-      ]
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
     },
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchPackagePrefixes": [
-        "golang.org/x/"
-      ],
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["golang.org/x/"],
       "groupName": "golang-x",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
+      "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchPackagePrefixes": [
-        "google.golang.org/"
-      ],
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["google.golang.org/"],
       "groupName": "google-golang",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
+      "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchPackagePrefixes": [
-        "github.com/hashicorp/"
-      ],
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["github.com/hashicorp/"],
       "groupName": "hashicorp"
     },
     {
-      "matchManagers": [
-        "gomod"
-      ],
+      "matchManagers": ["gomod"],
       "excludePackagePrefixes": [
         "golang.org/x/",
         "google.golang.org/",
@@ -82,15 +49,11 @@
       "groupName": "Go dependencies"
     },
     {
-      "matchManagers": [
-        "terraform"
-      ],
+      "matchManagers": ["terraform"],
       "groupName": "Terraform"
     },
     {
-      "matchManagers": [
-        "mise"
-      ],
+      "matchManagers": ["mise"],
       "groupName": "mise"
     }
   ]
