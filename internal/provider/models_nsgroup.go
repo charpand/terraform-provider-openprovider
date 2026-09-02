@@ -18,3 +18,15 @@ type NSGroupModel struct {
 	Name        types.String             `tfsdk:"name"`
 	Nameservers []NSGroupNameserverModel `tfsdk:"nameservers"`
 }
+
+// NSGroupResourceModel represents the Terraform state model for a nameserver
+// group resource. It is NSGroupModel plus `allow_deletion`, which only the
+// resource has: a data source cannot delete what it reads. The two models stay
+// apart because a struct must hold a field for every attribute of the schema it
+// is decoded against.
+type NSGroupResourceModel struct {
+	ID            types.String             `tfsdk:"id"`
+	Name          types.String             `tfsdk:"name"`
+	Nameservers   []NSGroupNameserverModel `tfsdk:"nameservers"`
+	AllowDeletion types.Bool               `tfsdk:"allow_deletion"`
+}

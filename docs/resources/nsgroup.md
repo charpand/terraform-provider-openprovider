@@ -58,6 +58,10 @@ resource "openprovider_nsgroup" "with_ips" {
 - `name` (String) The name of the nameserver group.
 - `nameservers` (Attributes List) List of nameservers in the group. (see [below for nested schema](#nestedatt--nameservers))
 
+### Optional
+
+- `allow_deletion` (Boolean) Enable deletion of this nameserver group. When false (default), the group is removed from Terraform state but preserved in OpenProvider. Set to true to permit actual deletion.
+
 ### Read-Only
 
 - `id` (String) The nameserver group identifier.
