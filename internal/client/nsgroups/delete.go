@@ -27,9 +27,9 @@ func Delete(c *client.Client, name string) error {
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("failed to delete nameserver group: status code %d", resp.StatusCode)
-	}
+	// `resp.StatusCode` is 2xx whenever `err` is nil above (`client.Client.Do`
+	// turns anything else into an error before returning), so no status check
+	// is needed here.
 
 	return nil
 }

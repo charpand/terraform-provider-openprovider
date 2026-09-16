@@ -3,7 +3,9 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client/authentication"
@@ -43,8 +45,12 @@ func NewClient(config Config) *Client {
 
 	httpClient := config.HTTPClient
 	if httpClient == nil {
+		// A registration can take longer than a request timeout sized for a
+		// read: the first live one answered after the 30s the client used to
+		// allow, so the order went through while the apply reported a failure
+		// and recorded nothing.
 		httpClient = &http.Client{
-			Timeout: time.Second * 30,
+			Timeout: time.Second * 180,
 		}
 	}
 
@@ -94,7 +100,11 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return resp, fmt.Errorf("api error: status %d", resp.StatusCode)
+		// The body carries the API's reason (`{"desc":...,"code":...}`);
+		// without it a refusal reads as a bare status.
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		_ = resp.Body.Close()
+		return resp, fmt.Errorf("api error: status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
 	return resp, nil

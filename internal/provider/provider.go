@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"os"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -23,6 +24,7 @@ type OpenproviderProvider struct {
 type OpenproviderProviderModel struct {
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
+	BaseURL  types.String `tfsdk:"base_url"`
 }
 
 // Metadata sets the provider type name and version.
@@ -36,13 +38,17 @@ func (p *OpenproviderProvider) Schema(_ context.Context, _ provider.SchemaReques
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"username": schema.StringAttribute{
-				MarkdownDescription: "OpenProvider username.",
-				Required:            true,
+				MarkdownDescription: "OpenProvider username. Falls back to the `OPENPROVIDER_USERNAME` environment variable.",
+				Optional:            true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "OpenProvider password.",
-				Required:            true,
+				MarkdownDescription: "OpenProvider password. Falls back to the `OPENPROVIDER_PASSWORD` environment variable.",
+				Optional:            true,
 				Sensitive:           true,
+			},
+			"base_url": schema.StringAttribute{
+				MarkdownDescription: "Root URL of the OpenProvider API. Falls back to the `OPENPROVIDER_BASE_URL` environment variable, and to the production API when neither is set.",
+				Optional:            true,
 			},
 		},
 	}
@@ -58,8 +64,12 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 		return
 	}
 
-	// Validation
-	var username, password string
+	// Validation. The configuration wins where it states a value, and the
+	// environment answers otherwise, so a credential can reach the provider
+	// without being written into the module or into state.
+	username := os.Getenv("OPENPROVIDER_USERNAME")
+	password := os.Getenv("OPENPROVIDER_PASSWORD")
+	baseURL := os.Getenv("OPENPROVIDER_BASE_URL")
 
 	if !data.Username.IsNull() {
 		username = data.Username.ValueString()
@@ -69,10 +79,14 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 		password = data.Password.ValueString()
 	}
 
+	if !data.BaseURL.IsNull() {
+		baseURL = data.BaseURL.ValueString()
+	}
+
 	if username == "" || password == "" {
 		resp.Diagnostics.AddError(
 			"Missing Authentication Configuration",
-			"The provider requires both username and password for authentication.",
+			"The provider requires both a username and a password, either in the provider block or as OPENPROVIDER_USERNAME and OPENPROVIDER_PASSWORD.",
 		)
 	}
 
@@ -84,6 +98,7 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 	c := client.NewClient(client.Config{
 		Username: username,
 		Password: password,
+		BaseURL:  baseURL,
 	})
 
 	// Make client available
@@ -97,6 +112,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewCustomerResource,
 		NewDomainResource,
 		NewNSGroupResource,
+		NewGlueRecordResource,
 		NewDNSRecordResource,
 		NewSSLOrderResource,
 	}

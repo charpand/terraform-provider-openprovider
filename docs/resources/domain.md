@@ -291,14 +291,17 @@ resource "openprovider_domain" "transferred" {
 - `auth_code` (String, Sensitive) The EPP/Authorization code for domain transfer (also known as transfer code or auth code). This is obtained from the current registrar. When provided, the domain will be transferred instead of registered.
 - `autorenew` (Boolean) Whether the domain should auto-renew.
 - `billing_handle` (String) The billing contact handle for the domain.
+- `currency` (String) The currency `max_cost` is stated in. Defaults to EUR. A quote that comes back in another currency fails the apply rather than being converted, because a wrong conversion would spend money.
 - `dnssec_keys` (Attributes List) DNSSEC keys for the domain. Optional. (see [below for nested schema](#nestedatt--dnssec_keys))
 - `is_dnssec_enabled` (Boolean) Enable DNSSEC for the domain.
+- `max_cost` (Number) The most, in minor units of `currency` (cents for EUR and USD), that this registration or transfer may cost. The live quote is read before anything is ordered, and the apply fails without spending if the quote is higher. No bound is held when this is unset.
 - `ns_group` (String) The nameserver group to use for this domain. Use this instead of nameserver blocks.
 - `period` (Number) Registration period in years. Only applicable for domain registration (not transfers).
 - `tech_handle` (String) The tech contact handle for the domain.
 
 ### Read-Only
 
+- `cost` (Number) What the operation was quoted at, in minor units of `currency`, at the time it ran.
 - `expiration_date` (String) The domain expiration date.
 - `id` (String) The domain identifier (domain name).
 - `status` (String) The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).

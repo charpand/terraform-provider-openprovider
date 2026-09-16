@@ -18,6 +18,9 @@ type DomainModel struct {
 	TechHandle      types.String `tfsdk:"tech_handle"`
 	BillingHandle   types.String `tfsdk:"billing_handle"`
 	Period          types.Int64  `tfsdk:"period"`
+	MaxCost         types.Int64  `tfsdk:"max_cost"`
+	Currency        types.String `tfsdk:"currency"`
+	Cost            types.Int64  `tfsdk:"cost"`
 	NSGroup         types.String `tfsdk:"ns_group"`
 	DnssecKeys      types.List   `tfsdk:"dnssec_keys"`
 	IsDnssecEnabled types.Bool   `tfsdk:"is_dnssec_enabled"`

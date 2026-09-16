@@ -4,17 +4,19 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+	"github.com/charpand/terraform-provider-openprovider/internal/client/prices"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -35,6 +37,38 @@ var dnssecKeysAttrTypes = map[string]attr.Type{
 	"flags":      types.Int64Type,
 	"protocol":   types.Int64Type,
 	"public_key": types.StringType,
+}
+
+// dnssecEnabledFollowsKeys plans `is_dnssec_enabled` from the prior state only
+// while `dnssec_keys` is unchanged. The API turns the flag on or off when the
+// keys change, so a plan that carried the prior value over an update to the keys
+// would be contradicted by the result.
+type dnssecEnabledFollowsKeys struct{}
+
+func (m dnssecEnabledFollowsKeys) Description(ctx context.Context) string {
+	return m.MarkdownDescription(ctx)
+}
+
+func (m dnssecEnabledFollowsKeys) MarkdownDescription(_ context.Context) string {
+	return "Keeps the prior value unless `dnssec_keys` changes."
+}
+
+func (m dnssecEnabledFollowsKeys) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.State.Raw.IsNull() || !req.ConfigValue.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	var configKeys, stateKeys types.List
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("dnssec_keys"), &configKeys)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("dnssec_keys"), &stateKeys)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// The config is compared, not the plan: a null config keeps the keys the
+	// state holds, and the plan's own value can still be unknown here, because
+	// attribute modifiers run in no fixed order.
+	if configKeys.IsNull() || configKeys.Equal(stateKeys) {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 // DomainResource is the resource implementation.
@@ -90,6 +124,74 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 	return listValue
 }
 
+// guardSpend asks Openprovider what the operation costs and reports the quote
+// in minor units, or refuses when it is above `max_cost`. It returns false once
+// it has added a diagnostic, so the caller returns without ordering anything.
+//
+// Every way of not getting a usable quote is a refusal rather than a warning.
+// The point of the bound is that a mistake in the configuration costs nothing,
+// and a bound that gives way when the quote is unreadable does not hold.
+func guardSpend(
+	c *client.Client,
+	plan *DomainModel,
+	name, extension, operation string,
+	diags *diag.Diagnostics,
+) (int64, bool) {
+	currency := "EUR"
+	if !plan.Currency.IsNull() && plan.Currency.ValueString() != "" {
+		currency = plan.Currency.ValueString()
+	}
+
+	period := plan.Period.ValueInt64()
+	if plan.Period.IsNull() || plan.Period.IsUnknown() || period < 1 {
+		period = 1
+	}
+
+	quote, err := prices.Create(c, name, extension, period)
+	if err != nil {
+		diags.AddError(
+			"Could Not Read the Price",
+			fmt.Sprintf("Openprovider was not asked to %s %s.%s, because its price could not be read: %s", operation, name, extension, err.Error()),
+		)
+		return 0, false
+	}
+
+	charge := quote.Charge()
+	if charge.Price <= 0 {
+		diags.AddError(
+			"Could Not Read the Price",
+			fmt.Sprintf("Openprovider quoted no price for %s.%s, so the max_cost bound cannot be held and nothing was ordered.", name, extension),
+		)
+		return 0, false
+	}
+
+	if charge.Currency != currency {
+		diags.AddError(
+			"Quote Is In Another Currency",
+			fmt.Sprintf(
+				"max_cost is stated in %s and Openprovider quoted %s for %s.%s. Nothing was ordered: converting the two here would decide with a rate this provider does not know.",
+				currency, charge.Currency, name, extension,
+			),
+		)
+		return 0, false
+	}
+
+	// Rounded up, so a bound is never passed by a fraction of a cent.
+	cost := int64(math.Ceil(charge.Price * 100))
+	if cost > plan.MaxCost.ValueInt64() {
+		diags.AddError(
+			"Costs More Than max_cost",
+			fmt.Sprintf(
+				"Openprovider quoted %d %s cents to %s %s.%s, above the max_cost of %d. Nothing was ordered.",
+				cost, currency, operation, name, extension, plan.MaxCost.ValueInt64(),
+			),
+		)
+		return 0, false
+	}
+
+	return cost, true
+}
+
 // NewDomainResource returns a new instance of the domain resource.
 func NewDomainResource() resource.Resource {
 	return &DomainResource{}
@@ -130,6 +232,9 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"autorenew": schema.BoolAttribute{
 				MarkdownDescription: "Whether the domain should auto-renew.",
@@ -145,16 +250,25 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "The admin contact handle for the domain.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"tech_handle": schema.StringAttribute{
 				MarkdownDescription: "The tech contact handle for the domain.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"billing_handle": schema.StringAttribute{
 				MarkdownDescription: "The billing contact handle for the domain.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"period": schema.Int64Attribute{
 				MarkdownDescription: "Registration period in years. Only applicable for domain registration (not transfers).",
@@ -164,6 +278,21 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"ns_group": schema.StringAttribute{
 				MarkdownDescription: "The nameserver group to use for this domain. Use this instead of nameserver blocks.",
 				Optional:            true,
+			},
+			"max_cost": schema.Int64Attribute{
+				MarkdownDescription: "The most, in minor units of `currency` (cents for EUR and USD), that this registration or transfer may cost. The live quote is read before anything is ordered, and the apply fails without spending if the quote is higher. No bound is held when this is unset.",
+				Optional:            true,
+			},
+			"currency": schema.StringAttribute{
+				MarkdownDescription: "The currency `max_cost` is stated in. Defaults to EUR. A quote that comes back in another currency fails the apply rather than being converted, because a wrong conversion would spend money.",
+				Optional:            true,
+			},
+			"cost": schema.Int64Attribute{
+				MarkdownDescription: "What the operation was quoted at, in minor units of `currency`, at the time it ran.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"dnssec_keys": schema.ListNestedAttribute{
 				MarkdownDescription: "DNSSEC keys for the domain. Optional.",
@@ -198,12 +327,15 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
+					dnssecEnabledFollowsKeys{},
 				},
 			},
 			"expiration_date": schema.StringAttribute{
 				MarkdownDescription: "The domain expiration date.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -255,6 +387,24 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Check if this is a transfer (auth_code provided) or a new registration
 	isTransfer := !plan.AuthCode.IsNull() && plan.AuthCode.ValueString() != ""
+
+	// Read the live quote and hold it against `max_cost` before anything is
+	// ordered. An apply that would spend more than it was told to must fail
+	// having spent nothing, so this runs ahead of both branches below. With no
+	// `max_cost` there is no bound to hold, and the API is not asked.
+	plan.Cost = types.Int64Null()
+	if !plan.MaxCost.IsNull() && !plan.MaxCost.IsUnknown() {
+		operation := "create"
+		if isTransfer {
+			operation = "transfer"
+		}
+
+		cost, ok := guardSpend(r.client, &plan, name, extension, operation, &resp.Diagnostics)
+		if !ok {
+			return
+		}
+		plan.Cost = types.Int64Value(cost)
+	}
 
 	if isTransfer {
 		// Domain Transfer
@@ -533,13 +683,7 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	// change detection prevents redundant API calls for resources with computed fields that
 	// can be updated by the API independently.
 	if !hasChanges {
-		var readReq resource.ReadRequest
-		readReq.State = resp.State
-		var readResp resource.ReadResponse
-		readResp.State = resp.State
-		r.Read(ctx, readReq, &readResp)
-		resp.State = readResp.State
-		resp.Diagnostics.Append(readResp.Diagnostics...)
+		r.refreshAfterUpdate(ctx, plan, resp)
 		return
 	}
 
@@ -594,7 +738,9 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	// Update DNSSEC enabled if changed
 	if !plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled) {
-		if !plan.IsDnssecEnabled.IsNull() {
+		// An unknown flag is one the keys decide: the API sets it with them, and
+		// the value read from an unknown is false, which would turn DNSSEC off.
+		if !plan.IsDnssecEnabled.IsNull() && !plan.IsDnssecEnabled.IsUnknown() {
 			enabled := plan.IsDnssecEnabled.ValueBool()
 			updateReq.IsDnssecEnabled = &enabled
 		}
@@ -610,14 +756,44 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// Call Read to refresh the state
+	r.refreshAfterUpdate(ctx, plan, resp)
+}
+
+// refreshAfterUpdate reads the domain back into `resp.State` the way `Read`
+// reads it, then carries the order fields over from the plan. The read starts
+// from the prior state, and the API has no record of `period`, `max_cost` or
+// `currency`: they describe the order, not the domain. Without the carry an
+// update leaves them at whatever the prior state held -- null after an
+// import -- and the framework rejects the result as inconsistent with the
+// plan. This holds whether or not the update sent a request: an update with
+// nothing to send still ends in this refresh.
+func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan DomainModel, resp *resource.UpdateResponse) {
 	var readReq resource.ReadRequest
 	readReq.State = resp.State
 	var readResp resource.ReadResponse
 	readResp.State = resp.State
 	r.Read(ctx, readReq, &readResp)
-	resp.State = readResp.State
 	resp.Diagnostics.Append(readResp.Diagnostics...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// A domain the read no longer finds has left the state; there is nothing
+	// to carry the order fields into.
+	if readResp.State.Raw.IsNull() {
+		resp.State = readResp.State
+		return
+	}
+
+	var final DomainModel
+	resp.Diagnostics.Append(readResp.State.Get(ctx, &final)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	final.Period = plan.Period
+	final.MaxCost = plan.MaxCost
+	final.Currency = plan.Currency
+	resp.Diagnostics.Append(resp.State.Set(ctx, &final)...)
 }
 
 // Delete prevents deletion of domains as a safety measure.

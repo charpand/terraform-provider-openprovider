@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `max_cost` and `currency` on `openprovider_domain`: a registration or transfer is quoted before it is ordered, and the apply fails without spending where the quote exceeds the bound
 - `mise.toml` for local tool version management
 - `CLAUDE.md` with project-specific development guidelines
 
@@ -18,8 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated various Go dependencies and GitHub Actions to their latest versions
 - Consolidated AI agent documentation into `AGENTS.md` and removed duplication across `CLAUDE.md` and GitHub Copilot instructions
 - Improved repository maintenance by removing obsolete agent configurations
+- Made `CLAUDE.md` the canonical AI agent instructions doc; `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/agents/coding-agent.md` now reference it instead of duplicating (or symlinking) content
 
 ### Fixed
+- `openprovider_glue_record`: a record deleted outside Terraform is now dropped from state instead of erroring on `Read`, and destroying an already-deleted record is a no-op again instead of failing (a 404 from `client.Client.Do` was no longer told apart from any other error after its retry/error-reporting change)
+- `openprovider_domain`: the request timeout is now long enough for a registration to complete, a failed request reports the API's reason instead of a bare status, an update no longer drops the order fields (`period`, `max_cost`, `currency`), and a plan with `dnssec_keys` left unstated no longer reports a change on every run
 - Resolved `go get -u all` failure by fixing `mergo` module path conflict
 - Resolved `openpgp: key expired` error in documentation workflow by explicitly setting up Terraform
 
