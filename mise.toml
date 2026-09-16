@@ -1,2 +1,4 @@
 [tools]
-go = "latest"
+go = "1.27"
+node = "26"
+terraform = "1.16"
