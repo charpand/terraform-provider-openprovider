@@ -69,7 +69,9 @@ func List(c *client.Client) ([]NSGroup, error) {
 }
 
 // Get retrieves a specific nameserver group by name from the Openprovider API.
-// The ns_group parameter is the group name.
+// The ns_group parameter is the group name. It returns (nil, nil) for a group
+// that no longer exists, so a caller can tell "gone" apart from a failed
+// request.
 func Get(c *client.Client, name string) (*NSGroup, error) {
 	path := fmt.Sprintf("/v1beta/dns/nameservers/groups/%s", name)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
@@ -79,6 +81,12 @@ func Get(c *client.Client, name string) (*NSGroup, error) {
 
 	resp, err := c.Do(req)
 	if err != nil {
+		// `client.Client.Do` turns any non-2xx status into an error and closes
+		// the body before returning, so a 404 is told apart here, from the
+		// status alone, rather than from a body that is no longer there to read.
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 
