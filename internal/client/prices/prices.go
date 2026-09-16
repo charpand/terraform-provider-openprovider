@@ -94,9 +94,9 @@ func Create(c *client.Client, name, extension string, period int64) (*Quote, err
 		return nil, fmt.Errorf("openprovider error %d: %s", envelope.Code, envelope.Desc)
 	}
 
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("openprovider returned status %d: %s", resp.StatusCode, string(body))
-	}
+	// `resp.StatusCode` is 2xx whenever `err` is nil above (`client.Client.Do`
+	// turns anything else into an error before returning), so no status check
+	// is needed here.
 
 	return &envelope.Data, nil
 }

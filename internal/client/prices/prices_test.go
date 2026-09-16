@@ -69,3 +69,15 @@ func TestCreateReportsAnAPIError(t *testing.T) {
 		t.Fatal("expected a non-zero code in the envelope to be an error")
 	}
 }
+
+func TestCreateReportsAFailedRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	c := client.NewClient(client.Config{BaseURL: server.URL, Token: "test", HTTPClient: server.Client()})
+	if _, err := prices.Create(c, "example", "com", 1); err == nil {
+		t.Fatal("expected a failed HTTP request (non-2xx) to be reported as an error")
+	}
+}
