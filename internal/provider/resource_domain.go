@@ -31,6 +31,11 @@ const (
 	onDestroyDelete = "delete"
 )
 
+// The domain status of a name the account holds outright. The API has others
+// for a name on its way in (`REQ` for a transfer requested, `PEN` for one
+// pending), and only this one says the hand-over is over.
+const domainStatusActive = "ACT"
+
 // oneOfValidator accepts a known string only when it is one of `allowed`.
 type oneOfValidator struct {
 	allowed []string
@@ -928,12 +933,28 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	// otherwise, the same as one this provider registered.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("on_destroy"), onDestroyRetain)...)
 
-	// Note: auth_code cannot be retrieved from the API after transfer is initiated
-	// Users must provide it in their configuration if the domain was transferred
-	resp.Diagnostics.AddWarning(
-		"Auth Code Required for Transferred Domains",
-		"If this domain was transferred to OpenProvider, the authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import, or the resource will show a diff on the next plan.",
-	)
+	// The authorization code of a transfer cannot be read back from the API, so
+	// the configuration is the only place it can come from. A name the account
+	// already holds needs none: its status is active, and a transfer, if there
+	// was one, is complete. So ask for the status and speak only for a name the
+	// registry has not handed over yet -- an import of an owned domain is then
+	// quiet, which is what the operator lane does on every deploy.
+	if r.client == nil {
+		return
+	}
+	domain, err := getDomainByName(r.client, domainName)
+	switch {
+	case err != nil:
+		resp.Diagnostics.AddWarning(
+			"Domain Status Not Read",
+			fmt.Sprintf("The import of %s succeeded, but its status could not be read: %s. If a transfer of this domain is still in progress, keep its auth_code in the configuration.", domainName, err.Error()),
+		)
+	case domain != nil && domain.Status != domainStatusActive:
+		resp.Diagnostics.AddWarning(
+			"Auth Code Required for Transferred Domains",
+			fmt.Sprintf("Domain %s has status %q, so a transfer of it is not complete. The authorization code cannot be read from the API, so keep the auth_code of that transfer in the configuration.", domainName, domain.Status),
+		)
+	}
 }
 
 // domainIsFree asks the registry, through the availability check, whether
