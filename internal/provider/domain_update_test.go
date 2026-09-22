@@ -110,3 +110,51 @@ func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
 		})
 	}
 }
+
+// TestDomainResourceUpdateResolvesAnUnknownPeriod covers a domain whose
+// prior state holds `period` as null -- one that predates the field, or was
+// imported before it was ever set -- with nothing else changed. `period`'s
+// `UseStateForUnknown` plan modifier can't resolve against a null prior
+// state, so the plan handed to `Update` still carries it unknown, the same
+// way Terraform's own plan step would produce it. `Update` must not write
+// that unknown into the applied state; it should fall back to the prior
+// state's (null) value instead.
+func TestDomainResourceUpdateResolvesAnUnknownPeriod(t *testing.T) {
+	ctx := context.Background()
+	server := listingOf(t, "example", "com")
+	defer server.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: server.URL, Token: "test"})}
+
+	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
+	prior := DomainModel{
+		ID:          types.StringValue("example.com"),
+		Domain:      types.StringValue("example.com"),
+		Status:      types.StringValue("ACT"),
+		Autorenew:   types.BoolValue(false),
+		OwnerHandle: types.StringValue("XX000001-NL"),
+		DnssecKeys:  noKeys,
+	}
+	plan := prior
+	plan.Period = types.Int64Unknown()
+
+	priorState := stateOf(ctx, t, r, prior)
+	resp := resource.UpdateResponse{State: priorState}
+	r.Update(ctx, resource.UpdateRequest{
+		Plan:  tfsdk.Plan{Schema: priorState.Schema, Raw: stateOf(ctx, t, r, plan).Raw},
+		State: priorState,
+	}, &resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("update: %v", resp.Diagnostics)
+	}
+
+	var got DomainModel
+	if diags := resp.State.Get(ctx, &got); diags.HasError() {
+		t.Fatalf("get: %v", diags)
+	}
+	if got.Period.IsUnknown() {
+		t.Error("period should not be unknown after apply")
+	}
+	if !got.Period.Equal(prior.Period) {
+		t.Errorf("period: got %v, want %v", got.Period, prior.Period)
+	}
+}

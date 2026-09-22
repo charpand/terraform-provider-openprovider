@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -151,6 +152,31 @@ func TestDomainResourceIsDnssecEnabledHasPlanModifier(t *testing.T) {
 
 	if !computedAttr.IsComputed() {
 		t.Error("is_dnssec_enabled should be Computed to prevent 'known after apply' on reapply")
+	}
+}
+
+// TestDomainResourcePeriodUsesStateForUnknown guards against a regression
+// where `period`, being Optional and Computed with no plan modifier, went
+// unknown in the plan on any apply that left it unstated in config -- not
+// just the first one -- and `Update` then wrote that unknown straight into
+// the applied state, which the framework rejects as an invalid result.
+func TestDomainResourcePeriodUsesStateForUnknown(t *testing.T) {
+	ctx := context.Background()
+	r := NewDomainResource()
+	resp := &resource.SchemaResponse{}
+	r.Schema(ctx, resource.SchemaRequest{}, resp)
+
+	periodAttr, ok := resp.Schema.Attributes["period"].(schema.Int64Attribute)
+	if !ok {
+		t.Fatal("period attribute not found in schema, or not an Int64Attribute")
+	}
+
+	if !periodAttr.Optional || !periodAttr.Computed {
+		t.Error("period should be Optional and Computed")
+	}
+
+	if len(periodAttr.PlanModifiers) == 0 {
+		t.Error("period should carry a plan modifier so it doesn't go unknown when left unstated")
 	}
 }
 

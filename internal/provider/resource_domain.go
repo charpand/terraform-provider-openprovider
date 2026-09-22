@@ -339,6 +339,9 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Registration period in years. Only applicable for domain registration (not transfers).",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"ns_group": schema.StringAttribute{
 				MarkdownDescription: "The nameserver group to use for this domain. Use this instead of nameserver blocks.",
@@ -779,7 +782,7 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	// change detection prevents redundant API calls for resources with computed fields that
 	// can be updated by the API independently.
 	if !hasChanges {
-		r.refreshAfterUpdate(ctx, plan, resp)
+		r.refreshAfterUpdate(ctx, plan, state, resp)
 		return
 	}
 
@@ -852,7 +855,7 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	r.refreshAfterUpdate(ctx, plan, resp)
+	r.refreshAfterUpdate(ctx, plan, state, resp)
 }
 
 // refreshAfterUpdate reads the domain back into `resp.State` the way `Read`
@@ -863,7 +866,16 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 // import -- and the framework rejects the result as inconsistent with the
 // plan. This holds whether or not the update sent a request: an update with
 // nothing to send still ends in this refresh.
-func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan DomainModel, resp *resource.UpdateResponse) {
+//
+// A plan value can itself still be unknown here: `period`'s
+// `UseStateForUnknown` only resolves against a *non-null* prior state, so a
+// domain whose state predates the field (or was imported before `period` was
+// ever set) plans it unknown on every apply, not just the first. Writing an
+// unknown straight into the applied state hits the same "invalid result
+// object" error `UseStateForUnknown` was meant to prevent, so an unknown
+// plan value falls back to the prior state's value -- null, if that's what
+// it holds -- which is a known value the framework accepts.
+func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan, state DomainModel, resp *resource.UpdateResponse) {
 	var readReq resource.ReadRequest
 	readReq.State = resp.State
 	var readResp resource.ReadResponse
@@ -887,8 +899,17 @@ func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan DomainMode
 		return
 	}
 	final.Period = plan.Period
+	if final.Period.IsUnknown() {
+		final.Period = state.Period
+	}
 	final.MaxCost = plan.MaxCost
+	if final.MaxCost.IsUnknown() {
+		final.MaxCost = state.MaxCost
+	}
 	final.Currency = plan.Currency
+	if final.Currency.IsUnknown() {
+		final.Currency = state.Currency
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &final)...)
 }
 
