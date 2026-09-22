@@ -38,13 +38,29 @@ func domainStatusAPI(t *testing.T, status string) *httptest.Server {
 	}))
 }
 
+// domainLookupFailingAPI stands in for an OpenProvider that cannot answer the
+// status lookup import makes after the import ID is accepted.
+func domainLookupFailingAPI(t *testing.T) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+}
+
 // importDomain imports example.com from an account which holds it under
 // `status`, and reports the summary of every warning the import raised.
 func importDomain(t *testing.T, status string) (warnings []string, errored bool) {
 	t.Helper()
-	ctx := context.Background()
 	server := domainStatusAPI(t, status)
 	defer server.Close()
+	return importDomainFrom(t, server)
+}
+
+// importDomainFrom imports example.com against the given stand-in API, and
+// reports the summary of every warning the import raised.
+func importDomainFrom(t *testing.T, server *httptest.Server) (warnings []string, errored bool) {
+	t.Helper()
+	ctx := context.Background()
 	r := &DomainResource{client: client.NewClient(client.Config{
 		BaseURL:    server.URL,
 		Token:      "test",
@@ -118,5 +134,21 @@ func TestImportOfADomainWithNoTransferInFlightIsQuiet(t *testing.T) {
 				t.Errorf("expected no warnings for status %s, got %v", status, warnings)
 			}
 		})
+	}
+}
+
+// A status lookup that fails after the import ID is accepted must not fail
+// the import itself: it warns instead, since the state it already wrote
+// (id, domain, on_destroy) is good regardless of what the status turns out
+// to be.
+func TestImportWithAFailedStatusLookupWarns(t *testing.T) {
+	server := domainLookupFailingAPI(t)
+	defer server.Close()
+	warnings, errored := importDomainFrom(t, server)
+	if errored {
+		t.Fatal("a failed status lookup must not fail the import")
+	}
+	if len(warnings) != 1 || warnings[0] != "Domain Status Not Read" {
+		t.Errorf("expected the status-not-read warning, got %v", warnings)
 	}
 }
