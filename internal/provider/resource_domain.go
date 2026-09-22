@@ -31,10 +31,23 @@ const (
 	onDestroyDelete = "delete"
 )
 
-// The domain status of a name the account holds outright. The API has others
-// for a name on its way in (`REQ` for a transfer requested, `PEN` for one
-// pending), and only this one says the hand-over is over.
-const domainStatusActive = "ACT"
+// The domain status of a name the account holds outright, and the two the
+// API uses for a name still on its way in: `REQ` for a transfer requested,
+// `PEN` for one pending. Every other status (a failed operation, a deleted
+// or expired domain, and so on) means the account no longer has a transfer
+// in flight to provide an auth_code for.
+const (
+	domainStatusActive    = "ACT"
+	domainStatusRequested = "REQ"
+	domainStatusPending   = "PEN"
+)
+
+// domainTransferIsInFlight reports whether status is one the API uses for a
+// domain whose transfer has been requested but has not yet completed -- the
+// one case an authorization code is still in play.
+func domainTransferIsInFlight(status string) bool {
+	return status == domainStatusRequested || status == domainStatusPending
+}
 
 // oneOfValidator accepts a known string only when it is one of `allowed`.
 type oneOfValidator struct {
@@ -949,7 +962,7 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 			"Domain Status Not Read",
 			fmt.Sprintf("The import of %s succeeded, but its status could not be read: %s. If a transfer of this domain is still in progress, do not set auth_code in the configuration: auth_code triggers replacement, so setting it would plan to replace the domain rather than merely track it. Wait for the transfer to finish instead.", domainName, err.Error()),
 		)
-	case domain != nil && domain.Status != domainStatusActive:
+	case domain != nil && domainTransferIsInFlight(domain.Status):
 		resp.Diagnostics.AddWarning(
 			"Auth Code Required for Transferred Domains",
 			fmt.Sprintf("Domain %s has status %q, so a transfer of it is not complete. The authorization code that started it cannot be read back from the API, and auth_code triggers replacement, so setting it in the configuration now would plan to replace the domain rather than merely track it. Leave auth_code unset until the transfer finishes and the status becomes %q.", domainName, domain.Status, domainStatusActive),

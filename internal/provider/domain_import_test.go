@@ -91,3 +91,32 @@ func TestImportOfADomainInTransferAsksForTheAuthCode(t *testing.T) {
 		t.Errorf("expected the auth-code warning, got %v", warnings)
 	}
 }
+
+// A pending transfer is the other status the API uses before a hand-over
+// completes, and asks for the auth code the same way `REQ` does.
+func TestImportOfADomainWithAPendingTransferAsksForTheAuthCode(t *testing.T) {
+	warnings, errored := importDomain(t, "PEN")
+	if errored {
+		t.Fatal("import of a domain in transfer must not fail")
+	}
+	if len(warnings) != 1 || warnings[0] != "Auth Code Required for Transferred Domains" {
+		t.Errorf("expected the auth-code warning, got %v", warnings)
+	}
+}
+
+// A status outside the two transfer-in-flight ones -- a failed operation, a
+// deleted domain, and so on -- names no transfer to provide an auth code
+// for, so the import stays quiet the same way an active domain's does.
+func TestImportOfADomainWithNoTransferInFlightIsQuiet(t *testing.T) {
+	for _, status := range []string{"FAI", "DEL"} {
+		t.Run(status, func(t *testing.T) {
+			warnings, errored := importDomain(t, status)
+			if errored {
+				t.Fatalf("import of a domain with status %s must not fail", status)
+			}
+			if len(warnings) != 0 {
+				t.Errorf("expected no warnings for status %s, got %v", status, warnings)
+			}
+		})
+	}
+}
