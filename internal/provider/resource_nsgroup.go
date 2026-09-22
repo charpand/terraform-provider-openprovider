@@ -323,14 +323,35 @@ func (r *NSGroupResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Call Read to refresh the state
-	var readReq resource.ReadRequest
-	readReq.State = resp.State
-	var readResp resource.ReadResponse
-	readResp.State = resp.State
-	r.Read(ctx, readReq, &readResp)
-	resp.State = readResp.State
-	resp.Diagnostics.Append(readResp.Diagnostics...)
+	// Read the group back, the same way Create does, so computed nameserver
+	// addresses reflect what the API now reports. Building the result state
+	// from `plan` (rather than delegating to Read with the framework's blank
+	// UpdateResponse.State) is what keeps `allow_deletion` populated: Update's
+	// State starts out null, and a Read seeded from that null state loses any
+	// attribute it doesn't itself set.
+	name := plan.Name.ValueString()
+	group, err := nsgroups.Get(r.client, name)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading NS Group",
+			fmt.Sprintf("Updated nameserver group %s but could not read it back: %s", name, err.Error()),
+		)
+		return
+	}
+	if group == nil || group.Name == "" {
+		resp.Diagnostics.AddError(
+			"Error Reading NS Group",
+			fmt.Sprintf("Updated nameserver group %s but the API does not report it.", name),
+		)
+		return
+	}
+
+	plan.ID = types.StringValue(group.Name)
+	plan.Name = types.StringValue(group.Name)
+	plan.Nameservers = nameserverState(group.Nameservers, plan.Nameservers)
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Delete removes the NS group.

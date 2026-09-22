@@ -106,6 +106,70 @@ func TestNSGroupReadRemovesAMissingGroup(t *testing.T) {
 	}
 }
 
+// TestNSGroupUpdatePreservesAllowDeletion is the regression test for the bug
+// reported after 1.0.2: the framework hands Update a null UpdateResponse.State
+// (not a copy of the plan), so building the result from a Read seeded off that
+// null state silently dropped allow_deletion, and Terraform rejected the apply
+// with "produced inconsistent result ... was cty.False, but now null".
+func TestNSGroupUpdatePreservesAllowDeletion(t *testing.T) {
+	ctx := context.Background()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/dns/nameservers/groups/my-group":
+			_, _ = w.Write([]byte(`{"code":0,"data":{"success":true}}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/dns/nameservers/groups/my-group":
+			_, _ = w.Write([]byte(`{"code":0,"data":{"ns_group":"my-group","name_servers":[{"name":"ns1.example.com","ip":"192.0.2.1"}]}}`))
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	res := nsGroupResource(server)
+	state := NSGroupResourceModel{
+		ID:            types.StringValue("my-group"),
+		Name:          types.StringValue("my-group"),
+		Nameservers:   []NSGroupNameserverModel{{Name: types.StringValue("ns1.example.com"), IP: types.StringValue("192.0.2.1"), IP6: types.StringNull()}},
+		AllowDeletion: types.BoolValue(false),
+	}
+	plan := state
+	plan.Nameservers = []NSGroupNameserverModel{{Name: types.StringValue("ns1.example.com"), IP: types.StringUnknown(), IP6: types.StringUnknown()}}
+
+	priorState := nsGroupStateOf(ctx, t, res, state)
+	plannedState := nsGroupStateOf(ctx, t, res, plan)
+
+	// Match what the real terraform-plugin-framework does: UpdateResponse.State
+	// starts out null, it is not pre-populated from the plan.
+	var schemaResp resource.SchemaResponse
+	res.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	nullState := tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}
+
+	resp := &resource.UpdateResponse{State: nullState}
+	res.Update(ctx, resource.UpdateRequest{
+		Plan:  tfsdk.Plan(plannedState),
+		State: priorState,
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("update: %v", resp.Diagnostics)
+	}
+
+	var got NSGroupResourceModel
+	if diags := resp.State.Get(ctx, &got); diags.HasError() {
+		t.Fatalf("get: %v", diags)
+	}
+	if got.AllowDeletion.IsNull() {
+		t.Fatal("expected allow_deletion to survive Update, got null")
+	}
+	if got.AllowDeletion.ValueBool() != false {
+		t.Errorf("expected allow_deletion to stay false, got %v", got.AllowDeletion.ValueBool())
+	}
+}
+
 func TestNSGroupDeleteKeepsTheGroupByDefault(t *testing.T) {
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
