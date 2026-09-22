@@ -947,12 +947,12 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	case err != nil:
 		resp.Diagnostics.AddWarning(
 			"Domain Status Not Read",
-			fmt.Sprintf("The import of %s succeeded, but its status could not be read: %s. If a transfer of this domain is still in progress, keep its auth_code in the configuration.", domainName, err.Error()),
+			fmt.Sprintf("The import of %s succeeded, but its status could not be read: %s. If a transfer of this domain is still in progress, do not set auth_code in the configuration: auth_code triggers replacement, so setting it would plan to replace the domain rather than merely track it. Wait for the transfer to finish instead.", domainName, err.Error()),
 		)
 	case domain != nil && domain.Status != domainStatusActive:
 		resp.Diagnostics.AddWarning(
 			"Auth Code Required for Transferred Domains",
-			fmt.Sprintf("Domain %s has status %q, so a transfer of it is not complete. The authorization code cannot be read from the API, so keep the auth_code of that transfer in the configuration.", domainName, domain.Status),
+			fmt.Sprintf("Domain %s has status %q, so a transfer of it is not complete. The authorization code that started it cannot be read back from the API, and auth_code triggers replacement, so setting it in the configuration now would plan to replace the domain rather than merely track it. Leave auth_code unset until the transfer finishes and the status becomes %q.", domainName, domain.Status, domainStatusActive),
 		)
 	}
 }
