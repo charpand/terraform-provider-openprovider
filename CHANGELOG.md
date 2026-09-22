@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-22
+
 ### Added
 - `max_cost` and `currency` on `openprovider_domain`: a registration or transfer is quoted before it is ordered, and the apply fails without spending where the quote exceeds the bound
 - `openprovider_domain_check` data source: whether a domain is available to register, asked of the registry rather than the account
@@ -85,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic token refresh and authentication handling
 - Support for Terraform >= 1.3
 
-[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v1.0.0
 [0.1.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v0.1.0
