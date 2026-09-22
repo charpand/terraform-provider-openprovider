@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_glue_record`: a record deleted outside Terraform is now dropped from state instead of erroring on `Read`, and destroying an already-deleted record is a no-op again instead of failing (a 404 from `client.Client.Do` was no longer told apart from any other error after its retry/error-reporting change)
 - `openprovider_domain`: the request timeout is now long enough for a registration to complete, a failed request reports the API's reason instead of a bare status, an update no longer drops the order fields (`period`, `max_cost`, `currency`), and a plan with `dnssec_keys` left unstated no longer reports a change on every run
 - `openprovider_domain` no longer leaves the state when the account's listing lags behind a registration: an absent listing is confirmed against the availability check, and a listing whose envelope reports a non-zero `code` is an error rather than an empty account
+- The import of an `openprovider_domain` warns about the transfer authorization code only where the domain's status says a transfer is not complete, and no longer on a domain the account already holds
 - Resolved `go get -u all` failure by fixing `mergo` module path conflict
 - Resolved `openpgp: key expired` error in documentation workflow by explicitly setting up Terraform
 

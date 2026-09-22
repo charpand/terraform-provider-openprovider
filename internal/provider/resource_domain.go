@@ -31,6 +31,24 @@ const (
 	onDestroyDelete = "delete"
 )
 
+// The domain status of a name the account holds outright, and the two the
+// API uses for a name still on its way in: `REQ` for a transfer requested,
+// `PEN` for one pending. Every other status (a failed operation, a deleted
+// or expired domain, and so on) means the account no longer has a transfer
+// in flight to provide an auth_code for.
+const (
+	domainStatusActive    = "ACT"
+	domainStatusRequested = "REQ"
+	domainStatusPending   = "PEN"
+)
+
+// domainTransferIsInFlight reports whether status is one the API uses for a
+// domain whose transfer has been requested but has not yet completed -- the
+// one case an authorization code is still in play.
+func domainTransferIsInFlight(status string) bool {
+	return status == domainStatusRequested || status == domainStatusPending
+}
+
 // oneOfValidator accepts a known string only when it is one of `allowed`.
 type oneOfValidator struct {
 	allowed []string
@@ -928,12 +946,28 @@ func (r *DomainResource) ImportState(ctx context.Context, req resource.ImportSta
 	// otherwise, the same as one this provider registered.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("on_destroy"), onDestroyRetain)...)
 
-	// Note: auth_code cannot be retrieved from the API after transfer is initiated
-	// Users must provide it in their configuration if the domain was transferred
-	resp.Diagnostics.AddWarning(
-		"Auth Code Required for Transferred Domains",
-		"If this domain was transferred to OpenProvider, the authorization code cannot be retrieved from the API. You must provide the auth_code in your Terraform configuration after import, or the resource will show a diff on the next plan.",
-	)
+	// The authorization code of a transfer cannot be read back from the API, so
+	// the configuration is the only place it can come from. A name the account
+	// already holds needs none: its status is active, and a transfer, if there
+	// was one, is complete. So ask for the status and speak only for a name the
+	// registry has not handed over yet -- an import of an owned domain is then
+	// quiet, which is what the operator lane does on every deploy.
+	if r.client == nil {
+		return
+	}
+	domain, err := getDomainByName(r.client, domainName)
+	switch {
+	case err != nil:
+		resp.Diagnostics.AddWarning(
+			"Domain Status Not Read",
+			fmt.Sprintf("The import of %s succeeded, but its status could not be read: %s. If a transfer of this domain is still in progress, do not set auth_code in the configuration: auth_code triggers replacement, so setting it would plan to replace the domain rather than merely track it. Wait for the transfer to finish instead.", domainName, err.Error()),
+		)
+	case domain != nil && domainTransferIsInFlight(domain.Status):
+		resp.Diagnostics.AddWarning(
+			"Auth Code Required for Transferred Domains",
+			fmt.Sprintf("Domain %s has status %q, so a transfer of it is not complete. The authorization code that started it cannot be read back from the API, and auth_code triggers replacement, so setting it in the configuration now would plan to replace the domain rather than merely track it. Leave auth_code unset until the transfer finishes and the status becomes %q.", domainName, domain.Status, domainStatusActive),
+		)
+	}
 }
 
 // domainIsFree asks the registry, through the availability check, whether
