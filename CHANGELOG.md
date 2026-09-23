@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renovate now automerges minor/patch updates across every package manager in the repo (GitHub Actions, Go modules, Terraform, mise) instead of just GitHub Actions and `golang.org/x/`/`google.golang.org/` modules
+- GitHub Actions are now pinned to commit digests (via `helpers:pinGitHubActionDigests`) instead of semver tags only, so a compromised tag can't silently repoint a workflow step
+
 ## [1.1.1] - 2026-09-23
 
 ### Fixed
