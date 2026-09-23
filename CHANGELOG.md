@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-23
+
 ### Fixed
 - `openprovider_domain`: `Update` no longer produces "Provider produced inconsistent result after apply ... on_destroy: was cty.StringVal(\"retain\"), but now null" for a domain whose state predates `on_destroy` — the same class of bug as `openprovider_nsgroup`'s `allow_deletion` fix in 1.1.0, where the applied state was built from a `Read` seeded off the prior state rather than the plan
 
@@ -90,7 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic token refresh and authentication handling
 - Support for Terraform >= 1.3
 
-[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/charpand/terraform-provider-openprovider/releases/tag/v1.0.0
