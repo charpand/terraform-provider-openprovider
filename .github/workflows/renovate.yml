@@ -55,9 +55,9 @@ jobs:
       # Short-lived, repo-scoped token from a dedicated GitHub App (preferred over a PAT)
       - name: Get token
         id: get_token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3.2.0
         with:
-          app-id: ${{ vars.RENOVATE_APP_ID }}
+          client-id: ${{ vars.RENOVATE_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
