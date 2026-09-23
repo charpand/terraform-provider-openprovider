@@ -1,28 +1,29 @@
 name: CI
+
 on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   lint:
     timeout-minutes: 10
     name: lint
     runs-on: ubuntu-latest
-
+    concurrency:
+      group: ci-lint-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup go
-        uses: actions/setup-go@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: ./go.mod
 
@@ -37,11 +38,13 @@ jobs:
     timeout-minutes: 30
     name: test
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-test-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup go
-        uses: actions/setup-go@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: ./go.mod
 
@@ -50,3 +53,80 @@ jobs:
 
       - name: Run tests
         run: ./scripts/test
+
+  docs:
+    # Docs are only re-validated for the code they're generated from; the
+    # commit backing a release tag was already validated when it landed on main.
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    name: docs
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ci-docs-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: ./go.mod
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Generate docs
+        run: ./scripts/docs
+
+      - name: Validate docs
+        run: go tool tfplugindocs validate --provider-name openprovider
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --exit-code docs/ templates/; then
+            echo "::error::Documentation is out of date. Please run './scripts/docs' and commit the changes."
+            exit 1
+          fi
+
+  release:
+    # Only cut a release once lint and test have confirmed the tagged commit is good.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, test]
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: ci-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: '0'
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: ./go.mod
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          FINGERPRINT="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          if [ -z "$FINGERPRINT" ]; then
+            echo "Failed to extract GPG fingerprint" >&2
+            exit 1
+          fi
+          echo "fingerprint=$FINGERPRINT" >> "$GITHUB_OUTPUT"
+        id: import_gpg
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
