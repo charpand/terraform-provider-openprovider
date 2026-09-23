@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:best-practices"],
   "semanticCommits": "enabled",
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "conflicted",
   "reviewers": ["dsdeboer"],
   "postUpdateOptions": [
     "gomodTidy"
@@ -86,20 +86,6 @@
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
       "matchUpdateTypes": ["minor", "patch", "digest"]
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Keep the pinned Renovate version in the workflow up to date",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/renovate\\.ya?ml$/"
-      ],
-      "matchStrings": [
-        "renovate-version:\\s*(?<currentValue>[^\\s]+)"
-      ],
-      "datasourceTemplate": "docker",
-      "depNameTemplate": "ghcr.io/renovatebot/renovate"
     }
   ]
 }
