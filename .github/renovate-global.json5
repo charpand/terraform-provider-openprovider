@@ -1,0 +1,11 @@
+// Self-hosted (global) Renovate config, passed via the action's `configurationFile`.
+// Repository rules live in /renovate.json.
+{
+  platform: "github",
+  onboarding: false,
+  requireConfig: "required",
+  branchPrefix: "renovate-self-hosted/",
+  platformCommit: "enabled",
+  username: "charpand-renovate[bot]",
+  gitAuthor: "charpand-renovate[bot] <333076601+charpand-renovate[bot]@users.noreply.github.com>",
+}
