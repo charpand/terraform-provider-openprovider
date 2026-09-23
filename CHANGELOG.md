@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `openprovider_domain`: `Update` no longer produces "Provider produced inconsistent result after apply ... on_destroy: was cty.StringVal(\"retain\"), but now null" for a domain whose state predates `on_destroy` — the same class of bug as `openprovider_nsgroup`'s `allow_deletion` fix in 1.1.0, where the applied state was built from a `Read` seeded off the prior state rather than the plan
+
 ## [1.1.0] - 2026-09-22
 
 ### Added

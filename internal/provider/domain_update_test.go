@@ -158,3 +158,55 @@ func TestDomainResourceUpdateResolvesAnUnknownPeriod(t *testing.T) {
 		t.Errorf("period: got %v, want %v", got.Period, prior.Period)
 	}
 }
+
+// TestDomainResourceUpdateKeepsOnDestroy covers a domain whose prior state
+// predates `on_destroy` -- it holds null for that attribute, the way a state
+// upgraded from before v1.1.0 does. The schema's default plans `on_destroy`
+// as a known, non-null value even though the prior state has none, and the
+// API has no record of it either way. `Update` must carry the plan's value
+// through, or the framework rejects the applied state as inconsistent with
+// the plan.
+func TestDomainResourceUpdateKeepsOnDestroy(t *testing.T) {
+	ctx := context.Background()
+	server := listingOf(t, "example", "com")
+	defer server.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: server.URL, Token: "test"})}
+
+	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
+	prior := DomainModel{
+		ID:          types.StringValue("example.com"),
+		Domain:      types.StringValue("example.com"),
+		Status:      types.StringValue("ACT"),
+		Autorenew:   types.BoolValue(false),
+		OwnerHandle: types.StringValue("XX000001-NL"),
+		DnssecKeys:  noKeys,
+	}
+	plan := prior
+	plan.OnDestroy = types.StringValue(onDestroyRetain)
+
+	for name, autorenew := range map[string]bool{
+		"nothing to send": false,
+		"a request sent":  true,
+	} {
+		t.Run(name, func(t *testing.T) {
+			thisPlan := plan
+			thisPlan.Autorenew = types.BoolValue(autorenew)
+			priorState := stateOf(ctx, t, r, prior)
+			resp := resource.UpdateResponse{State: priorState}
+			r.Update(ctx, resource.UpdateRequest{
+				Plan:  tfsdk.Plan{Schema: priorState.Schema, Raw: stateOf(ctx, t, r, thisPlan).Raw},
+				State: priorState,
+			}, &resp)
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("update: %v", resp.Diagnostics)
+			}
+			var got DomainModel
+			if diags := resp.State.Get(ctx, &got); diags.HasError() {
+				t.Fatalf("get: %v", diags)
+			}
+			if !got.OnDestroy.Equal(thisPlan.OnDestroy) {
+				t.Errorf("on_destroy: got %v, want %v", got.OnDestroy, thisPlan.OnDestroy)
+			}
+		})
+	}
+}

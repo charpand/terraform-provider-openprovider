@@ -859,13 +859,17 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 }
 
 // refreshAfterUpdate reads the domain back into `resp.State` the way `Read`
-// reads it, then carries the order fields over from the plan. The read starts
-// from the prior state, and the API has no record of `period`, `max_cost` or
-// `currency`: they describe the order, not the domain. Without the carry an
-// update leaves them at whatever the prior state held -- null after an
-// import -- and the framework rejects the result as inconsistent with the
-// plan. This holds whether or not the update sent a request: an update with
-// nothing to send still ends in this refresh.
+// reads it, then carries the order fields and `on_destroy` over from the
+// plan. The read starts from the prior state -- `UpdateResourceResponse.State`
+// is seeded from `PriorState`, not the plan -- and the API has no record of
+// `period`, `max_cost`, `currency` or `on_destroy`: none of them describe the
+// domain itself. Without the carry, an update leaves them at whatever the
+// prior state held -- null for a resource whose state predates the field, an
+// import, or (for `on_destroy`) any state written before the attribute
+// existed -- and the framework rejects the result as inconsistent with the
+// plan, which defaults `on_destroy` to a known, non-null value. This holds
+// whether or not the update sent a request: an update with nothing to send
+// still ends in this refresh.
 //
 // A plan value can itself still be unknown here: `period`'s
 // `UseStateForUnknown` only resolves against a *non-null* prior state, so a
@@ -909,6 +913,10 @@ func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan, state Dom
 	final.Currency = plan.Currency
 	if final.Currency.IsUnknown() {
 		final.Currency = state.Currency
+	}
+	final.OnDestroy = plan.OnDestroy
+	if final.OnDestroy.IsUnknown() {
+		final.OnDestroy = state.OnDestroy
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &final)...)
 }
