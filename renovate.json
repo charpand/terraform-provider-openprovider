@@ -18,43 +18,49 @@
     },
     {
       "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["golang.org/x/"],
       "groupName": "golang-x",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": [
+        "golang.org/x/{/,}**"
+      ]
     },
     {
       "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["google.golang.org/"],
       "groupName": "google-golang",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": [
+        "google.golang.org/{/,}**"
+      ]
     },
     {
       "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["github.com/hashicorp/"],
       "groupName": "hashicorp",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": [
+        "github.com/hashicorp/{/,}**"
+      ]
     },
     {
       "matchManagers": ["gomod"],
-      "excludePackagePrefixes": [
-        "golang.org/x/",
-        "google.golang.org/",
-        "github.com/hashicorp/"
-      ],
       "groupName": "Go dependencies",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": [
+        "!golang.org/x/{/,}**",
+        "!google.golang.org/{/,}**",
+        "!github.com/hashicorp/{/,}**"
+      ]
     },
     {
       "matchManagers": ["terraform"],
