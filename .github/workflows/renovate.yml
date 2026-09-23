@@ -1,0 +1,97 @@
+name: Renovate
+
+on:
+  schedule:
+    # Weekdays at 17:00 UTC
+    - cron: "0 17 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: Renovate log level
+        type: choice
+        options: [info, debug]
+        default: info
+      dryRun:
+        description: Dry run (no branches/PRs created)
+        type: boolean
+        default: false
+      repoCache:
+        description: Repository cache
+        type: choice
+        options: [enabled, disabled, reset]
+        default: enabled
+  push:
+    branches: [main]
+    paths:
+      - renovate.json
+      - .github/renovate-global.json5
+      - .github/workflows/renovate.yml
+
+# Deny everything by default; the job grants only what it needs
+permissions: {}
+
+# Never run two Renovate instances against the repo at once
+concurrency:
+  group: renovate-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  cache_dir: /tmp/renovate/cache/renovate/repository
+  cache_key: renovate-cache
+
+jobs:
+  renovate:
+    name: Renovate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # Short-lived, repo-scoped token from a dedicated GitHub App (preferred over a PAT)
+      - name: Get token
+        id: get_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Restore Renovate cache
+        id: cache-restore
+        if: inputs.repoCache != 'disabled' && inputs.repoCache != 'reset'
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ env.cache_dir }}
+          key: ${{ env.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ env.cache_key }}-
+
+      # Renovate runs as uid 12021 inside its container
+      - name: Fix restored cache ownership
+        if: steps.cache-restore.outputs.cache-matched-key != ''
+        run: sudo chown -R 12021:0 /tmp/renovate/
+
+      - name: Self-hosted Renovate
+        uses: renovatebot/github-action@v46.2.6
+        with:
+          configurationFile: .github/renovate-global.json5
+          token: ${{ steps.get_token.outputs.token }}
+          renovate-version: 44.75.2
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun && 'full' || '' }}
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          RENOVATE_REPOSITORY_CACHE: ${{ inputs.repoCache || 'enabled' }}
+
+      - name: Save Renovate cache
+        if: inputs.repoCache != 'disabled' && steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ env.cache_dir }}
+          key: ${{ env.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
