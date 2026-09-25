@@ -1,5 +1,5 @@
 [tools]
 go = "1.27"
-golangci-lint = "2.13.2"
+golangci-lint = "2.14.0"
 node = "26"
 terraform = "1.16"
