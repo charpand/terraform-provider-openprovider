@@ -48,14 +48,14 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       # Short-lived, repo-scoped token from a dedicated GitHub App (preferred over a PAT)
       - name: Get token
         id: get_token
-        uses: actions/create-github-app-token@v3.2.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ vars.RENOVATE_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
@@ -65,7 +65,7 @@ jobs:
       - name: Restore Renovate cache
         id: cache-restore
         if: inputs.repoCache != 'disabled' && inputs.repoCache != 'reset'
-        uses: actions/cache/restore@v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.cache_dir }}
           key: ${{ env.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -91,7 +91,7 @@ jobs:
 
       - name: Save Renovate cache
         if: inputs.repoCache != 'disabled' && steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6.1.0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.cache_dir }}
           key: ${{ env.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
