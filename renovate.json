@@ -18,6 +18,13 @@
     },
     {
       "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "groupName": "Go language version",
+      "rangeStrategy": "bump"
+    },
+    {
+      "matchManagers": ["gomod"],
       "groupName": "golang-x",
       "automerge": true,
       "automergeType": "pr",
