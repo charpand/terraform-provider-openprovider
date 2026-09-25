@@ -78,7 +78,7 @@ jobs:
         run: sudo chown -R 12021:0 /tmp/renovate/
 
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@v46.3.3
+        uses: renovatebot/github-action@f3a31a786096ba6b40d0f0ffe11a494ef73bfa7c # v46.3.4
         with:
           configurationFile: .github/renovate-global.json5
           token: ${{ steps.get_token.outputs.token }}
