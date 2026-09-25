@@ -3,6 +3,7 @@
   "extends": ["config:best-practices"],
   "semanticCommits": "enabled",
   "rebaseWhen": "conflicted",
+  "prHourlyRate": 5,
   "reviewers": ["dsdeboer"],
   "postUpdateOptions": [
     "gomodTidy"
@@ -15,6 +16,13 @@
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "groupName": "Go language version",
+      "rangeStrategy": "bump"
     },
     {
       "matchManagers": ["gomod"],
