@@ -94,6 +94,11 @@
       "automergeType": "pr",
       "automergeStrategy": "merge-commit",
       "matchUpdateTypes": ["minor", "patch", "digest"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["ghcr.io/renovatebot/renovate"],
+      "pinDigests": false
     }
   ]
 }
