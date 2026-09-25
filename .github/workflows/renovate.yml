@@ -82,7 +82,7 @@ jobs:
         with:
           configurationFile: .github/renovate-global.json5
           token: ${{ steps.get_token.outputs.token }}
-          renovate-version: 44.114.0
+          renovate-version: 44.115.5
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_DRY_RUN: ${{ inputs.dryRun && 'full' || '' }}
