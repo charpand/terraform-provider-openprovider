@@ -3,6 +3,7 @@
   "extends": ["config:best-practices"],
   "semanticCommits": "enabled",
   "rebaseWhen": "conflicted",
+  "prHourlyRate": 5,
   "reviewers": ["dsdeboer"],
   "postUpdateOptions": [
     "gomodTidy"
