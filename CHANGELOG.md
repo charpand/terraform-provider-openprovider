@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-26
+
 ### Changed
+- Renovate now runs self-hosted (own `renovate.yml` workflow and image) instead of the hosted GitHub App, and its config moved from `config:recommended` to `config:best-practices`
 - Renovate now automerges minor/patch updates across every package manager in the repo (GitHub Actions, Go modules, Terraform, mise) instead of just GitHub Actions and `golang.org/x/`/`google.golang.org/` modules
-- GitHub Actions are now pinned to commit digests (via `helpers:pinGitHubActionDigests`) instead of semver tags only, so a compromised tag can't silently repoint a workflow step
+- GitHub Actions are now pinned to commit digests (via `helpers:pinGitHubActionDigests`, pulled in by `config:best-practices`) instead of semver tags only, so a compromised tag can't silently repoint a workflow step
+- Renovate no longer waits for a weekly Monday schedule or shows a dependency dashboard issue; it rebases a PR only when it conflicts instead of whenever it falls behind base
+- CI workflows consolidated: `docs.yml` and `release.yml` were folded into `ci.yml`, and runners switched to `ubuntu-26.04-arm`
+- Go directive bumped to 1.27.1
+- Removed the `.devcontainer` configuration
+- Reformatted `LICENSE` to the standard MIT license text (no change in terms)
 
 ## [1.1.1] - 2026-09-23
 
