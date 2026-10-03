@@ -79,7 +79,7 @@ func TestGetResource(t *testing.T) {
 	}
 	
 	if resource == nil {
-		t.Log("Note: No resource returned by mock server")
+		t.Fatal("Expected a resource from the mock server, got nil")
 	}
 }
 ```
