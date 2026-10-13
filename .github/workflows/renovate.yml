@@ -55,7 +55,7 @@ jobs:
       # Short-lived, repo-scoped token from a dedicated GitHub App (preferred over a PAT)
       - name: Get token
         id: get_token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.RENOVATE_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
@@ -78,7 +78,7 @@ jobs:
         run: sudo chown -R 12021:0 /tmp/renovate/
 
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@6d26fcf0275dc65624cbc3d51fe78bc773f98321 # v46.3.6
+        uses: renovatebot/github-action@f0f41e5f2e706165f6814b1d0f0d0e319de7d1d9 # v46.3.8
         with:
           configurationFile: .github/renovate-global.json5
           token: ${{ steps.get_token.outputs.token }}
