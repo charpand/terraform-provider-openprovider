@@ -11,6 +11,8 @@ Manages a contact, a login of the control panel (RCP) and the API, through `/v1b
 
 A contact can be created by Terraform or imported. Every optional attribute is also computed: an attribute you leave out is not managed and keeps the value the contact has at OpenProvider, so you can import a contact and manage only part of it. The IP lists are not part of this resource; use `openprovider_rcp_ip_whitelist` for the control panel whitelist.
 
+~> **Required to create.** The API needs at least a `username`, `password`, `email`, `role`, `name` and `phone` to create a contact. Without a `role` it refuses with "Empty type field!", which does not say so; a `role` of `tech` works, and the contact you log in with typically has `admin`. Address and locale are optional.
+
 ~> **Warning: the login Terraform uses.** Do not manage the contact Terraform itself logs in with unless you are sure of the change. `is_active = false`, `api_access_enabled = false`, or a changed `email` or `role` on that contact can lock Terraform out.
 
 ~> **Password.** `password` is write-only (Terraform 1.11 or later): it is sent when the contact is created and is not kept in the plan or state. Changing it later has no effect, because the API offers no password change on this endpoint. The `token` the API returns on create is discarded.

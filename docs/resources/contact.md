@@ -11,6 +11,8 @@ Manages a contact, a login of the control panel (RCP) and the API, through `/v1b
 
 A contact can be created by Terraform or imported. Every optional attribute is also computed: an attribute you leave out is not managed and keeps the value the contact has at OpenProvider, so you can import a contact and manage only part of it. The IP lists are not part of this resource; use `openprovider_rcp_ip_whitelist` for the control panel whitelist.
 
+~> **Required to create.** The API needs at least a `username`, `password`, `email`, `role`, `name` and `phone` to create a contact. Without a `role` it refuses with "Empty type field!", which does not say so; a `role` of `tech` works, and the contact you log in with typically has `admin`. Address and locale are optional.
+
 ~> **Warning: the login Terraform uses.** Do not manage the contact Terraform itself logs in with unless you are sure of the change. `is_active = false`, `api_access_enabled = false`, or a changed `email` or `role` on that contact can lock Terraform out.
 
 ~> **Password.** `password` is write-only (Terraform 1.11 or later): it is sent when the contact is created and is not kept in the plan or state. Changing it later has no effect, because the API offers no password change on this endpoint. The `token` the API returns on create is discarded.
@@ -35,6 +37,7 @@ resource "openprovider_contact" "ci" {
   password = var.ci_contact_password
 
   email  = "ci@example.com"
+  role   = "tech"
   locale = "en_GB"
 
   name = {
@@ -65,6 +68,19 @@ resource "openprovider_contact" "ci" {
   username   = "terraform-ci"
   password   = var.ci_contact_password
   email      = "ci@example.com"
+  role       = "tech"
+
+  name = {
+    first_name = "Terraform"
+    last_name  = "CI"
+  }
+
+  phone = {
+    country_code = "+31"
+    area_code    = "20"
+    number       = "1234567"
+  }
+
   on_destroy = "delete"
 }
 
@@ -100,7 +116,7 @@ resource "openprovider_rcp_ip_whitelist" "ci" {
 - `on_destroy` (String) What destroying this resource does at OpenProvider. `retain` (the default) only forgets the contact in state: it stays in the account, and a later `import` takes it back. `delete` deletes the contact through `DELETE /v1beta/contacts/{id}`. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.
 - `password` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) The password of a new contact. It is write-only: it is sent when the contact is created, and is never stored in the plan or state (this needs Terraform 1.11 or later). The API has no way to change it afterwards through this resource, so changing it has no effect. Required to create a contact, ignored for an imported one.
 - `phone` (Attributes) The phone number of the contact. (see [below for nested schema](#nestedatt--phone))
-- `role` (String) The role of the contact.
+- `role` (String) The role of the contact, for example `tech`; the contact you log in with has `admin`. Required to create a contact, as the API refuses it otherwise.
 - `vat` (String) The VAT number.
 
 ### Read-Only

@@ -108,7 +108,7 @@ func (r *ContactResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"Every optional attribute is also computed: an attribute that is left out of the configuration is not managed, " +
 			"and keeps the value the contact has at OpenProvider. This lets you import an existing contact and manage only part of it. " +
 			"The contact's IP lists are not managed here; use `openprovider_rcp_ip_whitelist` for the control panel whitelist.\n\n" +
-			"~> **Warning:** do not manage the contact Terraform itself logs in with unless you are sure of the change. " +
+			"To create a contact the API needs at least a `username`, a `password`, an `email`, a `role`, a `name` and a `phone`.\n\n~> **Warning:** do not manage the contact Terraform itself logs in with unless you are sure of the change. " +
 			"Setting `is_active` or `api_access_enabled` to `false`, or changing `email` or `role`, on that contact can lock Terraform out.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -129,7 +129,7 @@ func (r *ContactResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				WriteOnly: true,
 			},
 			"email":        computedString("The email address of the contact.", false),
-			"role":         computedString("The role of the contact.", false),
+			"role":         computedString("The role of the contact, for example `tech`; the contact you log in with has `admin`. Required to create a contact, as the API refuses it otherwise.", false),
 			"company_name": computedString("The company name.", false),
 			"locale":       computedString("The language of the contact, for example `en_GB`.", false),
 			"comments":     computedString("Custom notes on the contact.", false),
@@ -369,6 +369,12 @@ func (r *ContactResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if known(password) == "" {
 		resp.Diagnostics.AddAttributeError(path.Root("password"), "Missing Password", "A password is required to create a contact.")
+		return
+	}
+	// Without a role the API answers "Empty type field!", which does not name it.
+	if known(plan.Role) == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("role"), "Missing Role",
+			"A role is required to create a contact, for example \"tech\" (the API otherwise refuses with \"Empty type field!\"). It also needs a name and a phone number.")
 		return
 	}
 

@@ -2,6 +2,19 @@ resource "openprovider_contact" "ci" {
   username   = "terraform-ci"
   password   = var.ci_contact_password
   email      = "ci@example.com"
+  role       = "tech"
+
+  name = {
+    first_name = "Terraform"
+    last_name  = "CI"
+  }
+
+  phone = {
+    country_code = "+31"
+    area_code    = "20"
+    number       = "1234567"
+  }
+
   on_destroy = "delete"
 }
 

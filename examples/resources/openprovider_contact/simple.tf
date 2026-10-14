@@ -11,6 +11,7 @@ resource "openprovider_contact" "ci" {
   password = var.ci_contact_password
 
   email  = "ci@example.com"
+  role   = "tech"
   locale = "en_GB"
 
   name = {

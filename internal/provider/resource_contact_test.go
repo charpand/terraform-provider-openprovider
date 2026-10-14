@@ -108,8 +108,10 @@ func TestContactCreateSendsPasswordAndKeepsItOutOfState(t *testing.T) {
 	defer server.Close()
 
 	res := contactResource(server)
-	plan := contactState(ctx, t, res, unplanned())
-	withPassword := unplanned()
+	planned := unplanned()
+	planned.Role = types.StringValue("tech")
+	plan := contactState(ctx, t, res, planned)
+	withPassword := planned
 	withPassword.Password = types.StringValue("s3cret")
 	config := contactState(ctx, t, res, withPassword)
 
@@ -126,7 +128,10 @@ func TestContactCreateSendsPasswordAndKeepsItOutOfState(t *testing.T) {
 	if sent["username"] != "ci" || sent["password"] != "s3cret" || sent["email"] != "ci@example.com" {
 		t.Errorf("unexpected create body %v", sent)
 	}
-	for _, k := range []string{"role", "name", "phone", "address", "is_active"} {
+	if sent["role"] != "tech" {
+		t.Errorf("role was not sent: %v", sent)
+	}
+	for _, k := range []string{"name", "phone", "address", "is_active"} {
 		if _, ok := sent[k]; ok {
 			t.Errorf("%s was sent although the plan left it unknown", k)
 		}
@@ -163,6 +168,27 @@ func TestContactCreateRequiresPassword(t *testing.T) {
 	res.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan(plan), Config: tfsdk.Config(plan)}, resp)
 	if !resp.Diagnostics.HasError() || len(f.bodies["POST"]) != 0 {
 		t.Fatalf("expected an error and no API call, got %v / %v", resp.Diagnostics, f.bodies)
+	}
+}
+
+func TestContactCreateRequiresRole(t *testing.T) {
+	ctx := context.Background()
+	f := &fakeContactAPI{}
+	server := httptest.NewServer(f.handler(t, ""))
+	defer server.Close()
+
+	res := contactResource(server)
+	plan := contactState(ctx, t, res, unplanned()) // role left out: unknown
+	withPassword := unplanned()
+	withPassword.Password = types.StringValue("s3cret")
+	config := contactState(ctx, t, res, withPassword)
+	resp := &resource.CreateResponse{State: plan}
+	res.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan(plan), Config: tfsdk.Config(config)}, resp)
+	if !resp.Diagnostics.HasError() || len(f.bodies["POST"]) != 0 {
+		t.Fatalf("expected an error about the role and no API call, got %v / %v", resp.Diagnostics, f.bodies)
+	}
+	if !strings.Contains(resp.Diagnostics.Errors()[0].Summary(), "Role") {
+		t.Errorf("unexpected error %v", resp.Diagnostics)
 	}
 }
 
