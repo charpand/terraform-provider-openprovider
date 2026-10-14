@@ -33,10 +33,16 @@ output "current_whitelist" {
 
 ### Read-Only
 
+- `api_access_enabled` (Boolean) Whether the contact may use the API.
+- `comments` (String) Custom notes on the contact.
+- `company_name` (String) The company name.
 - `email` (String) The email address of the contact.
+- `is_active` (Boolean) Whether the contact is active.
+- `locale` (String) The language of the contact.
 - `rcp_allow` (Set of String) The control panel IP whitelist. Empty when no whitelist is set.
 - `rcp_deny` (Set of String) The control panel IP blacklist.
 - `role` (String) The role of the contact.
 - `username` (String) The login name of the contact.
+- `vat` (String) The VAT number.
 
 
