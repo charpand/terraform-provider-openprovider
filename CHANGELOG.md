@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-14
+
 ### Added
 - `openprovider_rcp_ip_whitelist` resource: manages the control panel (RCP) IP whitelist of a contact through `PUT /v1beta/contacts/{id}`, with IPv4/IPv6/CIDR validation, drift detection, import by contact id, and `on_destroy` (`retain` by default, or `clear`, which switches the whitelist off)
 - `openprovider_contact` data source: a contact by numeric id, with its control panel `rcp_allow` and `rcp_deny` lists
