@@ -514,6 +514,24 @@ if err == nil && contact != nil && contact.RCPClientIPList != nil {
 }
 ```
 
+### Create, Update and Delete Contact
+
+`Create` returns the id of the new contact; the token the API sends with it is discarded. `Update` sends only the fields that are set on the `Request`. `Delete` treats a contact that is already gone as success. A `username` and `password` are accepted by `Create` only.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/contacts"
+
+id, err := contacts.Create(c, &contacts.Request{
+	Username: "terraform-ci",
+	Password: "...",
+	Email:    "ci@example.com",
+	Name:     &contacts.Name{FirstName: "Terraform", LastName: "CI"},
+})
+
+err = contacts.Update(c, id, &contacts.Request{Email: "new@example.com"})
+err = contacts.Delete(c, id)
+```
+
 ### Set RCP IP Whitelist
 
 Replaces the whole control panel whitelist of a contact. An empty (or nil) list switches the whitelist off. Only `rcp_client_ip_list.allow` is sent, so the deny list and other fields stay as they are.

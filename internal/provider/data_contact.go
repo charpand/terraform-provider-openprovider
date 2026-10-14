@@ -21,12 +21,18 @@ var (
 
 // ContactDataSourceModel is the state of the contact data source.
 type ContactDataSourceModel struct {
-	ID       types.String `tfsdk:"id"`
-	Username types.String `tfsdk:"username"`
-	Email    types.String `tfsdk:"email"`
-	Role     types.String `tfsdk:"role"`
-	RCPAllow types.Set    `tfsdk:"rcp_allow"`
-	RCPDeny  types.Set    `tfsdk:"rcp_deny"`
+	ID               types.String `tfsdk:"id"`
+	Username         types.String `tfsdk:"username"`
+	Email            types.String `tfsdk:"email"`
+	Role             types.String `tfsdk:"role"`
+	CompanyName      types.String `tfsdk:"company_name"`
+	Locale           types.String `tfsdk:"locale"`
+	Comments         types.String `tfsdk:"comments"`
+	VAT              types.String `tfsdk:"vat"`
+	IsActive         types.Bool   `tfsdk:"is_active"`
+	APIAccessEnabled types.Bool   `tfsdk:"api_access_enabled"`
+	RCPAllow         types.Set    `tfsdk:"rcp_allow"`
+	RCPDeny          types.Set    `tfsdk:"rcp_deny"`
 }
 
 // ContactDataSource is the data source implementation.
@@ -65,6 +71,12 @@ func (d *ContactDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				MarkdownDescription: "The role of the contact.",
 				Computed:            true,
 			},
+			"company_name":       schema.StringAttribute{MarkdownDescription: "The company name.", Computed: true},
+			"locale":             schema.StringAttribute{MarkdownDescription: "The language of the contact.", Computed: true},
+			"comments":           schema.StringAttribute{MarkdownDescription: "Custom notes on the contact.", Computed: true},
+			"vat":                schema.StringAttribute{MarkdownDescription: "The VAT number.", Computed: true},
+			"is_active":          schema.BoolAttribute{MarkdownDescription: "Whether the contact is active.", Computed: true},
+			"api_access_enabled": schema.BoolAttribute{MarkdownDescription: "Whether the contact may use the API.", Computed: true},
 			"rcp_allow": schema.SetAttribute{
 				MarkdownDescription: "The control panel IP whitelist. Empty when no whitelist is set.",
 				Computed:            true,
@@ -122,12 +134,18 @@ func (d *ContactDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	state := ContactDataSourceModel{
-		ID:       types.StringValue(strconv.Itoa(id)),
-		Username: optionalString(contact.Username),
-		Email:    optionalString(contact.Email),
-		Role:     optionalString(contact.Role),
-		RCPAllow: allowSet(reportedAllow(contact)),
-		RCPDeny:  allowSet(nil),
+		ID:               types.StringValue(strconv.Itoa(id)),
+		Username:         optionalString(contact.Username),
+		Email:            optionalString(contact.Email),
+		Role:             optionalString(contact.Role),
+		CompanyName:      optionalString(contact.CompanyName),
+		Locale:           optionalString(contact.Locale),
+		Comments:         optionalString(contact.Comments),
+		VAT:              optionalString(contact.VAT),
+		IsActive:         types.BoolValue(contact.IsActive),
+		APIAccessEnabled: types.BoolValue(contact.APIAccessEnabled),
+		RCPAllow:         allowSet(reportedAllow(contact)),
+		RCPDeny:          allowSet(nil),
 	}
 	if contact.RCPClientIPList != nil {
 		state.RCPDeny = allowSet(contact.RCPClientIPList.Deny)

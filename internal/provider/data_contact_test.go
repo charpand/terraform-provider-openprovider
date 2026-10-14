@@ -27,6 +27,8 @@ func TestContactDataSourceRead(t *testing.T) {
 	cfgState := tfsdk.State{Schema: schemaResp.Schema, Raw: empty}
 	if diags := cfgState.Set(ctx, ContactDataSourceModel{
 		ID: types.StringValue("7"), Username: types.StringNull(), Email: types.StringNull(), Role: types.StringNull(),
+		CompanyName: types.StringNull(), Locale: types.StringNull(), Comments: types.StringNull(), VAT: types.StringNull(),
+		IsActive: types.BoolNull(), APIAccessEnabled: types.BoolNull(),
 		RCPAllow: types.SetNull(types.StringType), RCPDeny: types.SetNull(types.StringType),
 	}); diags.HasError() {
 		t.Fatal(diags)

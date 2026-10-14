@@ -116,6 +116,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewDNSRecordResource,
 		NewSSLOrderResource,
 		NewRCPIPWhitelistResource,
+		NewContactResource,
 	}
 }
 
