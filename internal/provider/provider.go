@@ -115,6 +115,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewGlueRecordResource,
 		NewDNSRecordResource,
 		NewSSLOrderResource,
+		NewRCPIPWhitelistResource,
 	}
 }
 
@@ -128,6 +129,7 @@ func (p *OpenproviderProvider) DataSources(_ context.Context) []func() datasourc
 		NewNSGroupDataSource,
 		NewDNSZoneDataSource,
 		NewSSLProductDataSource,
+		NewContactDataSource,
 	}
 }
 

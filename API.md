@@ -496,3 +496,30 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/ssl"
 
 product, err := ssl.GetProduct(c, 1)
 ```
+
+## Contacts
+
+A contact is a login of the control panel (RCP) and the API. It is a different object from a customer: it has an integer id and lives under `/v1beta/contacts`.
+
+### Get Contact
+
+Returns `(nil, nil)` for a contact that does not exist.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/contacts"
+
+contact, err := contacts.Get(c, 123456)
+if err == nil && contact != nil && contact.RCPClientIPList != nil {
+	fmt.Println(contact.RCPClientIPList.Allow)
+}
+```
+
+### Set RCP IP Whitelist
+
+Replaces the whole control panel whitelist of a contact. An empty (or nil) list switches the whitelist off. Only `rcp_client_ip_list.allow` is sent, so the deny list and other fields stay as they are.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/contacts"
+
+err := contacts.SetRCPAllowList(c, 123456, []string{"203.0.113.10", "2001:db8::/32"})
+```
