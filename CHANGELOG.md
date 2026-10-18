@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `openprovider_domain`: a `period` below 1 is now rejected at plan time; before, a registration ordered one year but kept the configured value in state
+
 ## [1.2.0] - 2026-10-14
 
 ### Added

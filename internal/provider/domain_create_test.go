@@ -11,6 +11,8 @@ import (
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -154,6 +156,41 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 			}
 			if !got.Period.Equal(tc.wantState) {
 				t.Errorf("period: got %v, want %v", got.Period, tc.wantState)
+			}
+		})
+	}
+}
+
+// TestPeriodRejectsBelowOne checks that the schema refuses a stated period
+// below one year at plan time, so `Create` never orders a period other than
+// the one it keeps in state. A period left out stays valid.
+func TestPeriodRejectsBelowOne(t *testing.T) {
+	schemaResp := &resource.SchemaResponse{}
+	NewDomainResource().Schema(context.Background(), resource.SchemaRequest{}, schemaResp)
+	period, ok := schemaResp.Schema.Attributes["period"].(schema.Int64Attribute)
+	if !ok {
+		t.Fatal("period should be an Int64Attribute")
+	}
+
+	cases := map[string]struct {
+		in      types.Int64
+		wantErr bool
+	}{
+		"negative": {types.Int64Value(-1), true},
+		"zero":     {types.Int64Value(0), true},
+		"one":      {types.Int64Value(1), false},
+		"ten":      {types.Int64Value(10), false},
+		"null":     {types.Int64Null(), false},
+		"unknown":  {types.Int64Unknown(), false},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			resp := &validator.Int64Response{}
+			for _, v := range period.Int64Validators() {
+				v.ValidateInt64(context.Background(), validator.Int64Request{ConfigValue: tc.in}, resp)
+			}
+			if resp.Diagnostics.HasError() != tc.wantErr {
+				t.Errorf("error = %v, want %v (%v)", resp.Diagnostics.HasError(), tc.wantErr, resp.Diagnostics)
 			}
 		})
 	}

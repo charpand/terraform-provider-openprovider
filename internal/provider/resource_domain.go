@@ -79,6 +79,32 @@ func (v oneOfValidator) ValidateString(_ context.Context, req validator.StringRe
 	)
 }
 
+// atLeastValidator accepts a known integer only when it is `min` or more.
+type atLeastValidator struct {
+	min int64
+}
+
+func (v atLeastValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("value must be at least %d", v.min)
+}
+
+func (v atLeastValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v atLeastValidator) ValidateInt64(_ context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if value := req.ConfigValue.ValueInt64(); value < v.min {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid Attribute Value",
+			fmt.Sprintf("%d is less than %d.", value, v.min),
+		)
+	}
+}
+
 // Ensure the implementation satisfies the expected interfaces.
 var (
 	_ resource.Resource                = &DomainResource{}
@@ -181,11 +207,11 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 }
 
 // orderPeriod is the registration period, in years, that a create quotes and
-// orders. A plan that states no period, or one below a year, orders one year,
-// so the order is always for the period that `guardSpend` held against
-// `max_cost`.
+// orders. A plan that states no period orders one year, so the order is always
+// for the period that `guardSpend` held against `max_cost`. The schema rejects
+// a stated period below one year.
 func orderPeriod(plan *DomainModel) int64 {
-	if plan.Period.IsNull() || plan.Period.IsUnknown() || plan.Period.ValueInt64() < 1 {
+	if plan.Period.IsNull() || plan.Period.IsUnknown() {
 		return 1
 	}
 	return plan.Period.ValueInt64()
@@ -342,9 +368,12 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"period": schema.Int64Attribute{
-				MarkdownDescription: "Registration period in years. Only applicable for domain registration (not transfers).",
+				MarkdownDescription: "Registration period in years, at least 1. Defaults to 1 when not set. Only applicable for domain registration (not transfers).",
 				Optional:            true,
 				Computed:            true,
+				Validators: []validator.Int64{
+					atLeastValidator{min: 1},
+				},
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
