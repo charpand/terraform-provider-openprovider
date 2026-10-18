@@ -38,6 +38,32 @@ func TestCreateReadsTheQuote(t *testing.T) {
 	}
 }
 
+func TestTransferAsksForTheTransferPrice(t *testing.T) {
+	var gotQuery string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"data":{"is_premium":false,"price":{` +
+			`"product":{"currency":"EUR","price":9},` +
+			`"reseller":{"currency":"EUR","price":8}}}}`))
+	}))
+	defer server.Close()
+
+	c := client.NewClient(client.Config{BaseURL: server.URL, Token: "test", HTTPClient: server.Client()})
+	quote, err := prices.Transfer(c, "example", "com")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if charge := quote.Charge(); charge.Price != 8 || charge.Currency != "EUR" {
+		t.Errorf("expected the reseller quote to be read, got %+v", charge)
+	}
+
+	want := "domain.extension=com&domain.name=example&operation=transfer&period=1"
+	if gotQuery != want {
+		t.Errorf("expected the request query %q, got %q", want, gotQuery)
+	}
+}
+
 func TestCreateFallsBackToProductPriceForANonMember(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

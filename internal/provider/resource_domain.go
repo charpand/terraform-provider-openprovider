@@ -198,12 +198,18 @@ func guardSpend(
 		currency = plan.Currency.ValueString()
 	}
 
-	period := plan.Period.ValueInt64()
-	if plan.Period.IsNull() || plan.Period.IsUnknown() || period < 1 {
-		period = 1
+	// A transfer has a price of its own, and its order does not send `period`.
+	var quote *prices.Quote
+	var err error
+	if operation == "transfer" {
+		quote, err = prices.Transfer(c, name, extension)
+	} else {
+		period := plan.Period.ValueInt64()
+		if plan.Period.IsNull() || plan.Period.IsUnknown() || period < 1 {
+			period = 1
+		}
+		quote, err = prices.Create(c, name, extension, period)
 	}
-
-	quote, err := prices.Create(c, name, extension, period)
 	if err != nil {
 		diags.AddError(
 			"Could Not Read the Price",
