@@ -180,6 +180,17 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 	return listValue
 }
 
+// orderPeriod is the registration period, in years, that a create quotes and
+// orders. A plan that states no period, or one below a year, orders one year,
+// so the order is always for the period that `guardSpend` held against
+// `max_cost`.
+func orderPeriod(plan *DomainModel) int64 {
+	if plan.Period.IsNull() || plan.Period.IsUnknown() || plan.Period.ValueInt64() < 1 {
+		return 1
+	}
+	return plan.Period.ValueInt64()
+}
+
 // guardSpend asks Openprovider what the operation costs and reports the quote
 // in minor units, or refuses when it is above `max_cost`. It returns false once
 // it has added a diagnostic, so the caller returns without ordering anything.
@@ -198,12 +209,7 @@ func guardSpend(
 		currency = plan.Currency.ValueString()
 	}
 
-	period := plan.Period.ValueInt64()
-	if plan.Period.IsNull() || plan.Period.IsUnknown() || period < 1 {
-		period = 1
-	}
-
-	quote, err := prices.Create(c, name, extension, period)
+	quote, err := prices.Create(c, name, extension, orderPeriod(plan))
 	if err != nil {
 		diags.AddError(
 			"Could Not Read the Price",
@@ -474,7 +480,13 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	if isTransfer {
-		// Domain Transfer
+		// Domain Transfer. `period` does not apply to a transfer, so one left
+		// out of the configuration stays null rather than unknown, which the
+		// framework refuses after apply.
+		if plan.Period.IsUnknown() {
+			plan.Period = types.Int64Null()
+		}
+
 		transferReq := &domains.TransferDomainRequest{}
 		transferReq.Domain.Name = name
 		transferReq.Domain.Extension = extension
@@ -529,9 +541,13 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			createReq.BillingHandle = plan.BillingHandle.ValueString()
 		}
 
-		// Set period if specified
-		if !plan.Period.IsNull() {
-			createReq.Period = int(plan.Period.ValueInt64())
+		// Order the period that was quoted. A period left out of the
+		// configuration plans unknown, and the API has no record of it to
+		// read back, so the state holds the period that was ordered.
+		period := orderPeriod(&plan)
+		createReq.Period = int(period)
+		if plan.Period.IsUnknown() {
+			plan.Period = types.Int64Value(period)
 		}
 
 		// Set autorenew
