@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -83,7 +84,8 @@ func createDomain(ctx context.Context, t *testing.T, r *DomainResource, plan Dom
 // has no prior state to use. The applied state must hold a known value, or
 // the framework fails the apply after the domain was ordered. A
 // registration orders the period it was quoted at and keeps it in state; a
-// transfer has no period, and keeps null.
+// transfer has no period, and keeps null. A transfer does not send its
+// period, so its quote uses one year, also when it states a period below one.
 func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 	ctx := context.Background()
 
@@ -102,6 +104,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		authCode    types.String
 		period      types.Int64
 		wantPath    string
+		wantQuoted  string
 		wantOrdered any
 		wantState   types.Int64
 	}{
@@ -109,6 +112,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 			authCode:    types.StringNull(),
 			period:      types.Int64Unknown(),
 			wantPath:    "/v1beta/domains",
+			wantQuoted:  "1",
 			wantOrdered: float64(1),
 			wantState:   types.Int64Value(1),
 		},
@@ -116,6 +120,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 			authCode:    types.StringNull(),
 			period:      types.Int64Value(2),
 			wantPath:    "/v1beta/domains",
+			wantQuoted:  "2",
 			wantOrdered: float64(2),
 			wantState:   types.Int64Value(2),
 		},
@@ -123,8 +128,17 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 			authCode:    types.StringValue("secret"),
 			period:      types.Int64Unknown(),
 			wantPath:    "/v1beta/domains/transfer",
+			wantQuoted:  "1",
 			wantOrdered: nil,
 			wantState:   types.Int64Null(),
+		},
+		"transfer, period 0": {
+			authCode:    types.StringValue("secret"),
+			period:      types.Int64Value(0),
+			wantPath:    "/v1beta/domains/transfer",
+			wantQuoted:  "1",
+			wantOrdered: nil,
+			wantState:   types.Int64Value(0),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -145,11 +159,8 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 			if ordered := api.order["period"]; ordered != tc.wantOrdered {
 				t.Errorf("ordered period: got %v, want %v", ordered, tc.wantOrdered)
 			}
-			if tc.wantOrdered != nil {
-				want := fmt.Sprint(tc.wantOrdered)
-				if len(api.quoted) != 1 || api.quoted[0] != want {
-					t.Errorf("quoted periods: got %v, want [%s]", api.quoted, want)
-				}
+			if len(api.quoted) != 1 || api.quoted[0] != tc.wantQuoted {
+				t.Errorf("quoted periods: got %v, want [%s]", api.quoted, tc.wantQuoted)
 			}
 			if got.Period.IsUnknown() {
 				t.Error("period should not be unknown after apply")
@@ -162,32 +173,50 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 }
 
 // TestPeriodRejectsBelowOne checks that the schema refuses a stated period
-// below one year at plan time, so `Create` never orders a period other than
-// the one it keeps in state. A period left out stays valid.
+// below one year for a registration at plan time, so `Create` never orders a
+// period other than the one it keeps in state. A period left out stays valid,
+// and a transfer, which does not send `period`, accepts any period.
 func TestPeriodRejectsBelowOne(t *testing.T) {
+	ctx := context.Background()
+	r := &DomainResource{}
 	schemaResp := &resource.SchemaResponse{}
-	NewDomainResource().Schema(context.Background(), resource.SchemaRequest{}, schemaResp)
+	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
 	period, ok := schemaResp.Schema.Attributes["period"].(schema.Int64Attribute)
 	if !ok {
 		t.Fatal("period should be an Int64Attribute")
 	}
 
 	cases := map[string]struct {
-		in      types.Int64
-		wantErr bool
+		in       types.Int64
+		authCode types.String
+		wantErr  bool
 	}{
-		"negative": {types.Int64Value(-1), true},
-		"zero":     {types.Int64Value(0), true},
-		"one":      {types.Int64Value(1), false},
-		"ten":      {types.Int64Value(10), false},
-		"null":     {types.Int64Null(), false},
-		"unknown":  {types.Int64Unknown(), false},
+		"negative":              {types.Int64Value(-1), types.StringNull(), true},
+		"zero":                  {types.Int64Value(0), types.StringNull(), true},
+		"zero, empty auth_code": {types.Int64Value(0), types.StringValue(""), true},
+		"zero, unknown auth":    {types.Int64Value(0), types.StringUnknown(), true},
+		"one":                   {types.Int64Value(1), types.StringNull(), false},
+		"ten":                   {types.Int64Value(10), types.StringNull(), false},
+		"null":                  {types.Int64Null(), types.StringNull(), false},
+		"unknown":               {types.Int64Unknown(), types.StringNull(), false},
+		"zero, transfer":        {types.Int64Value(0), types.StringValue("secret"), false},
+		"negative, transfer":    {types.Int64Value(-1), types.StringValue("secret"), false},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			state := stateOf(ctx, t, r, DomainModel{
+				Period:     tc.in,
+				AuthCode:   tc.authCode,
+				DnssecKeys: types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+			})
+			req := validator.Int64Request{
+				Path:        path.Root("period"),
+				ConfigValue: tc.in,
+				Config:      tfsdk.Config(state),
+			}
 			resp := &validator.Int64Response{}
 			for _, v := range period.Int64Validators() {
-				v.ValidateInt64(context.Background(), validator.Int64Request{ConfigValue: tc.in}, resp)
+				v.ValidateInt64(ctx, req, resp)
 			}
 			if resp.Diagnostics.HasError() != tc.wantErr {
 				t.Errorf("error = %v, want %v (%v)", resp.Diagnostics.HasError(), tc.wantErr, resp.Diagnostics)

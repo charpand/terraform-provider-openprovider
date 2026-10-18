@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `openprovider_domain`: a registration that leaves `period` out no longer fails the apply with "unknown value after apply" after the domain is ordered; it now orders one year, the period that `max_cost` was checked against, and keeps that period in state
-- `openprovider_domain`: a `period` below 1 is now rejected at plan time; before, a registration ordered one year but kept the configured value in state
+- `openprovider_domain`: a `period` below 1 on a registration is now rejected at plan time; before, a registration ordered one year but kept the configured value in state
 
 ## [1.2.0] - 2026-10-14
 
