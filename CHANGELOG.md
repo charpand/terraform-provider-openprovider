@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `openprovider_domain`: a transfer is quoted at the transfer price for one year, not at the registration price for its `period`, so `max_cost` holds against what the transfer costs
+
 ## [1.2.0] - 2026-10-14
 
 ### Added
