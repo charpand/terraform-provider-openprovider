@@ -53,17 +53,28 @@ func (q Quote) Charge() Price {
 }
 
 // Create asks what registering `name`.`extension` for `period` years costs.
+func Create(c *client.Client, name, extension string, period int64) (*Quote, error) {
+	return get(c, "create", name, extension, period)
+}
+
+// Transfer asks what a transfer of `name`.`extension` costs. A transfer order
+// does not state a period, so the quote is for one year.
+func Transfer(c *client.Client, name, extension string) (*Quote, error) {
+	return get(c, "transfer", name, extension, 1)
+}
+
+// get asks what `operation` on `name`.`extension` for `period` years costs.
 //
 // Endpoint: GET /v1beta/domains/prices
 //
 // The domain parameters are dotted, not underscored: an underscored spelling
 // is read as no domain at all and the endpoint answers `300`, "Your domain
 // request contains an empty domain name".
-func Create(c *client.Client, name, extension string, period int64) (*Quote, error) {
+func get(c *client.Client, operation, name, extension string, period int64) (*Quote, error) {
 	query := url.Values{}
 	query.Set("domain.name", name)
 	query.Set("domain.extension", extension)
-	query.Set("operation", "create")
+	query.Set("operation", operation)
 	query.Set("period", fmt.Sprintf("%d", period))
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1beta/domains/prices?%s", c.BaseURL, query.Encode()), nil)

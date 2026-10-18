@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -51,6 +52,44 @@ func TestGuardSpendAllowsAQuoteAtOrBelowMaxCost(t *testing.T) {
 	}
 	if cost != 1500 {
 		t.Errorf("expected a cost of 1500 cents, got %d", cost)
+	}
+}
+
+// TestGuardSpendAsksForThePriceOfTheOperation checks that a transfer is
+// quoted at the transfer price, not at the registration price. A transfer
+// order does not send `period`, so its quote is for one year, also when the
+// plan states a different period.
+func TestGuardSpendAsksForThePriceOfTheOperation(t *testing.T) {
+	for operation, want := range map[string]url.Values{
+		"create":   {"operation": {"create"}, "period": {"3"}},
+		"transfer": {"operation": {"transfer"}, "period": {"1"}},
+	} {
+		t.Run(operation, func(t *testing.T) {
+			var queries []url.Values
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				queries = append(queries, r.URL.Query())
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = fmt.Fprint(w, `{"code":0,"data":{"is_premium":false,"price":{`+
+					`"product":{"currency":"EUR","price":15},`+
+					`"reseller":{"currency":"EUR","price":15}}}}`)
+			}))
+			defer server.Close()
+			c := guardSpendClient(t, server)
+
+			plan := &DomainModel{MaxCost: types.Int64Value(1500), Period: types.Int64Value(3)}
+			var diags diag.Diagnostics
+			if _, ok := guardSpend(c, plan, "example", "com", operation, &diags); !ok {
+				t.Fatalf("expected the quote to be allowed, got %v", diags)
+			}
+			if len(queries) != 1 {
+				t.Fatalf("expected one quote, got %d", len(queries))
+			}
+			for key, value := range want {
+				if got := queries[0].Get(key); got != value[0] {
+					t.Errorf("%s: got %q, want %q", key, got, value[0])
+				}
+			}
+		})
 	}
 }
 

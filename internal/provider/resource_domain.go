@@ -221,8 +221,8 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 // orderPeriod is the registration period, in years, that a create quotes and
 // orders. A plan that states no period orders one year, so the order is always
 // for the period that `guardSpend` held against `max_cost`. The schema rejects
-// a stated period below one year for a registration only. A transfer can have
-// such a period, and it does not send it, so the quote for it uses one year.
+// a stated period below one year for a registration only. A transfer does not
+// send a period, so it is quoted with `prices.Transfer` and does not use this.
 func orderPeriod(plan *DomainModel) int64 {
 	if plan.Period.IsNull() || plan.Period.IsUnknown() || plan.Period.ValueInt64() < 1 {
 		return 1
@@ -248,7 +248,14 @@ func guardSpend(
 		currency = plan.Currency.ValueString()
 	}
 
-	quote, err := prices.Create(c, name, extension, orderPeriod(plan))
+	// A transfer has a price of its own, and its order does not send `period`.
+	var quote *prices.Quote
+	var err error
+	if operation == "transfer" {
+		quote, err = prices.Transfer(c, name, extension)
+	} else {
+		quote, err = prices.Create(c, name, extension, orderPeriod(plan))
+	}
 	if err != nil {
 		diags.AddError(
 			"Could Not Read the Price",
