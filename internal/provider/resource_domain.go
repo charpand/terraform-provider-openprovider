@@ -79,6 +79,44 @@ func (v oneOfValidator) ValidateString(_ context.Context, req validator.StringRe
 	)
 }
 
+// registrationPeriodValidator accepts a known `period` only when it is 1 or
+// more, because `Create` orders at least one year for a registration and
+// keeps the period in state. A transfer does not send `period`, so the check
+// does not apply when `auth_code` is set. An unknown `auth_code` can still
+// become empty, which is a registration, so the check applies to it.
+type registrationPeriodValidator struct{}
+
+func (v registrationPeriodValidator) Description(_ context.Context) string {
+	return "value must be at least 1 for a registration"
+}
+
+func (v registrationPeriodValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v registrationPeriodValidator) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	value := req.ConfigValue.ValueInt64()
+	if value >= 1 {
+		return
+	}
+	var authCode types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auth_code"), &authCode)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !authCode.IsNull() && !authCode.IsUnknown() && authCode.ValueString() != "" {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Invalid Attribute Value",
+		fmt.Sprintf("%d is less than 1. A registration orders at least one year.", value),
+	)
+}
+
 // Ensure the implementation satisfies the expected interfaces.
 var (
 	_ resource.Resource                = &DomainResource{}
@@ -180,6 +218,18 @@ func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *
 	return listValue
 }
 
+// orderPeriod is the registration period, in years, that a create quotes and
+// orders. A plan that states no period orders one year, so the order is always
+// for the period that `guardSpend` held against `max_cost`. The schema rejects
+// a stated period below one year for a registration only. A transfer does not
+// send a period, so it is quoted with `prices.Transfer` and does not use this.
+func orderPeriod(plan *DomainModel) int64 {
+	if plan.Period.IsNull() || plan.Period.IsUnknown() || plan.Period.ValueInt64() < 1 {
+		return 1
+	}
+	return plan.Period.ValueInt64()
+}
+
 // guardSpend asks Openprovider what the operation costs and reports the quote
 // in minor units, or refuses when it is above `max_cost`. It returns false once
 // it has added a diagnostic, so the caller returns without ordering anything.
@@ -204,11 +254,7 @@ func guardSpend(
 	if operation == "transfer" {
 		quote, err = prices.Transfer(c, name, extension)
 	} else {
-		period := plan.Period.ValueInt64()
-		if plan.Period.IsNull() || plan.Period.IsUnknown() || period < 1 {
-			period = 1
-		}
-		quote, err = prices.Create(c, name, extension, period)
+		quote, err = prices.Create(c, name, extension, orderPeriod(plan))
 	}
 	if err != nil {
 		diags.AddError(
@@ -342,9 +388,12 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"period": schema.Int64Attribute{
-				MarkdownDescription: "Registration period in years. Only applicable for domain registration (not transfers).",
+				MarkdownDescription: "Registration period in years, at least 1. Defaults to 1 when not set. Only applicable for domain registration (not transfers).",
 				Optional:            true,
 				Computed:            true,
+				Validators: []validator.Int64{
+					registrationPeriodValidator{},
+				},
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
@@ -480,7 +529,13 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	if isTransfer {
-		// Domain Transfer
+		// Domain Transfer. `period` does not apply to a transfer, so one left
+		// out of the configuration stays null rather than unknown, which the
+		// framework refuses after apply.
+		if plan.Period.IsUnknown() {
+			plan.Period = types.Int64Null()
+		}
+
 		transferReq := &domains.TransferDomainRequest{}
 		transferReq.Domain.Name = name
 		transferReq.Domain.Extension = extension
@@ -535,9 +590,13 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			createReq.BillingHandle = plan.BillingHandle.ValueString()
 		}
 
-		// Set period if specified
-		if !plan.Period.IsNull() {
-			createReq.Period = int(plan.Period.ValueInt64())
+		// Order the period that was quoted. A period left out of the
+		// configuration plans unknown, and the API has no record of it to
+		// read back, so the state holds the period that was ordered.
+		period := orderPeriod(&plan)
+		createReq.Period = int(period)
+		if plan.Period.IsUnknown() {
+			plan.Period = types.Int64Value(period)
 		}
 
 		// Set autorenew

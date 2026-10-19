@@ -297,7 +297,7 @@ resource "openprovider_domain" "transferred" {
 - `max_cost` (Number) The most, in minor units of `currency` (cents for EUR and USD), that this registration or transfer may cost. The live quote is read before anything is ordered, and the apply fails without spending if the quote is higher. No bound is held when this is unset.
 - `ns_group` (String) The nameserver group to use for this domain. Use this instead of nameserver blocks.
 - `on_destroy` (String) What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `delete` deletes the domain at OpenProvider through `DELETE /v1beta/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.
-- `period` (Number) Registration period in years. Only applicable for domain registration (not transfers).
+- `period` (Number) Registration period in years, at least 1. Defaults to 1 when not set. Only applicable for domain registration (not transfers).
 - `tech_handle` (String) The tech contact handle for the domain.
 
 ### Read-Only
