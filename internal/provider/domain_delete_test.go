@@ -113,7 +113,7 @@ func TestDomainResourceDeleteDeletes(t *testing.T) {
 // expireAPI stands in for OpenProvider with example.com as id 123 and its
 // autorenew as given, or with no domain where `held` is false. It records the
 // body of every update it is sent, and fails the test on any delete.
-func expireAPI(t *testing.T, autorenew string, held bool, updates *[]map[string]any) *httptest.Server {
+func expireAPI(t *testing.T, autorenew string, held bool, checkStatus string, updates *[]map[string]any) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -132,6 +132,13 @@ func expireAPI(t *testing.T, autorenew string, held bool, updates *[]map[string]
 				"code": 0,
 				"data": map[string]any{"results": results, "total": len(results)},
 			})
+		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains/check" && checkStatus != "":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"data": map[string]any{"results": []map[string]any{
+					{"domain": "example.com", "status": checkStatus},
+				}},
+			})
 		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/123":
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -149,9 +156,9 @@ func expireAPI(t *testing.T, autorenew string, held bool, updates *[]map[string]
 	}))
 }
 
-func expireDomain(t *testing.T, autorenew string, held bool) (updates []map[string]any, errored bool) {
+func expireDomain(t *testing.T, autorenew string, held bool, checkStatus string) (updates []map[string]any, errored bool) {
 	t.Helper()
-	server := expireAPI(t, autorenew, held, &updates)
+	server := expireAPI(t, autorenew, held, checkStatus, &updates)
 	defer server.Close()
 	r := &DomainResource{client: client.NewClient(client.Config{
 		BaseURL:    server.URL,
@@ -165,7 +172,7 @@ func expireDomain(t *testing.T, autorenew string, held bool) (updates []map[stri
 }
 
 func TestDomainResourceDeleteExpiresTurnsAutorenewOff(t *testing.T) {
-	updates, errored := expireDomain(t, "on", true)
+	updates, errored := expireDomain(t, "on", true, "")
 	if errored {
 		t.Fatal("expiring a domain should not error")
 	}
@@ -175,7 +182,7 @@ func TestDomainResourceDeleteExpiresTurnsAutorenewOff(t *testing.T) {
 }
 
 func TestDomainResourceDeleteExpiresLeavesAutorenewOff(t *testing.T) {
-	updates, errored := expireDomain(t, "off", true)
+	updates, errored := expireDomain(t, "off", true, "")
 	if errored {
 		t.Fatal("expiring a domain with autorenew off should not error")
 	}
@@ -185,11 +192,21 @@ func TestDomainResourceDeleteExpiresLeavesAutorenewOff(t *testing.T) {
 }
 
 func TestDomainResourceDeleteExpiresWhenGone(t *testing.T) {
-	updates, errored := expireDomain(t, "on", false)
+	updates, errored := expireDomain(t, "on", false, "free")
 	if errored {
 		t.Fatal("expiring a domain the account no longer holds should not error")
 	}
 	if len(updates) != 0 {
 		t.Fatalf("expiring a domain the account no longer holds should send no update, sent %v", updates)
+	}
+}
+
+func TestDomainResourceDeleteExpiresErrorsWhenUnlistedButTaken(t *testing.T) {
+	updates, errored := expireDomain(t, "on", false, "active")
+	if !errored {
+		t.Fatal("expiring a domain that is taken but not listed should error, as its autorenew may still be on")
+	}
+	if len(updates) != 0 {
+		t.Fatalf("expiring a domain that is not listed should send no update, sent %v", updates)
 	}
 }

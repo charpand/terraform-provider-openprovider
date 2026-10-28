@@ -1016,7 +1016,27 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain == nil {
-		// Already gone from the account: nothing left to delete.
+		// The listing lags the registry (see `Read`). For `expire`, a domain
+		// that the account holds but the listing omits would leave state with
+		// its autorenew on, so the availability check confirms the absence.
+		if state.OnDestroy.ValueString() == onDestroyExpire {
+			free, err := domainIsFree(r.client, domainName)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error Deleting Domain",
+					fmt.Sprintf("Could not confirm that domain %s left the account, as the listing does not show it: %s", domainName, err.Error()),
+				)
+				return
+			}
+			if !free {
+				resp.Diagnostics.AddError(
+					"Error Deleting Domain",
+					fmt.Sprintf("Domain %s is taken, but the account listing does not show it, so its autorenew cannot be turned off. Retry the destroy. If the domain left the account, remove it from state with `terraform state rm`.", domainName),
+				)
+				return
+			}
+		}
+		// Gone from the account: nothing left to delete.
 		return
 	}
 
