@@ -3,7 +3,9 @@ package domains_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -135,5 +137,34 @@ func TestUpdateDomainWithError(t *testing.T) {
 	// Verify error message contains status information
 	if err.Error() == "" {
 		t.Error("Expected non-empty error message")
+	}
+}
+
+func TestUpdateDomainWithErrorCode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/v1beta/domains/123" {
+			t.Errorf("Unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code": 399, "desc": "refused"}`))
+	}))
+	defer server.Close()
+
+	apiClient := client.NewClient(client.Config{
+		BaseURL:    server.URL,
+		Token:      "test",
+		HTTPClient: server.Client(),
+	})
+
+	domain, err := domains.Update(apiClient, 123, &domains.UpdateDomainRequest{Autorenew: "off"})
+
+	if err == nil {
+		t.Fatal("Expected an error for a non-zero response code, got nil")
+	}
+	if !strings.Contains(err.Error(), "refused") {
+		t.Errorf("Expected the error to carry the description of the API, got %q", err)
+	}
+	if domain != nil {
+		t.Errorf("Expected no domain, got %v", domain)
 	}
 }

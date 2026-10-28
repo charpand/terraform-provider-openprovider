@@ -28,6 +28,7 @@ import (
 // The values `on_destroy` takes.
 const (
 	onDestroyRetain = "retain"
+	onDestroyExpire = "expire"
 	onDestroyDelete = "delete"
 )
 
@@ -351,12 +352,12 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Default:             booldefault.StaticBool(false),
 			},
 			"on_destroy": schema.StringAttribute{
-				MarkdownDescription: "What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `delete` deletes the domain at OpenProvider through `DELETE /v1beta/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
+				MarkdownDescription: "What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `expire` also forgets the domain in state, and turns its autorenew off at OpenProvider: the domain stays in the account until its expiration date at OpenProvider, and then expires. For some extensions, that date is some days before the expiration date at the registry. `delete` deletes the domain at OpenProvider through `DELETE /v1beta/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. A destroy uses the value in state, not the value in the configuration: apply a change of `on_destroy` before a destroy. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(onDestroyRetain),
 				Validators: []validator.String{
-					oneOfValidator{allowed: []string{onDestroyRetain, onDestroyDelete}},
+					oneOfValidator{allowed: []string{onDestroyRetain, onDestroyExpire, onDestroyDelete}},
 				},
 			},
 			"owner_handle": schema.StringAttribute{
@@ -987,9 +988,9 @@ func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan, state Dom
 }
 
 // Delete does to the domain what `on_destroy` says. With `retain` the domain
-// only leaves the state and stays in the account; with `delete` it is deleted
-// at OpenProvider. Either way the resource leaves the state once this returns
-// without error.
+// only leaves the state and stays in the account; with `expire` it stays in
+// the account with autorenew off; with `delete` it is deleted at OpenProvider.
+// Either way the resource leaves the state once this returns without error.
 func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state DomainModel
 	diags := req.State.Get(ctx, &state)
@@ -1015,7 +1016,42 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain == nil {
-		// Already gone from the account: nothing left to delete.
+		// The listing lags the registry (see `Read`). For `expire`, a domain
+		// that the account holds but the listing omits would leave state with
+		// its autorenew on, so the availability check confirms the absence.
+		if state.OnDestroy.ValueString() == onDestroyExpire {
+			free, err := domainIsFree(r.client, domainName)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error Deleting Domain",
+					fmt.Sprintf("Could not confirm that domain %s left the account, as the listing does not show it: %s", domainName, err.Error()),
+				)
+				return
+			}
+			if !free {
+				resp.Diagnostics.AddError(
+					"Error Deleting Domain",
+					fmt.Sprintf("Domain %s is taken, but the account listing does not show it, so its autorenew cannot be turned off. Retry the destroy. If the domain left the account, remove it from state with `terraform state rm`.", domainName),
+				)
+				return
+			}
+		}
+		// Gone from the account: nothing left to delete.
+		return
+	}
+
+	if state.OnDestroy.ValueString() == onDestroyExpire {
+		// Read from the account, not from state: a renewal turned on outside
+		// Terraform renews the domain just the same.
+		if domain.Autorenew == "off" {
+			return
+		}
+		if _, err := domains.Update(r.client, domain.ID, &domains.UpdateDomainRequest{Autorenew: "off"}); err != nil {
+			resp.Diagnostics.AddError(
+				"Error Deleting Domain",
+				fmt.Sprintf("Could not turn autorenew off for domain %s: %s", domainName, err.Error()),
+			)
+		}
 		return
 	}
 
