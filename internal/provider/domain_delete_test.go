@@ -109,3 +109,87 @@ func TestDomainResourceDeleteDeletes(t *testing.T) {
 		t.Fatalf("deleting a domain should send one delete for its id, sent %v", deleted)
 	}
 }
+
+// expireAPI stands in for OpenProvider with example.com as id 123 and its
+// autorenew as given, or with no domain where `held` is false. It records the
+// body of every update it is sent, and fails the test on any delete.
+func expireAPI(t *testing.T, autorenew string, held bool, updates *[]map[string]any) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+			results := []map[string]any{}
+			if held {
+				results = append(results, map[string]any{
+					"id":        123,
+					"domain":    map[string]string{"name": "example", "extension": "com"},
+					"status":    "ACT",
+					"autorenew": autorenew,
+				})
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"data": map[string]any{"results": results, "total": len(results)},
+			})
+		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/123":
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decoding update: %v", err)
+			}
+			*updates = append(*updates, body)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"data": map[string]any{"id": 123},
+			})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
+func expireDomain(t *testing.T, autorenew string, held bool) (updates []map[string]any, errored bool) {
+	t.Helper()
+	server := expireAPI(t, autorenew, held, &updates)
+	defer server.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{
+		BaseURL:    server.URL,
+		Token:      "test",
+		HTTPClient: server.Client(),
+	})}
+	resp := &resource.DeleteResponse{}
+	state := domainState(t, r, types.StringValue(onDestroyExpire))
+	r.Delete(context.Background(), resource.DeleteRequest{State: state}, resp)
+	return updates, resp.Diagnostics.HasError()
+}
+
+func TestDomainResourceDeleteExpiresTurnsAutorenewOff(t *testing.T) {
+	updates, errored := expireDomain(t, "on", true)
+	if errored {
+		t.Fatal("expiring a domain should not error")
+	}
+	if len(updates) != 1 || len(updates[0]) != 1 || updates[0]["autorenew"] != "off" {
+		t.Fatalf("expiring a domain should send one update that only turns autorenew off, sent %v", updates)
+	}
+}
+
+func TestDomainResourceDeleteExpiresLeavesAutorenewOff(t *testing.T) {
+	updates, errored := expireDomain(t, "off", true)
+	if errored {
+		t.Fatal("expiring a domain with autorenew off should not error")
+	}
+	if len(updates) != 0 {
+		t.Fatalf("expiring a domain with autorenew off should send no update, sent %v", updates)
+	}
+}
+
+func TestDomainResourceDeleteExpiresWhenGone(t *testing.T) {
+	updates, errored := expireDomain(t, "on", false)
+	if errored {
+		t.Fatal("expiring a domain the account no longer holds should not error")
+	}
+	if len(updates) != 0 {
+		t.Fatalf("expiring a domain the account no longer holds should send no update, sent %v", updates)
+	}
+}
