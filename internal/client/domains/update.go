@@ -60,5 +60,10 @@ func Update(c *client.Client, id int, req *UpdateDomainRequest) (*Domain, error)
 		return nil, err
 	}
 
+	// The API can refuse an update with a non-zero code in a 2xx response.
+	if result.Code != 0 {
+		return nil, fmt.Errorf("update operation failed with code %d", result.Code)
+	}
+
 	return &result.Data, nil
 }
