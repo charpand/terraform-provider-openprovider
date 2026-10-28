@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -159,6 +160,9 @@ func TestUpdateDomainWithErrorCode(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("Expected an error for a non-zero response code, got nil")
+	}
+	if !strings.Contains(err.Error(), "refused") {
+		t.Errorf("Expected the error to carry the description of the API, got %q", err)
 	}
 	if domain != nil {
 		t.Errorf("Expected no domain, got %v", domain)
