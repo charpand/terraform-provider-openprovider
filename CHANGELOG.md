@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `openprovider_domain`: `on_destroy = "expire"` keeps the domain in the account, as `retain` does, and turns its autorenew off, so a domain that Terraform no longer manages expires at the end of the period it is paid for
+- `openprovider_domain`: `on_destroy = "expire"` keeps the domain in the account, as `retain` does, and turns its autorenew off, so a domain that Terraform no longer manages expires at its expiration date at OpenProvider
 
 ### Removed
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
