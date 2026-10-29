@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"testing"
 
@@ -114,5 +115,49 @@ func TestListWithRefusesAPageThatFailsPartway(t *testing.T) {
 
 	if _, err := ListWith(c, ListOptions{}); err == nil {
 		t.Fatal("expected the refused second page to surface as an error, not a partial list")
+	}
+}
+
+func TestListWithSendsTheDeletedFilterOnEachPage(t *testing.T) {
+	old := listPageSize
+	listPageSize = 2
+	defer func() { listPageSize = old }()
+
+	var queries []string
+	server := pagedAPI(t, 3, 0, &queries)
+	defer server.Close()
+	c := client.NewClient(client.Config{BaseURL: server.URL, Token: "test", HTTPClient: server.Client()})
+
+	isDeleted := true
+	if _, err := ListWith(c, ListOptions{FullName: "example.com", IsDeleted: &isDeleted}); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(queries) != 2 {
+		t.Fatalf("expected 2 requests of 2 to cover 3 domains, got %d: %v", len(queries), queries)
+	}
+	for _, query := range queries {
+		values, err := url.ParseQuery(query)
+		if err != nil {
+			t.Fatalf("parse query %q: %v", query, err)
+		}
+		if values.Get("is_deleted") != "true" || values.Get("full_name") != "example.com" {
+			t.Errorf("each page should ask for the deleted domain, got %q", query)
+		}
+	}
+}
+
+func TestListWithLeavesTheDeletedFilterOut(t *testing.T) {
+	var queries []string
+	server := pagedAPI(t, 1, 0, &queries)
+	defer server.Close()
+	c := client.NewClient(client.Config{BaseURL: server.URL, Token: "test", HTTPClient: server.Client()})
+
+	if _, err := ListWith(c, ListOptions{FullName: "example.com"}); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	for _, query := range queries {
+		if values, _ := url.ParseQuery(query); values.Has("is_deleted") {
+			t.Errorf("the default listing should send no is_deleted filter, got %q", query)
+		}
 	}
 }

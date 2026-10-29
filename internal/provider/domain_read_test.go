@@ -112,3 +112,66 @@ func TestDomainResourceReadRefusesARefusedListing(t *testing.T) {
 		t.Fatal("a listing the API refused should leave the state alone")
 	}
 }
+
+// TestDomainResourceReadKeepsTheDnssecOfATransferInFlight covers a refresh
+// after a transfer with DNSSEC keys. While the status is `REQ`, the registry
+// does not have the keys, and the state keeps them. When the transfer
+// completes, the state holds what the registry has, so a difference from the
+// configuration plans an update that sends the keys.
+func TestDomainResourceReadKeepsTheDnssecOfATransferInFlight(t *testing.T) {
+	ctx := context.Background()
+	keys := dnssecKeys(t, "AwEAAa")
+
+	for status, want := range map[string]struct {
+		keys    types.List
+		enabled types.Bool
+	}{
+		domainStatusRequested: {keys, types.BoolValue(true)},
+		domainStatusPending:   {keys, types.BoolValue(true)},
+		domainStatusActive:    {types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}), types.BoolValue(false)},
+	} {
+		t.Run(status, func(t *testing.T) {
+			server := readAPI(t, map[string]any{
+				"code": 0,
+				"data": map[string]any{
+					"results": []map[string]any{{
+						"id":                1,
+						"domain":            map[string]string{"name": "example", "extension": "com"},
+						"status":            status,
+						"is_dnssec_enabled": false,
+					}},
+					"total": 1,
+				},
+			}, "")
+			defer server.Close()
+			r := &DomainResource{client: client.NewClient(client.Config{
+				BaseURL:    server.URL,
+				Token:      "test",
+				HTTPClient: server.Client(),
+			})}
+			state := stateOf(ctx, t, r, DomainModel{
+				ID:              types.StringValue("example.com"),
+				Domain:          types.StringValue("example.com"),
+				OwnerHandle:     types.StringValue("XX000000-NL"),
+				Status:          types.StringValue(domainStatusRequested),
+				DnssecKeys:      keys,
+				IsDnssecEnabled: types.BoolValue(true),
+			})
+			resp := &resource.ReadResponse{State: state}
+			r.Read(ctx, resource.ReadRequest{State: state}, resp)
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("read: %v", resp.Diagnostics)
+			}
+			var got DomainModel
+			if diags := resp.State.Get(ctx, &got); diags.HasError() {
+				t.Fatalf("get: %v", diags)
+			}
+			if !got.DnssecKeys.Equal(want.keys) {
+				t.Errorf("dnssec_keys: got %v, want %v", got.DnssecKeys, want.keys)
+			}
+			if !got.IsDnssecEnabled.Equal(want.enabled) {
+				t.Errorf("is_dnssec_enabled: got %v, want %v", got.IsDnssecEnabled, want.enabled)
+			}
+		})
+	}
+}

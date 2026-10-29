@@ -8,12 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `openprovider_domain`: `on_destroy = "expire"` keeps the domain in the account, as `retain` does, and turns its autorenew off, so a domain that Terraform no longer manages expires at its expiration date at OpenProvider
+- `openprovider_domain`: a transfer sends `dnssec_keys` and `is_dnssec_enabled` with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured DNSSEC values, and when it completes a refresh reads them from OpenProvider again
+- `domains` client package: `ListOptions.IsDeleted` sends the `is_deleted` filter of `GET /v1beta/domains`
+- `openprovider_domain`: `on_destroy = "expire" keeps the domain in the account, as `retain` does, and turns its autorenew off, so a domain that Terraform no longer manages expires at its expiration date at OpenProvider
 
 ### Removed
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
 
 ### Fixed
+- `openprovider_domain`: a domain that the account shows as deleted (status `DEL`), for example after a transfer to a different registrar, no longer fails a destroy; the destroy makes no change at OpenProvider and gives a warning. With `on_destroy = "expire"`, a domain that the default listing does not show is looked up in the listing of deleted domains before the destroy fails. A refresh removes a deleted domain from state
 - `openprovider_domain`: a registration that leaves `period` out no longer fails the apply with "unknown value after apply" after the domain is ordered; it now orders one year, the period that `max_cost` was checked against, and keeps that period in state
 - `openprovider_domain`: a `period` below 1 on a registration is now rejected at plan time; before, a registration ordered one year but kept the configured value in state
 - `openprovider_domain`: a transfer is quoted at the transfer price for one year, not at the registration price for its `period`, so `max_cost` holds against what the transfer costs
