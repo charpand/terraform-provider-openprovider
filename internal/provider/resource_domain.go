@@ -668,7 +668,10 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			"Error Reading Domain After Create",
 			fmt.Sprintf("Could not read domain %s back after its creation, so its state holds the creation response until the next refresh: %s", domainName, err.Error()),
 		)
-	} else if registered != nil {
+	} else if registered != nil && registered.Status != domainStatusDeleted {
+		// A listing that lags the order can show only a deleted record of a
+		// domain that the account had before. Its status and DNSSEC values
+		// are not those of the new order.
 		domain = registered
 	}
 
