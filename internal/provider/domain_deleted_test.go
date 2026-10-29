@@ -121,22 +121,47 @@ func TestDomainResourceDeleteLeavesADeletedDomain(t *testing.T) {
 	}
 }
 
-func TestDomainResourceDeleteExpiresWhenOnlyTheDeletedListingShowsIt(t *testing.T) {
-	api := newDeletedAPI(t, nil, []map[string]any{listedExample(123, domainStatusDeleted)}, "active")
+// TestDomainResourceDeleteLeavesADomainOnlyTheDeletedListingShows covers
+// each `on_destroy` that changes the domain, for a free name and for a name
+// that a different holder has. The API fails the test on a delete.
+func TestDomainResourceDeleteLeavesADomainOnlyTheDeletedListingShows(t *testing.T) {
+	for _, onDestroy := range []string{onDestroyExpire, onDestroyDelete} {
+		for _, checkStatus := range []string{"free", "active"} {
+			t.Run(onDestroy+"/"+checkStatus, func(t *testing.T) {
+				api := newDeletedAPI(t, nil, []map[string]any{listedExample(123, domainStatusDeleted)}, checkStatus)
+				defer api.Close()
+
+				resp := api.delete(t, onDestroy)
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("a domain only the deleted listing shows should destroy without error, got %v", resp.Diagnostics)
+				}
+				if resp.Diagnostics.WarningsCount() == 0 {
+					t.Error("a domain only the deleted listing shows should warn")
+				}
+				if len(api.updates) != 0 {
+					t.Errorf("a domain only the deleted listing shows should send no update, sent %v", api.updates)
+				}
+				if len(api.filters) != 2 || api.filters[0] != "" || api.filters[1] != "true" {
+					t.Errorf("listings: got filters %q, want the default listing and then is_deleted=true", api.filters)
+				}
+			})
+		}
+	}
+}
+
+// TestDomainResourceDeleteDeletesNothingThatNeitherListingShows covers
+// `on_destroy = "delete"` for a domain that left the account without a
+// deleted record: the destroy makes no change, and gives no warning.
+func TestDomainResourceDeleteDeletesNothingThatNeitherListingShows(t *testing.T) {
+	api := newDeletedAPI(t, nil, nil, "")
 	defer api.Close()
 
-	resp := api.delete(t, onDestroyExpire)
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("a domain only the deleted listing shows should destroy without error, got %v", resp.Diagnostics)
+	resp := api.delete(t, onDestroyDelete)
+	if resp.Diagnostics.HasError() || resp.Diagnostics.WarningsCount() != 0 {
+		t.Fatalf("a domain that neither listing shows should destroy without a diagnostic, got %v", resp.Diagnostics)
 	}
-	if resp.Diagnostics.WarningsCount() == 0 {
-		t.Error("a domain only the deleted listing shows should warn")
-	}
-	if len(api.updates) != 0 {
-		t.Errorf("a domain only the deleted listing shows should send no update, sent %v", api.updates)
-	}
-	if len(api.filters) != 2 || api.filters[0] != "" || api.filters[1] != "true" {
-		t.Errorf("listings: got filters %q, want the default listing and then is_deleted=true", api.filters)
+	if len(api.filters) != 2 || api.filters[1] != "true" {
+		t.Errorf("listings: got filters %q, want the deleted listing asked too", api.filters)
 	}
 }
 

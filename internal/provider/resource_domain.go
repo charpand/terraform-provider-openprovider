@@ -1081,6 +1081,24 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain == nil {
+		// The default listing can leave out a domain that is deleted. A
+		// domain that the account shows only as deleted left the account, as
+		// does a domain that the listing shows as deleted (below).
+		deleted, err := getDeletedDomainByName(r.client, domainName)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Deleting Domain",
+				fmt.Sprintf("Could not look up domain %s in the deleted domains of the account, as the listing does not show it: %s", domainName, err.Error()),
+			)
+			return
+		}
+		if deleted != nil {
+			resp.Diagnostics.AddWarning(
+				"Domain Left the Account",
+				fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName),
+			)
+			return
+		}
 		// The listing lags the registry (see `Read`). For `expire`, a domain
 		// that the account holds but the listing omits would leave state with
 		// its autorenew on, so the availability check confirms the absence.
@@ -1094,24 +1112,6 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 				return
 			}
 			if !free {
-				// The default listing can leave out a domain that is
-				// deleted. A domain that the account shows only as deleted
-				// left the account, so it has no autorenew to turn off.
-				deleted, err := getDeletedDomainByName(r.client, domainName)
-				if err != nil {
-					resp.Diagnostics.AddError(
-						"Error Deleting Domain",
-						fmt.Sprintf("Could not look up domain %s in the deleted domains of the account, as the listing does not show it: %s", domainName, err.Error()),
-					)
-					return
-				}
-				if deleted != nil {
-					resp.Diagnostics.AddWarning(
-						"Domain Left the Account",
-						fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar. A different holder has the name now, so the destroy makes no change to it.", domainName),
-					)
-					return
-				}
 				resp.Diagnostics.AddError(
 					"Error Deleting Domain",
 					fmt.Sprintf("Domain %s is taken, but the account listing does not show it, so its autorenew cannot be turned off. Retry the destroy. If the domain left the account, remove it from state with `terraform state rm`.", domainName),
