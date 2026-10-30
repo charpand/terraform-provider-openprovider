@@ -710,6 +710,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	// order stands, and a failed create would record nothing of it. The
 	// response is mapped instead, with the plan's known values kept, and the
 	// next refresh fills the rest.
+	readBack := false
 	if registered, err := getDomainByName(r.client, domainName); err != nil {
 		resp.Diagnostics.AddWarning(
 			"Error Reading Domain After Create",
@@ -720,6 +721,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		// domain that the account had before. Its status and DNSSEC values
 		// are not those of the new order.
 		domain = registered
+		readBack = true
 	}
 
 	// Set ID to the domain name
@@ -770,13 +772,20 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// The create and transfer requests carry no lock, so a configured
-	// `is_locked` that the domain does not have is set with an update. A
-	// failed update does not fail the create, for the same reason as a failed
-	// read-back. The state then holds the configured value, the next refresh
-	// reads the value at OpenProvider, and the next apply sets it again.
+	// `is_locked` that the domain does not have is set with an update. The
+	// order response carries no lock, so without a read-back the provider
+	// does not know the lock of the domain. It then sends a configured lock,
+	// and keeps an unset lock null until the next refresh. A failed update
+	// does not fail the create, for the same reason as a failed read-back.
+	// The state then holds the configured value, the next refresh reads the
+	// value at OpenProvider, and the next apply sets it again.
 	if plan.IsLocked.IsUnknown() || plan.IsLocked.IsNull() {
-		plan.IsLocked = types.BoolValue(domain.IsLocked)
-	} else if locked := plan.IsLocked.ValueBool(); locked != domain.IsLocked {
+		if readBack {
+			plan.IsLocked = types.BoolValue(domain.IsLocked)
+		} else {
+			plan.IsLocked = types.BoolNull()
+		}
+	} else if locked := plan.IsLocked.ValueBool(); !readBack || locked != domain.IsLocked {
 		if _, err := domains.Update(r.client, domain.ID, &domains.UpdateDomainRequest{IsLocked: &locked}); err != nil {
 			resp.Diagnostics.AddWarning(
 				"Error Setting Domain Lock After Create",

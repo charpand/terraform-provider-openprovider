@@ -18,11 +18,14 @@ import (
 
 // lockAPI stands in for an account that holds one active domain with a lock.
 // An update sets the lock from its body, and the listing shows the lock that
-// the account has. It keeps the lock value of each update it receives.
+// the account has. It keeps the lock value of each update it receives. When
+// `unlisted` is set, the listing does not show the domain, and the order
+// response carries no lock, as the order responses of OpenProvider do.
 type lockAPI struct {
 	*httptest.Server
-	locked  bool
-	updates []any
+	locked   bool
+	unlisted bool
+	updates  []any
 }
 
 func newLockAPI(t *testing.T, locked bool) *lockAPI {
@@ -39,8 +42,12 @@ func newLockAPI(t *testing.T, locked bool) *lockAPI {
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"is_premium":false,"price":{`+
 				`"product":{"currency":"EUR","price":15},`+
 				`"reseller":{"currency":"EUR","price":15}}}}`)
+		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains" && api.unlisted:
+			_, _ = fmt.Fprint(w, `{"code":0,"data":{"id":1,"status":"ACT"}}`)
 		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":` + domain() + `}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains" && api.unlisted:
+			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[],"total":0}}`)
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + domain() + `],"total":1}}`))
 		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/1":
@@ -91,6 +98,8 @@ func TestDomainResourceIsLockedIsOptionalAndComputed(t *testing.T) {
 // TestDomainResourceCreateSetsTheLock covers a create. The order request
 // carries no lock, so a configured lock that the new domain does not have is
 // set with an update, and an unset lock takes the value at OpenProvider.
+// When the listing does not show the new domain, the provider does not know
+// its lock. It then sends a configured lock, and keeps an unset lock null.
 func TestDomainResourceCreateSetsTheLock(t *testing.T) {
 	ctx := context.Background()
 
@@ -109,6 +118,7 @@ func TestDomainResourceCreateSetsTheLock(t *testing.T) {
 	}
 
 	for name, tc := range map[string]struct {
+		unlisted    bool
 		planned     types.Bool
 		wantUpdates []any
 		wantState   types.Bool
@@ -128,9 +138,28 @@ func TestDomainResourceCreateSetsTheLock(t *testing.T) {
 			wantUpdates: []any{false},
 			wantState:   types.BoolValue(false),
 		},
+		"not set, not listed": {
+			unlisted:    true,
+			planned:     types.BoolUnknown(),
+			wantUpdates: nil,
+			wantState:   types.BoolNull(),
+		},
+		"set to true, not listed": {
+			unlisted:    true,
+			planned:     types.BoolValue(true),
+			wantUpdates: []any{true},
+			wantState:   types.BoolValue(true),
+		},
+		"set to false, not listed": {
+			unlisted:    true,
+			planned:     types.BoolValue(false),
+			wantUpdates: []any{false},
+			wantState:   types.BoolValue(false),
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			api := newLockAPI(t, true)
+			api.unlisted = tc.unlisted
 			defer api.Close()
 			r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
 
