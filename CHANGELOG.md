@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
 
 ### Fixed
+- `openprovider_domain`: when the order response of a registration or a transfer leaves out `autorenew` or `ns_group`, and the listing does not give them, the state keeps the planned values; before, it set `autorenew` to false and `ns_group` to null
 - `openprovider_domain`: a domain that the account shows as deleted (status `DEL`), for example after a transfer to a different registrar, no longer fails a destroy; the destroy makes no change at OpenProvider and gives a warning. A destroy also looks up a domain that the default listing does not show in the listing of deleted domains, and with `on_destroy = "expire"` fails when neither listing shows a domain that the registry calls taken. A refresh removes a deleted domain from state
 - `openprovider_domain`: a registration that leaves `period` out no longer fails the apply with "unknown value after apply" after the domain is ordered; it now orders one year, the period that `max_cost` was checked against, and keeps that period in state
 - `openprovider_domain`: a `period` below 1 on a registration is now rejected at plan time; before, a registration ordered one year but kept the configured value in state

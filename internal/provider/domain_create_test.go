@@ -23,13 +23,15 @@ import (
 // domain back from, with the status given. It keeps the body of the order
 // it receives and the period of each quote, so a test can check what was
 // sent. When `listedStatus` is set, the listing shows the domain with that
-// status in place of the status of the order.
+// status in place of the status of the order. When `bareOrder` is set, the
+// order response holds only the id and the status, as that of OpenProvider.
 type orderAPI struct {
 	*httptest.Server
 	order        map[string]any
 	quoted       []string
 	ordered      string
 	listedStatus string
+	bareOrder    bool
 }
 
 func newOrderAPI(t *testing.T, name, extension, status string) *orderAPI {
@@ -57,7 +59,11 @@ func newOrderAPI(t *testing.T, name, extension, status string) *orderAPI {
 			if err := json.Unmarshal(body, &api.order); err != nil {
 				t.Errorf("decode order %s: %v", body, err)
 			}
-			_, _ = w.Write([]byte(`{"code":0,"data":` + domain + `}`))
+			ordered := domain
+			if api.bareOrder {
+				ordered = `{"id":1,"status":"` + status + `"}`
+			}
+			_, _ = w.Write([]byte(`{"code":0,"data":` + ordered + `}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
 			listed := domain
 			if api.listedStatus != "" {
@@ -364,5 +370,41 @@ func TestDomainResourceCreateIgnoresADeletedRecord(t *testing.T) {
 	}
 	if !got.DnssecKeys.Equal(keys) {
 		t.Errorf("dnssec_keys: got %v, want the planned %v", got.DnssecKeys, keys)
+	}
+}
+
+// TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits covers a
+// transfer whose order response holds only the id and the status, while the
+// listing shows only an old deleted record. The state keeps the planned
+// `autorenew` and `ns_group`, not the defaults of an absent value.
+func TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits(t *testing.T) {
+	ctx := context.Background()
+	api := newOrderAPI(t, "example", "com", domainStatusRequested)
+	api.listedStatus = domainStatusDeleted
+	api.bareOrder = true
+	defer api.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+	got := createDomain(ctx, t, r, DomainModel{
+		ID:          types.StringUnknown(),
+		Domain:      types.StringValue("example.com"),
+		OwnerHandle: types.StringValue("XX000001-NL"),
+		AuthCode:    types.StringValue("secret"),
+		Autorenew:   types.BoolValue(true),
+		NSGroup:     types.StringValue("dns-openprovider"),
+		Period:      types.Int64Unknown(),
+		Status:      types.StringUnknown(),
+		DnssecKeys:  types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		OnDestroy:   types.StringValue(onDestroyRetain),
+	})
+
+	if !got.Autorenew.Equal(types.BoolValue(true)) {
+		t.Errorf("autorenew: got %v, want the planned true", got.Autorenew)
+	}
+	if !got.NSGroup.Equal(types.StringValue("dns-openprovider")) {
+		t.Errorf("ns_group: got %v, want the planned value", got.NSGroup)
+	}
+	if got.Status.ValueString() != domainStatusRequested {
+		t.Errorf("status: got %v, want the %q of the order", got.Status, domainStatusRequested)
 	}
 }
