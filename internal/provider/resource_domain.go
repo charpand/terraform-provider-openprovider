@@ -43,11 +43,54 @@ const (
 	domainStatusPending   = "PEN"
 )
 
+// domainStatusDeleted is the status of a domain that the account had and
+// that is now deleted, for example after a transfer to a different
+// registrar. The account no longer holds the name.
+const domainStatusDeleted = "DEL"
+
 // domainTransferIsInFlight reports whether status is one the API uses for a
 // domain whose transfer has been requested but has not yet completed -- the
 // one case an authorization code is still in play.
 func domainTransferIsInFlight(status string) bool {
 	return status == domainStatusRequested || status == domainStatusPending
+}
+
+// transferOutrunsListing reports whether a deleted record can be a listing
+// that lags the transfer of the domain: the state shows a transfer in
+// progress. After a transfer back of a domain that the account had before,
+// the listings can show only the old record, with status `DEL`, until the
+// order appears in them.
+func transferOutrunsListing(state DomainModel) bool {
+	return domainTransferIsInFlight(state.Status.ValueString())
+}
+
+// dropDeletedDomain removes a domain that the account shows only as deleted
+// from state. During a transfer (`transferOutrunsListing`), the state stays
+// as last read, so that the next apply does not order the domain again.
+func dropDeletedDomain(ctx context.Context, state DomainModel, resp *resource.ReadResponse) {
+	if transferOutrunsListing(state) {
+		resp.Diagnostics.AddWarning(
+			"Transfer Not Listed",
+			fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so its state is kept as last read. If the transfer stopped, remove the domain from state with `terraform state rm`.", state.Domain.ValueString(), state.Status.ValueString()),
+		)
+		return
+	}
+	resp.State.RemoveResource(ctx)
+}
+
+// refuseDestroyDuringTransfer fails a destroy that finds only a deleted
+// record of a domain whose transfer is in progress
+// (`transferOutrunsListing`). The order can still bring the domain into the
+// account, with its autorenew on.
+func refuseDestroyDuringTransfer(state DomainModel, diags *diag.Diagnostics) bool {
+	if !transferOutrunsListing(state) {
+		return false
+	}
+	diags.AddError(
+		"Error Deleting Domain",
+		fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so the destroy cannot change the domain. Retry the destroy when the transfer completes. If the transfer stopped, remove the domain from state with `terraform state rm`.", state.Domain.ValueString(), state.Status.ValueString()),
+	)
+	return true
 }
 
 // oneOfValidator accepts a known string only when it is one of `allowed`.
@@ -352,7 +395,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Default:             booldefault.StaticBool(false),
 			},
 			"on_destroy": schema.StringAttribute{
-				MarkdownDescription: "What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `expire` also forgets the domain in state, and turns its autorenew off at OpenProvider: the domain stays in the account until its expiration date at OpenProvider, and then expires. For some extensions, that date is some days before the expiration date at the registry. `delete` deletes the domain at OpenProvider through `DELETE /v1beta/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. A destroy uses the value in state, not the value in the configuration: apply a change of `on_destroy` before a destroy. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
+				MarkdownDescription: "What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `expire` also forgets the domain in state, and turns its autorenew off at OpenProvider: the domain stays in the account until its expiration date at OpenProvider, and then expires. For some extensions, that date is some days before the expiration date at the registry. `delete` deletes the domain at OpenProvider through `DELETE /v1beta/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. When the account shows the domain as deleted (status `DEL`), for example after a transfer to a different registrar, a destroy makes no change at OpenProvider and gives a warning. A destroy uses the value in state, not the value in the configuration: apply a change of `on_destroy` before a destroy. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(onDestroyRetain),
@@ -419,7 +462,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"dnssec_keys": schema.ListNestedAttribute{
-				MarkdownDescription: "DNSSEC keys for the domain. Optional.",
+				MarkdownDescription: "DNSSEC keys for the domain. Optional. A transfer sends the keys with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured keys.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
@@ -563,6 +606,19 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			transferReq.NSGroup = plan.NSGroup.ValueString()
 		}
 
+		// Send the DNSSEC keys with the transfer, so that the registry has
+		// them when the transfer completes.
+		transferReq.DnssecKeys = convertDnssecKeysToAPI(ctx, plan.DnssecKeys, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// An unknown flag is one the keys decide, the same as in `Update`.
+		if !plan.IsDnssecEnabled.IsNull() && !plan.IsDnssecEnabled.IsUnknown() {
+			enabled := plan.IsDnssecEnabled.ValueBool()
+			transferReq.IsDnssecEnabled = &enabled
+		}
+
 		domain, err = domains.Transfer(r.client, transferReq)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -650,7 +706,10 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			"Error Reading Domain After Create",
 			fmt.Sprintf("Could not read domain %s back after its creation, so its state holds the creation response until the next refresh: %s", domainName, err.Error()),
 		)
-	} else if registered != nil {
+	} else if registered != nil && registered.Status != domainStatusDeleted {
+		// A listing that lags the order can show only a deleted record of a
+		// domain that the account had before. Its status and DNSSEC values
+		// are not those of the new order.
 		domain = registered
 	}
 
@@ -666,28 +725,40 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.TechHandle = knownString(domain.TechHandle, plan.TechHandle)
 	plan.BillingHandle = knownString(domain.BillingHandle, plan.BillingHandle)
 
-	// Map autorenew from response
-	if domain.Autorenew == "on" {
+	// Map autorenew and ns_group from response. The order response can omit
+	// them, and then the state keeps the planned values that are known.
+	switch {
+	case domain.Autorenew == "on":
 		plan.Autorenew = types.BoolValue(true)
-	} else {
+	case domain.Autorenew == "" && !plan.Autorenew.IsUnknown() && !plan.Autorenew.IsNull():
+	default:
 		plan.Autorenew = types.BoolValue(false)
 	}
-
-	// Map ns_group from response
 	if domain.NSGroup != "" {
 		plan.NSGroup = types.StringValue(domain.NSGroup)
-	} else {
+	} else if plan.NSGroup.IsUnknown() {
 		plan.NSGroup = types.StringNull()
 	}
 
+	// While a transfer is in flight, the registry does not have the keys
+	// that the transfer sent, so the domain reads back without them. The
+	// state keeps the planned values that are known, or the apply is
+	// inconsistent with the plan. `Read` keeps them until the transfer
+	// completes, and then reads them from the registry.
+	keepPlannedDnssec := isTransfer && domainTransferIsInFlight(domain.Status)
+
 	// Map DNSSEC keys from response
-	plan.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() {
-		return
+	if !keepPlannedDnssec || plan.DnssecKeys.IsUnknown() {
+		plan.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Map DNSSEC enabled status from response
-	plan.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
+	if !keepPlannedDnssec || plan.IsDnssecEnabled.IsUnknown() {
+		plan.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
+	}
 
 	// Map expiration date if present
 	if domain.ExpirationDate != "" {
@@ -742,10 +813,32 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 			resp.State.RemoveResource(ctx)
 			return
 		}
+		// The default listing can leave out a domain that is deleted. A
+		// domain that the account shows only as deleted left the account,
+		// and a different holder has the name now.
+		deleted, err := getDeletedDomainByName(r.client, domainName)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Reading Domain",
+				fmt.Sprintf("Could not look up domain %s in the deleted domains of the account, as the listing does not show it: %s", domainName, err.Error()),
+			)
+			return
+		}
+		if deleted != nil {
+			dropDeletedDomain(ctx, state, resp)
+			return
+		}
 		resp.Diagnostics.AddWarning(
 			"Domain Not Listed",
 			fmt.Sprintf("The account's listing does not show domain %s, but the registry says it is taken, so its state is kept as last read.", domainName),
 		)
+		return
+	}
+
+	// A deleted domain left the account, for example with a transfer to a
+	// different registrar.
+	if domain.Status == domainStatusDeleted {
+		dropDeletedDomain(ctx, state, resp)
 		return
 	}
 
@@ -774,14 +867,25 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 		state.NSGroup = types.StringNull()
 	}
 
+	// While a transfer is in flight, the registry does not have the keys
+	// that the transfer sent (see `Create`), so the state keeps its values.
+	// When the transfer completes, the values come from the registry again,
+	// and a difference from the configuration plans an update that sends
+	// the keys.
+	inFlight := domainTransferIsInFlight(domain.Status)
+
 	// Map DNSSEC keys from response
-	state.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() {
-		return
+	if !inFlight || state.DnssecKeys.IsNull() {
+		state.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Map DNSSEC enabled status from response
-	state.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
+	if !inFlight || state.IsDnssecEnabled.IsNull() {
+		state.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
+	}
 
 	// Map expiration date if present
 	if domain.ExpirationDate != "" {
@@ -1016,6 +1120,27 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain == nil {
+		// The default listing can leave out a domain that is deleted. A
+		// domain that the account shows only as deleted left the account, as
+		// does a domain that the listing shows as deleted (below).
+		deleted, err := getDeletedDomainByName(r.client, domainName)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Deleting Domain",
+				fmt.Sprintf("Could not look up domain %s in the deleted domains of the account, as the listing does not show it: %s", domainName, err.Error()),
+			)
+			return
+		}
+		if deleted != nil {
+			if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
+				return
+			}
+			resp.Diagnostics.AddWarning(
+				"Domain Left the Account",
+				fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName),
+			)
+			return
+		}
 		// The listing lags the registry (see `Read`). For `expire`, a domain
 		// that the account holds but the listing omits would leave state with
 		// its autorenew on, so the availability check confirms the absence.
@@ -1037,6 +1162,16 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 			}
 		}
 		// Gone from the account: nothing left to delete.
+		return
+	}
+	if domain.Status == domainStatusDeleted {
+		if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
+			return
+		}
+		resp.Diagnostics.AddWarning(
+			"Domain Left the Account",
+			fmt.Sprintf("The account shows domain %s as deleted (status %q), for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName, domain.Status),
+		)
 		return
 	}
 
@@ -1123,20 +1258,43 @@ func knownString(fromAPI string, planned types.String) types.String {
 // getDomainByName finds a domain by its name using the List API.
 // Returns nil if the domain is not found.
 func getDomainByName(c *client.Client, domainName string) (*domains.Domain, error) {
+	return findDomainByName(c, domains.ListOptions{FullName: domainName})
+}
+
+// getDeletedDomainByName finds a domain that the account had and that is now
+// deleted, with the `is_deleted` filter of the List API. Returns nil if the
+// account has no deleted domain with this name.
+func getDeletedDomainByName(c *client.Client, domainName string) (*domains.Domain, error) {
+	isDeleted := true
+	return findDomainByName(c, domains.ListOptions{FullName: domainName, IsDeleted: &isDeleted})
+}
+
+// findDomainByName lists the domains that opts select and returns the one
+// with the full name in opts. A listing can show a deleted domain next to
+// one with the same name that the account holds now, so a domain that is not
+// deleted comes first.
+func findDomainByName(c *client.Client, opts domains.ListOptions) (*domains.Domain, error) {
 	// Filtered on the API's side, so the lookup does not depend on the
 	// account fitting in one page of the listing.
-	domainList, err := domains.ListWith(c, domains.ListOptions{FullName: domainName})
+	domainList, err := domains.ListWith(c, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	// The filter matches on the name; keep only the exact one.
-	for _, domain := range domainList {
+	var deleted *domains.Domain
+	for i, domain := range domainList {
 		fullName := domain.Domain.Name + "." + domain.Domain.Extension
-		if fullName == domainName {
-			return &domain, nil
+		if fullName != opts.FullName {
+			continue
+		}
+		if domain.Status != domainStatusDeleted {
+			return &domainList[i], nil
+		}
+		if deleted == nil {
+			deleted = &domainList[i]
 		}
 	}
 
-	return nil, nil
+	return deleted, nil
 }

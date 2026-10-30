@@ -23,6 +23,11 @@ type ListOptions struct {
 	// Offset is the number of domains to skip. Only meaningful with Limit
 	// set; ignored (as a starting point of 0) when it is not.
 	Offset int
+	// IsDeleted, when set, is sent as the API's `is_deleted` filter. True
+	// asks for the domains that the account had and that are now deleted,
+	// for example after a transfer to a different registrar. Nil sends no
+	// filter, which is the API's default listing.
+	IsDeleted *bool
 }
 
 // listPageSize is how many domains one request asks for while ListWith pages
@@ -48,7 +53,7 @@ func ListWith(c *client.Client, opts ListOptions) ([]Domain, error) {
 	all := make([]Domain, 0)
 	offset := opts.Offset
 	for {
-		page, total, err := listOnePage(c, ListOptions{FullName: opts.FullName, Limit: listPageSize, Offset: offset})
+		page, total, err := listOnePage(c, ListOptions{FullName: opts.FullName, Limit: listPageSize, Offset: offset, IsDeleted: opts.IsDeleted})
 		if err != nil {
 			return nil, err
 		}
@@ -75,6 +80,9 @@ func listOnePage(c *client.Client, opts ListOptions) ([]Domain, int, error) {
 	}
 	if opts.Offset > 0 {
 		query.Set("offset", strconv.Itoa(opts.Offset))
+	}
+	if opts.IsDeleted != nil {
+		query.Set("is_deleted", strconv.FormatBool(*opts.IsDeleted))
 	}
 
 	path := "/v1beta/domains"

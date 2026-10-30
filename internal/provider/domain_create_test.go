@@ -20,20 +20,28 @@ import (
 
 // orderAPI stands in for what `Create` asks of the API: the price endpoint,
 // the registration and transfer endpoints, and the listing it reads the
-// domain back from. It keeps the body of the order it receives and the
-// period of each quote, so a test can check what was sent.
+// domain back from, with the status given. It keeps the body of the order
+// it receives and the period of each quote, so a test can check what was
+// sent. When `listedStatus` is set, the listing shows the domain with that
+// status in place of the status of the order. When `bareOrder` is set, the
+// order response holds only the id and the status, as that of OpenProvider.
 type orderAPI struct {
 	*httptest.Server
-	order   map[string]any
-	quoted  []string
-	ordered string
+	order        map[string]any
+	quoted       []string
+	ordered      string
+	listedStatus string
+	bareOrder    bool
 }
 
-func newOrderAPI(t *testing.T, name, extension string) *orderAPI {
+func newOrderAPI(t *testing.T, name, extension, status string) *orderAPI {
 	t.Helper()
 	api := &orderAPI{}
-	domain := `{"id":1,"status":"ACT","autorenew":"off","owner_handle":"XX000001-NL",` +
-		`"domain":{"name":"` + name + `","extension":"` + extension + `"}}`
+	domainWith := func(status string) string {
+		return `{"id":1,"status":"` + status + `","autorenew":"off","owner_handle":"XX000001-NL",` +
+			`"domain":{"name":"` + name + `","extension":"` + extension + `"}}`
+	}
+	domain := domainWith(status)
 	api.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
@@ -51,9 +59,17 @@ func newOrderAPI(t *testing.T, name, extension string) *orderAPI {
 			if err := json.Unmarshal(body, &api.order); err != nil {
 				t.Errorf("decode order %s: %v", body, err)
 			}
-			_, _ = w.Write([]byte(`{"code":0,"data":` + domain + `}`))
+			ordered := domain
+			if api.bareOrder {
+				ordered = `{"id":1,"status":"` + status + `"}`
+			}
+			_, _ = w.Write([]byte(`{"code":0,"data":` + ordered + `}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
-			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + domain + `],"total":1}}`))
+			listed := domain
+			if api.listedStatus != "" {
+				listed = domainWith(api.listedStatus)
+			}
+			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + listed + `],"total":1}}`))
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -142,7 +158,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			api := newOrderAPI(t, "example", "com")
+			api := newOrderAPI(t, "example", "com", domainStatusActive)
 			defer api.Close()
 			r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
 
@@ -222,5 +238,173 @@ func TestPeriodRejectsBelowOne(t *testing.T) {
 				t.Errorf("error = %v, want %v (%v)", resp.Diagnostics.HasError(), tc.wantErr, resp.Diagnostics)
 			}
 		})
+	}
+}
+
+// dnssecKeys is a list of one DNSSEC key, as a plan or a state holds it.
+func dnssecKeys(t *testing.T, publicKey string) types.List {
+	t.Helper()
+	keys, diags := types.ListValueFrom(context.Background(), types.ObjectType{AttrTypes: dnssecKeysAttrTypes}, []DnssecKeyModel{{
+		Algorithm: types.Int64Value(13),
+		Flags:     types.Int64Value(257),
+		Protocol:  types.Int64Value(3),
+		PublicKey: types.StringValue(publicKey),
+	}})
+	if diags.HasError() {
+		t.Fatalf("keys: %v", diags)
+	}
+	return keys
+}
+
+// TestDomainResourceCreateTransfersTheDnssecKeys covers a transfer with
+// DNSSEC keys. The transfer request sends the keys and the flag. The domain
+// reads back with status `REQ` and without the keys, because the registry
+// does not have them yet, so the state keeps the planned values, or the
+// framework rejects the apply as inconsistent with the plan.
+func TestDomainResourceCreateTransfersTheDnssecKeys(t *testing.T) {
+	ctx := context.Background()
+	api := newOrderAPI(t, "example", "com", domainStatusRequested)
+	defer api.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+	keys := dnssecKeys(t, "AwEAAa")
+	got := createDomain(ctx, t, r, DomainModel{
+		ID:              types.StringUnknown(),
+		Domain:          types.StringValue("example.com"),
+		OwnerHandle:     types.StringValue("XX000001-NL"),
+		AuthCode:        types.StringValue("secret"),
+		Autorenew:       types.BoolValue(false),
+		Period:          types.Int64Unknown(),
+		Status:          types.StringUnknown(),
+		DnssecKeys:      keys,
+		IsDnssecEnabled: types.BoolValue(true),
+		OnDestroy:       types.StringValue(onDestroyRetain),
+	})
+
+	if api.ordered != "/v1beta/domains/transfer" {
+		t.Fatalf("order sent to %q, want the transfer", api.ordered)
+	}
+	sent, ok := api.order["dnssec_keys"].([]any)
+	if !ok || len(sent) != 1 {
+		t.Fatalf("the transfer should send the one key, sent %v", api.order["dnssec_keys"])
+	}
+	if key, _ := sent[0].(map[string]any); key["pub_key"] != "AwEAAa" || key["flags"] != float64(257) {
+		t.Errorf("sent key: got %v", sent[0])
+	}
+	if api.order["is_dnssec_enabled"] != true {
+		t.Errorf("is_dnssec_enabled sent: got %v, want true", api.order["is_dnssec_enabled"])
+	}
+	if got.Status.ValueString() != domainStatusRequested {
+		t.Fatalf("status: got %v, want %q", got.Status, domainStatusRequested)
+	}
+	if !got.DnssecKeys.Equal(keys) {
+		t.Errorf("dnssec_keys: got %v, want the planned %v", got.DnssecKeys, keys)
+	}
+	if !got.IsDnssecEnabled.Equal(types.BoolValue(true)) {
+		t.Errorf("is_dnssec_enabled: got %v, want the planned true", got.IsDnssecEnabled)
+	}
+}
+
+// TestDomainResourceCreateTransferWithoutDnssecSendsNone covers a transfer
+// whose configuration has no DNSSEC: the plan holds both attributes unknown,
+// the request sends neither, and the state holds what the registry has.
+func TestDomainResourceCreateTransferWithoutDnssecSendsNone(t *testing.T) {
+	ctx := context.Background()
+	api := newOrderAPI(t, "example", "com", domainStatusRequested)
+	defer api.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+	got := createDomain(ctx, t, r, DomainModel{
+		ID:              types.StringUnknown(),
+		Domain:          types.StringValue("example.com"),
+		OwnerHandle:     types.StringValue("XX000001-NL"),
+		AuthCode:        types.StringValue("secret"),
+		Autorenew:       types.BoolValue(false),
+		Period:          types.Int64Unknown(),
+		Status:          types.StringUnknown(),
+		DnssecKeys:      types.ListUnknown(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		IsDnssecEnabled: types.BoolUnknown(),
+		OnDestroy:       types.StringValue(onDestroyRetain),
+	})
+
+	for _, field := range []string{"dnssec_keys", "is_dnssec_enabled"} {
+		if v, ok := api.order[field]; ok {
+			t.Errorf("the transfer should not send %s, sent %v", field, v)
+		}
+	}
+	if !got.DnssecKeys.IsNull() {
+		t.Errorf("dnssec_keys: got %v, want null", got.DnssecKeys)
+	}
+	if !got.IsDnssecEnabled.Equal(types.BoolValue(false)) {
+		t.Errorf("is_dnssec_enabled: got %v, want false", got.IsDnssecEnabled)
+	}
+}
+
+// TestDomainResourceCreateIgnoresADeletedRecord covers a transfer back of a
+// domain that the account had before: the listing lags the order, and shows
+// only the old deleted record. The state keeps the status of the order and
+// the planned DNSSEC values, not those of the deleted record.
+func TestDomainResourceCreateIgnoresADeletedRecord(t *testing.T) {
+	ctx := context.Background()
+	api := newOrderAPI(t, "example", "com", domainStatusRequested)
+	api.listedStatus = domainStatusDeleted
+	defer api.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+	keys := dnssecKeys(t, "AwEAAa")
+	got := createDomain(ctx, t, r, DomainModel{
+		ID:              types.StringUnknown(),
+		Domain:          types.StringValue("example.com"),
+		OwnerHandle:     types.StringValue("XX000001-NL"),
+		AuthCode:        types.StringValue("secret"),
+		Autorenew:       types.BoolValue(false),
+		Period:          types.Int64Unknown(),
+		Status:          types.StringUnknown(),
+		DnssecKeys:      keys,
+		IsDnssecEnabled: types.BoolValue(true),
+		OnDestroy:       types.StringValue(onDestroyRetain),
+	})
+
+	if got.Status.ValueString() != domainStatusRequested {
+		t.Errorf("status: got %v, want the %q of the order", got.Status, domainStatusRequested)
+	}
+	if !got.DnssecKeys.Equal(keys) {
+		t.Errorf("dnssec_keys: got %v, want the planned %v", got.DnssecKeys, keys)
+	}
+}
+
+// TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits covers a
+// transfer whose order response holds only the id and the status, while the
+// listing shows only an old deleted record. The state keeps the planned
+// `autorenew` and `ns_group`, not the defaults of an absent value.
+func TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits(t *testing.T) {
+	ctx := context.Background()
+	api := newOrderAPI(t, "example", "com", domainStatusRequested)
+	api.listedStatus = domainStatusDeleted
+	api.bareOrder = true
+	defer api.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+	got := createDomain(ctx, t, r, DomainModel{
+		ID:          types.StringUnknown(),
+		Domain:      types.StringValue("example.com"),
+		OwnerHandle: types.StringValue("XX000001-NL"),
+		AuthCode:    types.StringValue("secret"),
+		Autorenew:   types.BoolValue(true),
+		NSGroup:     types.StringValue("dns-openprovider"),
+		Period:      types.Int64Unknown(),
+		Status:      types.StringUnknown(),
+		DnssecKeys:  types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		OnDestroy:   types.StringValue(onDestroyRetain),
+	})
+
+	if !got.Autorenew.Equal(types.BoolValue(true)) {
+		t.Errorf("autorenew: got %v, want the planned true", got.Autorenew)
+	}
+	if !got.NSGroup.Equal(types.StringValue("dns-openprovider")) {
+		t.Errorf("ns_group: got %v, want the planned value", got.NSGroup)
+	}
+	if got.Status.ValueString() != domainStatusRequested {
+		t.Errorf("status: got %v, want the %q of the order", got.Status, domainStatusRequested)
 	}
 }

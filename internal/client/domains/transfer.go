@@ -16,14 +16,16 @@ type TransferDomainRequest struct {
 		Name      string `json:"name"`
 		Extension string `json:"extension"`
 	} `json:"domain"`
-	AuthCode      string       `json:"auth_code"`
-	OwnerHandle   string       `json:"owner_handle"`
-	AdminHandle   string       `json:"admin_handle,omitempty"`
-	TechHandle    string       `json:"tech_handle,omitempty"`
-	BillingHandle string       `json:"billing_handle,omitempty"`
-	Autorenew     string       `json:"autorenew,omitempty"`
-	NSGroup       string       `json:"ns_group,omitempty"`
-	Nameservers   []Nameserver `json:"name_servers,omitempty"`
+	AuthCode        string       `json:"auth_code"`
+	OwnerHandle     string       `json:"owner_handle"`
+	AdminHandle     string       `json:"admin_handle,omitempty"`
+	TechHandle      string       `json:"tech_handle,omitempty"`
+	BillingHandle   string       `json:"billing_handle,omitempty"`
+	Autorenew       string       `json:"autorenew,omitempty"`
+	NSGroup         string       `json:"ns_group,omitempty"`
+	Nameservers     []Nameserver `json:"name_servers,omitempty"`
+	DnssecKeys      []DnssecKey  `json:"dnssec_keys,omitempty"`
+	IsDnssecEnabled *bool        `json:"is_dnssec_enabled,omitempty"`
 }
 
 // TransferDomainResponse represents a response for transferring a domain.
