@@ -55,6 +55,44 @@ func domainTransferIsInFlight(status string) bool {
 	return status == domainStatusRequested || status == domainStatusPending
 }
 
+// transferOutrunsListing reports whether a deleted record can be a listing
+// that lags the transfer of the domain: the state shows a transfer in
+// progress. After a transfer back of a domain that the account had before,
+// the listings can show only the old record, with status `DEL`, until the
+// order appears in them.
+func transferOutrunsListing(state DomainModel) bool {
+	return domainTransferIsInFlight(state.Status.ValueString())
+}
+
+// dropDeletedDomain removes a domain that the account shows only as deleted
+// from state. During a transfer (`transferOutrunsListing`), the state stays
+// as last read, so that the next apply does not order the domain again.
+func dropDeletedDomain(ctx context.Context, state DomainModel, resp *resource.ReadResponse) {
+	if transferOutrunsListing(state) {
+		resp.Diagnostics.AddWarning(
+			"Transfer Not Listed",
+			fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so its state is kept as last read. If the transfer stopped, remove the domain from state with `terraform state rm`.", state.Domain.ValueString(), state.Status.ValueString()),
+		)
+		return
+	}
+	resp.State.RemoveResource(ctx)
+}
+
+// refuseDestroyDuringTransfer fails a destroy that finds only a deleted
+// record of a domain whose transfer is in progress
+// (`transferOutrunsListing`). The order can still bring the domain into the
+// account, with its autorenew on.
+func refuseDestroyDuringTransfer(state DomainModel, diags *diag.Diagnostics) bool {
+	if !transferOutrunsListing(state) {
+		return false
+	}
+	diags.AddError(
+		"Error Deleting Domain",
+		fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so the destroy cannot change the domain. Retry the destroy when the transfer completes. If the transfer stopped, remove the domain from state with `terraform state rm`.", state.Domain.ValueString(), state.Status.ValueString()),
+	)
+	return true
+}
+
 // oneOfValidator accepts a known string only when it is one of `allowed`.
 type oneOfValidator struct {
 	allowed []string
@@ -787,7 +825,7 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 			return
 		}
 		if deleted != nil {
-			resp.State.RemoveResource(ctx)
+			dropDeletedDomain(ctx, state, resp)
 			return
 		}
 		resp.Diagnostics.AddWarning(
@@ -800,7 +838,7 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 	// A deleted domain left the account, for example with a transfer to a
 	// different registrar.
 	if domain.Status == domainStatusDeleted {
-		resp.State.RemoveResource(ctx)
+		dropDeletedDomain(ctx, state, resp)
 		return
 	}
 
@@ -1094,6 +1132,9 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 			return
 		}
 		if deleted != nil {
+			if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
+				return
+			}
 			resp.Diagnostics.AddWarning(
 				"Domain Left the Account",
 				fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName),
@@ -1124,6 +1165,9 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain.Status == domainStatusDeleted {
+		if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
+			return
+		}
 		resp.Diagnostics.AddWarning(
 			"Domain Left the Account",
 			fmt.Sprintf("The account shows domain %s as deleted (status %q), for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName, domain.Status),

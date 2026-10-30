@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -17,11 +19,13 @@ import (
 // answers `listed`, the listing with `is_deleted=true` answers `deleted`, and
 // the availability check answers `checkStatus`. It records the `is_deleted`
 // filter of each listing and the body of each update, and fails the test on
-// any delete.
+// any delete. When `stateStatus` is set, the state that `read` and `delete`
+// give has that status.
 type deletedAPI struct {
 	*httptest.Server
-	filters []string
-	updates []map[string]any
+	filters     []string
+	updates     []map[string]any
+	stateStatus string
 }
 
 func newDeletedAPI(t *testing.T, listed, deleted []map[string]any, checkStatus string) *deletedAPI {
@@ -84,18 +88,30 @@ func (api *deletedAPI) resource() *DomainResource {
 	})}
 }
 
+// withStateStatus sets the `stateStatus` of the API in the state, if any.
+func (api *deletedAPI) withStateStatus(t *testing.T, state tfsdk.State) tfsdk.State {
+	t.Helper()
+	if api.stateStatus != "" {
+		if diags := state.SetAttribute(context.Background(), path.Root("status"), types.StringValue(api.stateStatus)); diags.HasError() {
+			t.Fatalf("setting status: %v", diags)
+		}
+	}
+	return state
+}
+
 func (api *deletedAPI) delete(t *testing.T, onDestroy string) *resource.DeleteResponse {
 	t.Helper()
 	r := api.resource()
 	resp := &resource.DeleteResponse{}
-	r.Delete(context.Background(), resource.DeleteRequest{State: domainState(t, r, types.StringValue(onDestroy))}, resp)
+	state := api.withStateStatus(t, domainState(t, r, types.StringValue(onDestroy)))
+	r.Delete(context.Background(), resource.DeleteRequest{State: state}, resp)
 	return resp
 }
 
 func (api *deletedAPI) read(t *testing.T) *resource.ReadResponse {
 	t.Helper()
 	r := api.resource()
-	state := heldDomainState(t, r)
+	state := api.withStateStatus(t, heldDomainState(t, r))
 	resp := &resource.ReadResponse{State: state}
 	r.Read(context.Background(), resource.ReadRequest{State: state}, resp)
 	return resp
@@ -225,5 +241,71 @@ func TestDomainResourceReadKeepsATakenNameNeitherListingShows(t *testing.T) {
 	}
 	if resp.State.Raw.IsNull() {
 		t.Fatal("a name the registry calls taken should stay in state when neither listing shows it")
+	}
+}
+
+// deletedRecordListings are the two ways in which the account can show only
+// a deleted record of example.com: in the default listing, or only in the
+// listing with `is_deleted=true`.
+var deletedRecordListings = map[string]struct{ listed, deleted []map[string]any }{
+	"default": {listed: []map[string]any{listedExample(123, domainStatusDeleted)}},
+	"deleted": {deleted: []map[string]any{listedExample(123, domainStatusDeleted)}},
+}
+
+// TestDomainResourceReadKeepsATransferThatOnlyADeletedRecordShows covers a
+// transfer back of a domain that the account had before: until the order
+// appears in the listings, they show only the old deleted record. A state
+// with the transfer in progress stays as last read, with a warning.
+func TestDomainResourceReadKeepsATransferThatOnlyADeletedRecordShows(t *testing.T) {
+	for name, listings := range deletedRecordListings {
+		for _, status := range []string{domainStatusRequested, domainStatusPending} {
+			t.Run(name+"/"+status, func(t *testing.T) {
+				api := newDeletedAPI(t, listings.listed, listings.deleted, "active")
+				api.stateStatus = status
+				defer api.Close()
+
+				resp := api.read(t)
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("a transfer in progress should read without error, got %v", resp.Diagnostics)
+				}
+				if resp.State.Raw.IsNull() {
+					t.Fatal("a transfer in progress should stay in state")
+				}
+				if resp.Diagnostics.WarningsCount() == 0 {
+					t.Error("a transfer in progress that only a deleted record shows should warn")
+				}
+				var got DomainModel
+				if diags := resp.State.Get(context.Background(), &got); diags.HasError() {
+					t.Fatalf("get: %v", diags)
+				}
+				if got.Status.ValueString() != status {
+					t.Errorf("status: got %v, want %q as last read", got.Status, status)
+				}
+			})
+		}
+	}
+}
+
+// TestDomainResourceDeleteRefusesATransferThatOnlyADeletedRecordShows covers
+// a destroy of a transfer in progress that the listings show only as an old
+// deleted record. The order can still bring the domain into the account, so
+// the destroy fails and makes no change.
+func TestDomainResourceDeleteRefusesATransferThatOnlyADeletedRecordShows(t *testing.T) {
+	for name, listings := range deletedRecordListings {
+		for _, onDestroy := range []string{onDestroyExpire, onDestroyDelete} {
+			t.Run(name+"/"+onDestroy, func(t *testing.T) {
+				api := newDeletedAPI(t, listings.listed, listings.deleted, "active")
+				api.stateStatus = domainStatusRequested
+				defer api.Close()
+
+				resp := api.delete(t, onDestroy)
+				if !resp.Diagnostics.HasError() {
+					t.Fatalf("a destroy of a transfer in progress should fail, got %v", resp.Diagnostics)
+				}
+				if len(api.updates) != 0 {
+					t.Errorf("a destroy of a transfer in progress should send no update, sent %v", api.updates)
+				}
+			})
+		}
 	}
 }
