@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -497,6 +498,14 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					dnssecEnabledFollowsKeys{},
 				},
 			},
+			"is_locked": schema.BoolAttribute{
+				MarkdownDescription: "Whether the domain is locked against a transfer to a different registrar. Set it to `false` before you transfer the domain out, and get the authorization code from OpenProvider. If you do not set it, the provider keeps the value that OpenProvider has. Not all extensions have a lock: for such an extension, do not set `is_locked`.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"expiration_date": schema.StringAttribute{
 				MarkdownDescription: "The domain expiration date.",
 				Computed:            true,
@@ -760,6 +769,22 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
 	}
 
+	// The create and transfer requests carry no lock, so a configured
+	// `is_locked` that the domain does not have is set with an update. A
+	// failed update does not fail the create, for the same reason as a failed
+	// read-back. The state then holds the configured value, the next refresh
+	// reads the value at OpenProvider, and the next apply sets it again.
+	if plan.IsLocked.IsUnknown() || plan.IsLocked.IsNull() {
+		plan.IsLocked = types.BoolValue(domain.IsLocked)
+	} else if locked := plan.IsLocked.ValueBool(); locked != domain.IsLocked {
+		if _, err := domains.Update(r.client, domain.ID, &domains.UpdateDomainRequest{IsLocked: &locked}); err != nil {
+			resp.Diagnostics.AddWarning(
+				"Error Setting Domain Lock After Create",
+				fmt.Sprintf("Could not set the lock of domain %s to %t after its creation, so the next apply tries again: %s", domainName, locked, err.Error()),
+			)
+		}
+	}
+
 	// Map expiration date if present
 	if domain.ExpirationDate != "" {
 		plan.ExpirationDate = types.StringValue(domain.ExpirationDate)
@@ -887,6 +912,8 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 		state.IsDnssecEnabled = types.BoolValue(domain.IsDnssecEnabled)
 	}
 
+	state.IsLocked = types.BoolValue(domain.IsLocked)
+
 	// Map expiration date if present
 	if domain.ExpirationDate != "" {
 		state.ExpirationDate = types.StringValue(domain.ExpirationDate)
@@ -943,7 +970,8 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		!plan.Autorenew.Equal(state.Autorenew) ||
 		!plan.NSGroup.Equal(state.NSGroup) ||
 		!plan.DnssecKeys.Equal(state.DnssecKeys) ||
-		!plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled)
+		!plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled) ||
+		lockChanges(plan, state)
 
 	// If no changes detected, skip the API call and just refresh state to pick up any
 	// server-side changes (e.g., DNSSEC keys or other computed fields updated by the API).
@@ -1015,6 +1043,11 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
+	if lockChanges(plan, state) {
+		locked := plan.IsLocked.ValueBool()
+		updateReq.IsLocked = &locked
+	}
+
 	// Send update
 	_, err = domains.Update(r.client, domain.ID, updateReq)
 	if err != nil {
@@ -1026,6 +1059,14 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	r.refreshAfterUpdate(ctx, plan, state, resp)
+}
+
+// lockChanges reports whether the plan sets `is_locked` to a value that the
+// state does not hold. An unknown plan value is not a change: it comes from a
+// prior state that holds no lock, such as a state from before the attribute
+// existed, and the refresh after the update fills it.
+func lockChanges(plan, state DomainModel) bool {
+	return !plan.IsLocked.IsUnknown() && !plan.IsLocked.IsNull() && !plan.IsLocked.Equal(state.IsLocked)
 }
 
 // refreshAfterUpdate reads the domain back into `resp.State` the way `Read`

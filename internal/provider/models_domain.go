@@ -25,6 +25,7 @@ type DomainModel struct {
 	NSGroup         types.String `tfsdk:"ns_group"`
 	DnssecKeys      types.List   `tfsdk:"dnssec_keys"`
 	IsDnssecEnabled types.Bool   `tfsdk:"is_dnssec_enabled"`
+	IsLocked        types.Bool   `tfsdk:"is_locked"`
 	ExpirationDate  types.String `tfsdk:"expiration_date"`
 }
 
