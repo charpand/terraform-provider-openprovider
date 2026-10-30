@@ -7,11 +7,15 @@ import (
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// Ensure the implementation satisfies the expected interfaces.
+var _ provider.ProviderWithEphemeralResources = &OpenproviderProvider{}
 
 // OpenproviderProvider defines the provider implementation.
 // OpenproviderProvider implements the Terraform provider and holds provider-level configuration.
@@ -104,6 +108,7 @@ func (p *OpenproviderProvider) Configure(ctx context.Context, req provider.Confi
 	// Make client available
 	resp.DataSourceData = c
 	resp.ResourceData = c
+	resp.EphemeralResourceData = c
 }
 
 // Resources returns the provider's resources.
@@ -117,6 +122,14 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewSSLOrderResource,
 		NewRCPIPWhitelistResource,
 		NewContactResource,
+		NewDomainAuthCodeResetResource,
+	}
+}
+
+// EphemeralResources returns the provider's ephemeral resources.
+func (p *OpenproviderProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+		NewDomainAuthCodeEphemeralResource,
 	}
 }
 

@@ -329,6 +329,27 @@ req.ImportNameserversFromRegistry = true
 domain, err := domains.Transfer(c, req)
 ```
 
+### Get Domain Auth Code
+
+An empty type gives the `external` code, which transfers the domain to a different registrar. The `internal` code transfers the domain to a different reseller account at Openprovider.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+code, err := domains.GetAuthCode(c, 123, domains.AuthCodeTypeExternal)
+fmt.Println(code.AuthCode)
+```
+
+### Reset Domain Auth Code
+
+Replaces the auth code with a new code and returns it. The old code then no longer transfers the domain.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+code, err := domains.ResetAuthCode(c, 123, domains.AuthCodeTypeExternal)
+```
+
 ## DNS Records
 
 ### List DNS Records

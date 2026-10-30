@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_domain`: a transfer sends `dnssec_keys` and `is_dnssec_enabled` with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured DNSSEC values, and when it completes a refresh reads them from OpenProvider again; a deleted record of the domain in the listing does not replace the order in state; when the listings show only a deleted record of a transfer in progress, for example after a transfer back of a domain that the account had before, a refresh keeps the state as last read and a destroy fails
 - `domains` client package: `ListOptions.IsDeleted` sends the `is_deleted` filter of `GET /v1beta/domains`
 - `openprovider_domain`: `on_destroy = "expire"` keeps the domain in the account, as `retain` does, and turns its autorenew off, so a domain that Terraform no longer manages expires at its expiration date at OpenProvider
+- `openprovider_domain_auth_code` ephemeral resource: reads the auth code of a domain that the account holds, so a different registrar or reseller account can transfer the domain, without keeping the code in the plan or the state
+- `openprovider_domain_auth_code_reset` resource: replaces the auth code of a domain with a new code on create or replace (for example on a change of `triggers`), so the old code no longer transfers the domain
+- `domains.GetAuthCode` and `domains.ResetAuthCode` client functions
 
 ### Removed
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
