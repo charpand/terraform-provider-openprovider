@@ -53,5 +53,6 @@ else
 fi
 
 echo "==> Running tests"
-go clean -cache -testcache -modcache
-go test -timeout 30m -p 4 ./... "$@"
+# -count=1 skips cached test results: the tests depend on the Prism mock server,
+# which go test cannot track. The build and module caches stay intact.
+go test -count=1 -timeout 30m -p 4 ./... "$@"
