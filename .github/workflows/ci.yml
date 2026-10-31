@@ -114,7 +114,7 @@ jobs:
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          path: build/terraform-provider-openprovider
+          file: build/terraform-provider-openprovider
           format: cyclonedx-json
           output-file: sbom.cdx.json
           upload-artifact: false
@@ -170,7 +170,9 @@ jobs:
     name: snyk
     # Fork PRs and Dependabot/Renovate runs have no access to SNYK_TOKEN.
     if: ${{ !startsWith(github.ref, 'refs/tags/') && (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') }}
-    runs-on: ubuntu-26.04-arm
+    # snyk/actions/setup always installs the x64 CLI, so this job cannot use the
+    # ARM runners of the other jobs.
+    runs-on: ubuntu-26.04
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
