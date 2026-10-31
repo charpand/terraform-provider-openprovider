@@ -86,6 +86,117 @@ jobs:
             exit 1
           fi
 
+  sbom:
+    # Scanned on PRs and main; the tagged commit was already scanned, and the
+    # release job publishes the SBOMs.
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    timeout-minutes: 15
+    name: sbom
+    runs-on: ubuntu-26.04-arm
+    concurrency:
+      group: ci-sbom-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: ./go.mod
+
+      # Scan the compiled provider rather than the repository: the SBOM then
+      # contains only what ships, not `tool` dependencies, test helpers or the
+      # Prism/Node mock tooling.
+      - name: Build provider
+        run: |
+          mkdir -p build
+          CGO_ENABLED=0 go build -trimpath -o build/terraform-provider-openprovider .
+
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          file: build/terraform-provider-openprovider
+          # Trivy's CycloneDX decoder rejects the 1.7 that syft writes by default.
+          format: cyclonedx-json@1.6
+          output-file: sbom.cdx.json
+          upload-artifact: false
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          if-no-files-found: error
+
+  trivy:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    needs: sbom
+    timeout-minutes: 15
+    name: trivy
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: sbom
+
+      - name: Scan SBOM for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: sbom
+          scan-ref: sbom.cdx.json
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  grype:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    needs: sbom
+    timeout-minutes: 15
+    name: grype
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: sbom
+
+      - name: Scan SBOM for vulnerabilities
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.cdx.json
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          cache-db: true
+
+  snyk:
+    timeout-minutes: 15
+    name: snyk
+    # Fork PRs and Dependabot/Renovate runs have no access to SNYK_TOKEN.
+    if: ${{ !startsWith(github.ref, 'refs/tags/') && (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') }}
+    # snyk/actions/setup always installs the x64 CLI, so this job cannot use the
+    # ARM runners of the other jobs.
+    runs-on: ubuntu-26.04
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: ./go.mod
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+
+      # Dependencies of the provider module (go.mod).
+      - name: Snyk open source
+        run: snyk test --file=go.mod --severity-threshold=high
+
+      # Static analysis of this repository's own Go code. Runs even when the
+      # dependency scan found something, so one run reports both.
+      - name: Snyk code
+        if: ${{ !cancelled() }}
+        run: snyk code test --severity-threshold=high
+
   release:
     # Only cut a release once lint and test have confirmed the tagged commit is good.
     if: startsWith(github.ref, 'refs/tags/v')
@@ -105,6 +216,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: ./go.mod
+
+      - name: Install syft (SBOM generation)
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       - name: Import GPG key
         env:
