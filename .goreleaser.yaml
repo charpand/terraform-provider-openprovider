@@ -34,6 +34,19 @@ archives:
   - formats:
       - zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+# One CycloneDX SBOM per release archive, taken from the compiled binary so it
+# lists exactly the modules linked into the provider (not dev tooling such as
+# tfplugindocs). Requires syft on PATH; the release job installs it.
+sboms:
+  - id: archive
+    artifacts: archive
+    documents:
+      - '{{ .ArtifactName }}.cdx.json'
+    cmd: syft
+    args:
+      - '$artifact'
+      - '--output'
+      - 'cyclonedx-json=$document'
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'
