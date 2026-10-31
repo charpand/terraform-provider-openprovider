@@ -46,7 +46,7 @@ sboms:
     args:
       - '$artifact'
       - '--output'
-      - 'cyclonedx-json=$document'
+      - 'cyclonedx-json@1.6=$document'
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'

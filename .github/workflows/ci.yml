@@ -115,7 +115,8 @@ jobs:
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
           file: build/terraform-provider-openprovider
-          format: cyclonedx-json
+          # Trivy's CycloneDX decoder rejects the 1.7 that syft writes by default.
+          format: cyclonedx-json@1.6
           output-file: sbom.cdx.json
           upload-artifact: false
 
@@ -164,6 +165,7 @@ jobs:
           severity-cutoff: high
           only-fixed: true
           fail-build: true
+          cache-db: true
 
   snyk:
     timeout-minutes: 15
