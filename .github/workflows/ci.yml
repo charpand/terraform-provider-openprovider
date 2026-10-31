@@ -191,8 +191,10 @@ jobs:
       - name: Snyk open source
         run: snyk test --file=go.mod --severity-threshold=high
 
-      # Static analysis of this repository's own Go code.
+      # Static analysis of this repository's own Go code. Runs even when the
+      # dependency scan found something, so one run reports both.
       - name: Snyk code
+        if: ${{ !cancelled() }}
         run: snyk code test --severity-threshold=high
 
   release:
