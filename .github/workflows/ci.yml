@@ -12,44 +12,50 @@ on:
 permissions:
   contents: read
 
+# One run per ref. A newer push to a pull request cancels the older run; on
+# main and on tags every commit runs to completion, so each one is scanned and
+# a release is never cut off halfway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Dependency and code scanning by Snyk runs through the Snyk GitHub App
+# (`security/snyk` and `code/snyk` commit statuses), not in this workflow.
+
 jobs:
   lint:
     timeout-minutes: 10
     name: lint
     runs-on: ubuntu-26.04-arm
-    concurrency:
-      group: ci-lint-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: ./go.mod
+          persist-credentials: false
+
+      # Go and golangci-lint at the versions in mise.toml / mise.lock, the same
+      # ones `./scripts/lint` uses locally.
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install_args: go golangci-lint
 
       - name: Run lints
-        run: |
-          # Run existing linter script
-          ./scripts/lint
-          # Also run go vet to catch additional suspicious code patterns
-          go vet ./...
+        run: ./scripts/lint
+
+      - name: Check go.mod and go.sum are tidy
+        run: go mod tidy -diff
 
   test:
     timeout-minutes: 30
     name: test
     runs-on: ubuntu-26.04-arm
-    concurrency:
-      group: ci-test-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: ./go.mod
+          persist-credentials: false
 
-      - name: Bootstrap
-        run: ./scripts/bootstrap
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install_args: go node
 
       - name: Run tests
         run: ./scripts/test
@@ -58,20 +64,17 @@ jobs:
     # Docs are only re-validated for the code they're generated from; the
     # commit backing a release tag was already validated when it landed on main.
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    timeout-minutes: 10
     name: docs
     runs-on: ubuntu-26.04-arm
-    concurrency:
-      group: ci-docs-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: ./go.mod
+          persist-credentials: false
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install_args: go terraform
 
       - name: Generate docs
         run: ./scripts/docs
@@ -79,9 +82,13 @@ jobs:
       - name: Validate docs
         run: go tool tfplugindocs validate --provider-name openprovider
 
+      # `git status` also reports new files, such as the page of a resource
+      # whose generated docs were never committed; `git diff` would miss those.
       - name: Check for uncommitted changes
         run: |
-          if ! git diff --exit-code docs/ templates/; then
+          if [ -n "$(git status --porcelain -- docs/ templates/)" ]; then
+            git status --short -- docs/ templates/
+            git diff -- docs/ templates/
             echo "::error::Documentation is out of date. Please run './scripts/docs' and commit the changes."
             exit 1
           fi
@@ -93,19 +100,20 @@ jobs:
     timeout-minutes: 15
     name: sbom
     runs-on: ubuntu-26.04-arm
-    concurrency:
-      group: ci-sbom-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: ./go.mod
+          persist-credentials: false
+
+      # The Go toolchain is part of what is scanned (its standard library is
+      # linked into the binary), so build with the pinned release version.
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install_args: go
 
       # Scan the compiled provider rather than the repository: the SBOM then
       # contains only what ships, not `tool` dependencies, test helpers or the
-      # Prism/Node mock tooling.
+      # mock tooling.
       - name: Build provider
         run: |
           mkdir -p build
@@ -167,63 +175,32 @@ jobs:
           fail-build: true
           cache-db: true
 
-  snyk:
-    timeout-minutes: 15
-    name: snyk
-    # Fork PRs and Dependabot/Renovate runs have no access to SNYK_TOKEN.
-    if: ${{ !startsWith(github.ref, 'refs/tags/') && (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') }}
-    # snyk/actions/setup always installs the x64 CLI, so this job cannot use the
-    # ARM runners of the other jobs.
-    runs-on: ubuntu-26.04
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
-        with:
-          go-version-file: ./go.mod
-
-      - name: Set up Snyk CLI
-        uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
-
-      # Dependencies of the provider module (go.mod).
-      - name: Snyk open source
-        run: snyk test --file=go.mod --severity-threshold=high
-
-      # Static analysis of this repository's own Go code. Runs even when the
-      # dependency scan found something, so one run reports both.
-      - name: Snyk code
-        if: ${{ !cancelled() }}
-        run: snyk code test --severity-threshold=high
-
   release:
     # Only cut a release once lint and test have confirmed the tagged commit is good.
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [lint, test]
+    timeout-minutes: 30
     name: release
     runs-on: ubuntu-26.04-arm
     permissions:
       contents: write
-    concurrency:
-      group: ci-release-${{ github.ref }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: '0'
+          persist-credentials: false
 
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
         with:
-          go-version-file: ./go.mod
+          install_args: go
 
       - name: Install syft (SBOM generation)
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       - name: Import GPG key
+        id: import_gpg
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
           FINGERPRINT="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
@@ -232,13 +209,13 @@ jobs:
             exit 1
           fi
           echo "fingerprint=$FINGERPRINT" >> "$GITHUB_OUTPUT"
-        id: import_gpg
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
         with:
           distribution: goreleaser
-          version: latest
+          # .goreleaser.yaml is a `version: 2` config; stay on that major.
+          version: '~> v2'
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

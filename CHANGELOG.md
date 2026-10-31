@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- CI: the `ci.yml` workflow builds the provider, generates a CycloneDX SBOM from the compiled binary, and scans it with Trivy and Grype; Snyk scans the module dependencies and the repository's own Go code when `SNYK_TOKEN` is set; releases attach a CycloneDX SBOM per archive
+- CI: the `ci.yml` workflow builds the provider, generates a CycloneDX SBOM from the compiled binary, and scans it with Trivy and Grype; releases attach a CycloneDX SBOM per archive
 - `openprovider_domain`: `is_locked` sets the lock of the domain against a transfer to a different registrar, so a configuration can unlock a domain before it is transferred out; if it is not set, the provider keeps the lock that the domain has
 - `openprovider_domain`: a transfer sends `dnssec_keys` and `is_dnssec_enabled` with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured DNSSEC values, and when it completes a refresh reads them from OpenProvider again; a deleted record of the domain in the listing does not replace the order in state; when the listings show only a deleted record of a transfer in progress, for example after a transfer back of a domain that the account had before, a refresh keeps the state as last read and a destroy fails
 - `domains` client package: `ListOptions.IsDeleted` sends the `is_deleted` filter of `GET /v1beta/domains`
@@ -17,7 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_domain_auth_code_reset` resource: replaces the auth code of a domain with a new code on create or replace (for example on a change of `triggers`), so the old code no longer transfers the domain
 - `domains.GetAuthCode` and `domains.ResetAuthCode` client functions
 
+### Changed
+- CI installs Go, golangci-lint, Terraform and Node through `jdx/mise-action` at the versions in `mise.toml` and `mise.lock`, so CI uses the same tools as a local checkout; before, the lint job had no golangci-lint and `./scripts/lint` fell back to `go vet`
+- CI checks that `go.mod` and `go.sum` are tidy (`go mod tidy -diff`) and that `./scripts/docs` leaves no new or changed files in `docs/` or `templates/`; the test job no longer runs `go mod tidy`
+- CI uses one concurrency group per ref: a newer push cancels a pull request's older run, while runs on `main` and on tags always complete; checkouts do not keep the token, and GoReleaser stays on v2
+
 ### Removed
+- The `snyk` CI job; Snyk scans pull requests and `main` through the Snyk GitHub App (`security/snyk` and `code/snyk` statuses), so `SNYK_TOKEN` is no longer used
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
 
 ### Fixed
