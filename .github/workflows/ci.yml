@@ -26,13 +26,8 @@ jobs:
   lint:
     timeout-minutes: 10
     name: lint
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -52,13 +47,8 @@ jobs:
   test:
     timeout-minutes: 30
     name: test
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -76,13 +66,8 @@ jobs:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     timeout-minutes: 10
     name: docs
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -114,13 +99,8 @@ jobs:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     timeout-minutes: 15
     name: sbom
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -160,13 +140,8 @@ jobs:
     needs: sbom
     timeout-minutes: 15
     name: trivy
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sbom
@@ -185,13 +160,8 @@ jobs:
     needs: sbom
     timeout-minutes: 15
     name: grype
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sbom
@@ -211,15 +181,10 @@ jobs:
     needs: [lint, test]
     timeout-minutes: 30
     name: release
-    runs-on: craci
+    runs-on: ubuntu-26.04-arm
     permissions:
       contents: write
     steps:
-      - uses: cracicorp/setup@5cbae507e2547dca6c402e413c645767fbae3534 # v1
-        with:
-          image: default
-          size: "2"
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: '0'

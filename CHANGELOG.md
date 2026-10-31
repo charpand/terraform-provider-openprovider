@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `domains.GetAuthCode` and `domains.ResetAuthCode` client functions
 
 ### Changed
-- CI jobs run on CRACI runners (`runs-on: craci`, `cracicorp/setup` with the x64 `default` image at size 2) instead of GitHub's `ubuntu-26.04-arm` runners
 - CI installs Go, golangci-lint, Terraform and Node through `jdx/mise-action` at the versions in `mise.toml` and `mise.lock`, so CI uses the same tools as a local checkout; before, the lint job had no golangci-lint and `./scripts/lint` fell back to `go vet`
 - CI checks that `go.mod` and `go.sum` are tidy (`go mod tidy -diff`) and that `./scripts/docs` leaves no new or changed files in `docs/` or `templates/`; the test job no longer runs `go mod tidy`
 - CI uses one concurrency group per ref: a newer push cancels a pull request's older run, while runs on `main` and on tags always complete; checkouts do not keep the token, and GoReleaser stays on v2
