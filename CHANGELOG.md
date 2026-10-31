@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_domain_auth_code_reset` resource: replaces the auth code of a domain with a new code on create or replace (for example on a change of `triggers`), so the old code no longer transfers the domain
 - `domains.GetAuthCode` and `domains.ResetAuthCode` client functions
 
+### Changed
+- CI jobs run on CRACI runners (`runs-on: craci`, arm64 through the `craci-slim-arm` image) instead of GitHub's `ubuntu-26.04-arm` runners
+
 ### Removed
 - The self-hosted Renovate workflow (`.github/workflows/renovate.yml`); `renovate.json` and `.github/renovate-global.json5` stay in place
 
