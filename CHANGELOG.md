@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI installs Go, golangci-lint, Terraform and Node through `jdx/mise-action` at the versions in `mise.toml` and `mise.lock`, so CI uses the same tools as a local checkout; before, the lint job had no golangci-lint and `./scripts/lint` fell back to `go vet`
 - CI checks that `go.mod` and `go.sum` are tidy (`go mod tidy -diff`) and that `./scripts/docs` leaves no new or changed files in `docs/` or `templates/`; the test job no longer runs `go mod tidy`
 - CI uses one concurrency group per ref: a newer push cancels a pull request's older run, while runs on `main` and on tags always complete; checkouts do not keep the token, and GoReleaser stays on v2
+- `./scripts/test` runs `go test -count=1` instead of first running `go clean -cache -testcache -modcache`, so a test run no longer deletes the local build and module caches and CI keeps its cache; test results are still never taken from the cache
 
 ### Removed
 - The `snyk` CI job; Snyk scans pull requests and `main` through the Snyk GitHub App (`security/snyk` and `code/snyk` statuses), so `SNYK_TOKEN` is no longer used
