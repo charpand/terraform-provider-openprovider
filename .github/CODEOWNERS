@@ -1,2 +1,13 @@
 # Default reviewer for everything
-*  @dsdeboer
+*  @dsdeboer @dsdeboerbot
+
+# Paths that decide what is built, signed and released. Listed explicitly so
+# that they keep a required owner if the default rule above is ever loosened.
+/.github/             @dsdeboer @dsdeboerbot
+/.goreleaser.yaml     @dsdeboer @dsdeboerbot
+/go.mod               @dsdeboer @dsdeboerbot
+/go.sum               @dsdeboer @dsdeboerbot
+/mise.toml            @dsdeboer @dsdeboerbot
+/mise.lock            @dsdeboer @dsdeboerbot
+/scripts/             @dsdeboer @dsdeboerbot
+/SECURITY.md          @dsdeboer @dsdeboerbot
