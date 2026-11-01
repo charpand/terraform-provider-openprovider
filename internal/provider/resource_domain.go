@@ -238,9 +238,34 @@ func convertDnssecKeysToAPI(ctx context.Context, keysList types.List, diags *dia
 	return apiKeys
 }
 
+// dnssecKeysToSend converts the DNSSEC keys of a plan to the keys of a
+// request. A null or unknown list sends no keys. An empty list sends an empty
+// list, which removes the keys of the domain.
+func dnssecKeysToSend(ctx context.Context, keysList types.List, diags *diag.Diagnostics) *[]domains.DnssecKey {
+	if keysList.IsNull() || keysList.IsUnknown() {
+		return nil
+	}
+	keys := convertDnssecKeysToAPI(ctx, keysList, diags)
+	if keys == nil {
+		keys = []domains.DnssecKey{}
+	}
+	return &keys
+}
+
+// isEmptyDnssecKeys tells if a list of DNSSEC keys is a known empty list.
+func isEmptyDnssecKeys(keys types.List) bool {
+	return !keys.IsNull() && !keys.IsUnknown() && len(keys.Elements()) == 0
+}
+
 // mapDnssecKeysToState converts DNSSEC keys from API format to Terraform state.
-func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, diags *diag.Diagnostics) types.List {
+// The API gives no keys as no list. When the prior value is an empty list, for
+// example from a configuration that sets `dnssec_keys = []`, no keys keep that
+// empty list, or the state is different from the configuration.
+func mapDnssecKeysToState(ctx context.Context, keys []domains.DnssecKey, prior types.List, diags *diag.Diagnostics) types.List {
 	if len(keys) == 0 {
+		if isEmptyDnssecKeys(prior) {
+			return prior
+		}
 		return types.ListNull(types.ObjectType{
 			AttrTypes: dnssecKeysAttrTypes,
 		})
@@ -462,7 +487,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"dnssec_keys": schema.ListNestedAttribute{
-				MarkdownDescription: "DNSSEC keys for the domain. Optional. A transfer sends the keys with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured keys.",
+				MarkdownDescription: "DNSSEC keys for the domain. Optional. An empty list removes the keys of the domain; when unset, the domain keeps the keys it has. A transfer sends the keys with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured keys.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.List{
@@ -615,8 +640,10 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		}
 
 		// Send the DNSSEC keys with the transfer, so that the registry has
-		// them when the transfer completes.
-		transferReq.DnssecKeys = convertDnssecKeysToAPI(ctx, plan.DnssecKeys, &resp.Diagnostics)
+		// them when the transfer completes. An empty list sends an empty
+		// list, so that the domain does not keep the keys of the registrar
+		// it comes from.
+		transferReq.DnssecKeys = dnssecKeysToSend(ctx, plan.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -755,7 +782,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Map DNSSEC keys from response
 	if !keepPlannedDnssec || plan.DnssecKeys.IsUnknown() {
-		plan.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+		plan.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, plan.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -905,7 +932,7 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Map DNSSEC keys from response
 	if !inFlight || state.DnssecKeys.IsNull() {
-		state.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, &resp.Diagnostics)
+		state.DnssecKeys = mapDnssecKeysToState(ctx, domain.DnssecKeys, state.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -1025,15 +1052,11 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
-	// Update DNSSEC keys if changed
+	// Update DNSSEC keys if changed. An empty list removes the keys.
 	if !plan.DnssecKeys.Equal(state.DnssecKeys) {
-		updateReq.DnssecKeys = convertDnssecKeysToAPI(ctx, plan.DnssecKeys, &resp.Diagnostics)
+		updateReq.DnssecKeys = dnssecKeysToSend(ctx, plan.DnssecKeys, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
-		}
-		// If nil, convert to empty slice to explicitly clear DNSSEC keys
-		if updateReq.DnssecKeys == nil {
-			updateReq.DnssecKeys = []domains.DnssecKey{}
 		}
 	}
 
@@ -1132,6 +1155,12 @@ func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan, state Dom
 	final.OnDestroy = plan.OnDestroy
 	if final.OnDestroy.IsUnknown() {
 		final.OnDestroy = state.OnDestroy
+	}
+	// The read keeps an empty list of keys only from its prior state. After
+	// an update to `dnssec_keys = []`, the domain reads back with no keys,
+	// so the empty list comes from the plan.
+	if final.DnssecKeys.IsNull() && isEmptyDnssecKeys(plan.DnssecKeys) {
+		final.DnssecKeys = plan.DnssecKeys
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &final)...)
 }

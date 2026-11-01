@@ -262,7 +262,7 @@ domain, err := domains.Update(c, 123, req)
 import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
 
 req := &domains.UpdateDomainRequest{
-    DnssecKeys: []domains.DnssecKey{
+    DnssecKeys: &[]domains.DnssecKey{
         {
             Alg:      8,
             Flags:    257,
@@ -270,6 +270,20 @@ req := &domains.UpdateDomainRequest{
             PubKey:   "AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3...",
         },
     },
+}
+
+domain, err := domains.Update(c, 123, req)
+```
+
+#### Remove Domain DS Records
+
+An empty list removes the keys of the domain. A `nil` `DnssecKeys` leaves the keys as they are.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.UpdateDomainRequest{
+    DnssecKeys: &[]domains.DnssecKey{},
 }
 
 domain, err := domains.Update(c, 123, req)

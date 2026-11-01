@@ -2,6 +2,7 @@
 package domains_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -72,7 +73,7 @@ func TestUpdateDomainWithDSRecords(t *testing.T) {
 
 	// Update a test domain with DS records
 	req := &domains.UpdateDomainRequest{
-		DnssecKeys: []domains.DnssecKey{
+		DnssecKeys: &[]domains.DnssecKey{
 			{
 				Alg:      8,
 				Flags:    257,
@@ -166,5 +167,38 @@ func TestUpdateDomainWithErrorCode(t *testing.T) {
 	}
 	if domain != nil {
 		t.Errorf("Expected no domain, got %v", domain)
+	}
+}
+
+// TestDnssecKeysRequestBody covers the DNSSEC keys of the update and the
+// transfer request: no keys send no field, and an empty list sends `[]`,
+// which removes the keys of the domain.
+func TestDnssecKeysRequestBody(t *testing.T) {
+	for name, req := range map[string]struct{ none, empty any }{
+		"update": {
+			&domains.UpdateDomainRequest{},
+			&domains.UpdateDomainRequest{DnssecKeys: &[]domains.DnssecKey{}},
+		},
+		"transfer": {
+			&domains.TransferDomainRequest{},
+			&domains.TransferDomainRequest{DnssecKeys: &[]domains.DnssecKey{}},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			none, err := json.Marshal(req.none)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if strings.Contains(string(none), "dnssec_keys") {
+				t.Errorf("no keys should send no dnssec_keys, sent %s", none)
+			}
+			empty, err := json.Marshal(req.empty)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			if !strings.Contains(string(empty), `"dnssec_keys":[]`) {
+				t.Errorf("an empty list should send dnssec_keys as [], sent %s", empty)
+			}
+		})
 	}
 }

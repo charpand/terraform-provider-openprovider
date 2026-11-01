@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - CI: `jdx/mise-action` no longer caches, so a cache written by an earlier run cannot influence a release build
 - CI: the release job runs in the `release` environment
+- `domains.UpdateDomainRequest.DnssecKeys` and `domains.TransferDomainRequest.DnssecKeys` are now `*[]DnssecKey`
+
+### Fixed
+- `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 
 ## [1.3.0] - 2026-11-01
 
