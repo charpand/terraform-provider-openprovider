@@ -28,6 +28,12 @@ jobs:
     name: lint
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -50,6 +56,12 @@ jobs:
     name: test
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -70,6 +82,12 @@ jobs:
     name: docs
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -104,6 +122,12 @@ jobs:
     name: sbom
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -146,6 +170,12 @@ jobs:
     name: trivy
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sbom
@@ -166,6 +196,12 @@ jobs:
     name: grype
     runs-on: ubuntu-26.04-arm
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sbom
@@ -189,6 +225,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: '0'
