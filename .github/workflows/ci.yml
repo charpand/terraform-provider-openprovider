@@ -51,6 +51,10 @@ jobs:
       - name: Check go.mod and go.sum are tidy
         run: go mod tidy -diff
 
+      # Fails if a module in the download cache differs from go.sum.
+      - name: Verify module checksums
+        run: go mod verify
+
   test:
     timeout-minutes: 30
     name: test
