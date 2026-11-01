@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-01
+
 ### Added
 - CI: the `ci.yml` workflow builds the provider, generates a CycloneDX SBOM from the compiled binary, and scans it with Trivy and Grype; releases attach a CycloneDX SBOM per archive
 - `openprovider_domain`: `is_locked` sets the lock of the domain against a transfer to a different registrar, so a configuration can unlock a domain before it is transferred out; if it is not set, the provider keeps the lock that the domain has
