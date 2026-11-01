@@ -1,0 +1,43 @@
+name: gitleaks
+
+# Scans the full git history for committed secrets. Runs gitleaks from the
+# version pinned in mise.toml (the same one the pre-commit hook uses) rather
+# than the gitleaks-action, which needs a license for organisation accounts.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: '0'
+          persist-credentials: false
+
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          install_args: gitleaks
+          cache: false
+
+      - name: Scan history for secrets
+        run: gitleaks git --redact --no-banner --verbose
