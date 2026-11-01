@@ -73,19 +73,24 @@ func dropDeletedDomain(ctx context.Context, state DomainModel, resp *resource.Re
 	resp.State.RemoveResource(ctx)
 }
 
-// refuseDestroyDuringTransfer fails a destroy that finds only a deleted
-// record of a domain whose transfer is in progress (see `dropDeletedDomain`).
-// The order can still bring the domain into the account, with its autorenew
-// on.
-func refuseDestroyDuringTransfer(state DomainModel, diags *diag.Diagnostics) bool {
-	if !domainTransferIsInFlight(state.Status.ValueString()) {
-		return false
+// destroyDeletedDomain handles a destroy of a domain that the account shows
+// only as deleted. It makes no change at OpenProvider and warns, except while
+// a transfer is in progress (see `dropDeletedDomain`): the order can still
+// bring the domain into the account, with its autorenew on, so the destroy
+// fails.
+func destroyDeletedDomain(state DomainModel, diags *diag.Diagnostics) {
+	domainName := state.Domain.ValueString()
+	if domainTransferIsInFlight(state.Status.ValueString()) {
+		diags.AddError(
+			"Error Deleting Domain",
+			fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so the destroy cannot change the domain. Retry the destroy when the transfer completes. If the transfer stopped, remove the domain from state with `terraform state rm`.", domainName, state.Status.ValueString()),
+		)
+		return
 	}
-	diags.AddError(
-		"Error Deleting Domain",
-		fmt.Sprintf("The transfer of domain %s is in progress (status %q), but the account shows only a deleted record of the domain, so the destroy cannot change the domain. Retry the destroy when the transfer completes. If the transfer stopped, remove the domain from state with `terraform state rm`.", state.Domain.ValueString(), state.Status.ValueString()),
+	diags.AddWarning(
+		"Domain Left the Account",
+		fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName),
 	)
-	return true
 }
 
 // oneOfValidator accepts a known string only when it is one of `allowed`.
@@ -1176,13 +1181,7 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 			return
 		}
 		if deleted != nil {
-			if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
-				return
-			}
-			resp.Diagnostics.AddWarning(
-				"Domain Left the Account",
-				fmt.Sprintf("The account shows domain %s only as deleted, for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName),
-			)
+			destroyDeletedDomain(state, &resp.Diagnostics)
 			return
 		}
 		// The listing lags the registry (see `Read`). For `expire`, a domain
@@ -1209,13 +1208,7 @@ func (r *DomainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if domain.Status == domainStatusDeleted {
-		if refuseDestroyDuringTransfer(state, &resp.Diagnostics) {
-			return
-		}
-		resp.Diagnostics.AddWarning(
-			"Domain Left the Account",
-			fmt.Sprintf("The account shows domain %s as deleted (status %q), for example after a transfer to a different registrar, so the destroy makes no change to it.", domainName, domain.Status),
-		)
+		destroyDeletedDomain(state, &resp.Diagnostics)
 		return
 	}
 
