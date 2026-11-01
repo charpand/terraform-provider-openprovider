@@ -1,0 +1,254 @@
+name: Security
+
+# Everything that looks for supply-chain and security problems, in one place:
+#   sbom, trivy, grype   known-vulnerable modules in the compiled provider
+#   govulncheck          vulnerabilities the provider actually reaches
+#   codeql               semantic scanning of the Go code and the workflows
+#   gitleaks             committed secrets, full history
+#   zizmor               static analysis of the GitHub Actions workflows
+#   dependency-review    new vulnerable dependencies, pull requests only
+# Also runs daily: new advisories appear without any commit to this repository.
+# Build, test and release live in ci.yml; OpenSSF Scorecard stays in
+# scorecard.yml because its publish verification restricts the workflow shape.
+# Dependency and code scanning by Snyk runs through the Snyk GitHub App
+# (`security/snyk` and `code/snyk` commit statuses), not in this workflow.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  sbom:
+    timeout-minutes: 15
+    name: sbom
+    runs-on: ubuntu-26.04-arm
+    steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The Go toolchain is part of what is scanned (its standard library is
+      # linked into the binary), so build with the pinned release version.
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          cache: false # see the release job
+          install_args: go
+
+      # Scan the compiled provider rather than the repository: the SBOM then
+      # contains only what ships, not `tool` dependencies, test helpers or the
+      # mock tooling.
+      - name: Build provider
+        run: |
+          mkdir -p build
+          CGO_ENABLED=0 go build -trimpath -o build/terraform-provider-openprovider .
+
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          file: build/terraform-provider-openprovider
+          # Trivy's CycloneDX decoder rejects the 1.7 that syft writes by default.
+          format: cyclonedx-json@1.6
+          output-file: sbom.cdx.json
+          upload-artifact: false
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          if-no-files-found: error
+
+  trivy:
+    needs: sbom
+    timeout-minutes: 15
+    name: trivy
+    runs-on: ubuntu-26.04-arm
+    steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: sbom
+
+      - name: Scan SBOM for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: sbom
+          scan-ref: sbom.cdx.json
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  grype:
+    needs: sbom
+    timeout-minutes: 15
+    name: grype
+    runs-on: ubuntu-26.04-arm
+    steps:
+      # Records the job's network egress (audit mode) as the baseline for a
+      # later allowlist.
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: sbom
+
+      - name: Scan SBOM for vulnerabilities
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.cdx.json
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          cache-db: true
+
+  govulncheck:
+    name: govulncheck
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
+        with:
+          repo-checkout: false
+          go-version-file: go.mod
+          go-package: ./...
+
+  analyze:
+    name: analyze (${{ matrix.language }})
+    timeout-minutes: 30
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+      security-events: write # upload results
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - go
+          - actions
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The Go version pinned in mise.toml, so the build matches CI.
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        if: matrix.language == 'go'
+        with:
+          install_args: go
+          cache: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.language == 'go' && 'autobuild' || 'none' }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:${{ matrix.language }}
+
+  gitleaks:
+    name: gitleaks
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: '0'
+          persist-credentials: false
+
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          install_args: gitleaks
+          cache: false
+
+      - name: Scan history for secrets
+        run: gitleaks git --redact --no-banner --verbose
+
+  zizmor:
+    name: zizmor
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          # Fail the check on findings instead of uploading SARIF only.
+          advanced-security: false
+
+  dependency-review:
+    name: dependency-review
+    # Diffs the pull request's dependency graph, so only meaningful on PRs.
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    runs-on: ubuntu-26.04-arm
+    permissions:
+      contents: read
+      pull-requests: write # post the summary comment when the check fails
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

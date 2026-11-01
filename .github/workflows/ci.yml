@@ -13,14 +13,13 @@ permissions:
   contents: read
 
 # One run per ref. A newer push to a pull request cancels the older run; on
-# main and on tags every commit runs to completion, so each one is scanned and
-# a release is never cut off halfway.
+# main and on tags every commit runs to completion, so a release is never cut
+# off halfway.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Dependency and code scanning by Snyk runs through the Snyk GitHub App
-# (`security/snyk` and `code/snyk` commit statuses), not in this workflow.
+# Scanning lives in security.yml.
 
 jobs:
   lint:
@@ -117,107 +116,6 @@ jobs:
             echo "::error::Documentation is out of date. Please run './scripts/docs' and commit the changes."
             exit 1
           fi
-
-  sbom:
-    # Scanned on PRs and main; the tagged commit was already scanned, and the
-    # release job publishes the SBOMs.
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    timeout-minutes: 15
-    name: sbom
-    runs-on: ubuntu-26.04-arm
-    steps:
-      # Records the job's network egress (audit mode) as the baseline for a
-      # later allowlist.
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
-        with:
-          egress-policy: audit
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      # The Go toolchain is part of what is scanned (its standard library is
-      # linked into the binary), so build with the pinned release version.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
-        with:
-          cache: false # see the release job
-          install_args: go
-
-      # Scan the compiled provider rather than the repository: the SBOM then
-      # contains only what ships, not `tool` dependencies, test helpers or the
-      # mock tooling.
-      - name: Build provider
-        run: |
-          mkdir -p build
-          CGO_ENABLED=0 go build -trimpath -o build/terraform-provider-openprovider .
-
-      - name: Generate SBOM (CycloneDX)
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          file: build/terraform-provider-openprovider
-          # Trivy's CycloneDX decoder rejects the 1.7 that syft writes by default.
-          format: cyclonedx-json@1.6
-          output-file: sbom.cdx.json
-          upload-artifact: false
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: sbom
-          path: sbom.cdx.json
-          if-no-files-found: error
-
-  trivy:
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    needs: sbom
-    timeout-minutes: 15
-    name: trivy
-    runs-on: ubuntu-26.04-arm
-    steps:
-      # Records the job's network egress (audit mode) as the baseline for a
-      # later allowlist.
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
-        with:
-          egress-policy: audit
-
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: sbom
-
-      - name: Scan SBOM for vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: sbom
-          scan-ref: sbom.cdx.json
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
-
-  grype:
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    needs: sbom
-    timeout-minutes: 15
-    name: grype
-    runs-on: ubuntu-26.04-arm
-    steps:
-      # Records the job's network egress (audit mode) as the baseline for a
-      # later allowlist.
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
-        with:
-          egress-policy: audit
-
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: sbom
-
-      - name: Scan SBOM for vulnerabilities
-        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
-        with:
-          sbom: sbom.cdx.json
-          severity-cutoff: high
-          only-fixed: true
-          fail-build: true
-          cache-db: true
 
   release:
     # Only cut a release once lint and test have confirmed the tagged commit is good.
