@@ -34,7 +34,7 @@ jobs:
 
       # Go and golangci-lint at the versions in mise.toml / mise.lock, the same
       # ones `./scripts/lint` uses locally.
-      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: go golangci-lint
 
@@ -53,7 +53,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: go node
 
@@ -72,7 +72,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: go terraform
 
@@ -107,7 +107,7 @@ jobs:
 
       # The Go toolchain is part of what is scanned (its standard library is
       # linked into the binary), so build with the pinned release version.
-      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: go
 
@@ -190,7 +190,7 @@ jobs:
           fetch-depth: '0'
           persist-credentials: false
 
-      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           install_args: go
 
