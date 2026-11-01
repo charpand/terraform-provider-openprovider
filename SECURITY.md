@@ -12,7 +12,7 @@ We will acknowledge your report within 48 hours and provide a timeline for a fix
 
 ## Verifying a release
 
-Each release publishes, next to the provider archives, a `SHA256SUMS` file, a detached GPG signature of it (`SHA256SUMS.sig`), and a CycloneDX SBOM per archive. Archives from `v1.4.0` onwards also carry signed SLSA build provenance.
+Each release publishes, next to the provider archives, a `SHA256SUMS` file, a detached GPG signature of it (`SHA256SUMS.sig`), and a CycloneDX SBOM per archive. Releases made after build provenance was introduced (see the changelog) also carry signed SLSA build provenance for every archive.
 
 ```sh
 # 1. Checksums: verify the GPG signature of SHA256SUMS, then the archive against it
