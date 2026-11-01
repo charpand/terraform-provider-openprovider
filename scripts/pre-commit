@@ -16,4 +16,12 @@ go mod tidy
 # 3. Lint / Build check
 ./scripts/lint
 
+# 4. Secret scan of the staged changes (version pinned in mise.toml)
+if command -v gitleaks &> /dev/null; then
+  echo "==> Running gitleaks"
+  gitleaks git --pre-commit --staged --redact --no-banner
+else
+  echo "gitleaks not found, skipping secret scan (install with: mise install)"
+fi
+
 echo "==> All checks passed!"
