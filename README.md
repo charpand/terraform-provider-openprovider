@@ -1,5 +1,7 @@
 # OpenProvider Terraform Provider
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/charpand/terraform-provider-openprovider/badge)](https://scorecard.dev/viewer/?uri=github.com/charpand/terraform-provider-openprovider)
+
 Terraform provider for managing Openprovider domains and customers.
 
 ## Requirements
