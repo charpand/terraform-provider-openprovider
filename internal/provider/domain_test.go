@@ -215,7 +215,7 @@ func TestMapDnssecKeysToStatePreservesValues(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			diags := &diag.Diagnostics{}
-			result := mapDnssecKeysToState(ctx, tc.keys, diags)
+			result := mapDnssecKeysToState(ctx, tc.keys, types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}), diags)
 
 			if diags.HasError() {
 				t.Fatalf("Unexpected error in mapDnssecKeysToState: %v", diags)
