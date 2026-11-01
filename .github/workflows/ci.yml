@@ -36,6 +36,7 @@ jobs:
       # ones `./scripts/lint` uses locally.
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
+          cache: false # see the release job
           install_args: go golangci-lint
 
       - name: Run lints
@@ -55,6 +56,7 @@ jobs:
 
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
+          cache: false # see the release job
           install_args: go node
 
       - name: Run tests
@@ -74,6 +76,7 @@ jobs:
 
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
+          cache: false # see the release job
           install_args: go terraform
 
       - name: Generate docs
@@ -109,6 +112,7 @@ jobs:
       # linked into the binary), so build with the pinned release version.
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
+          cache: false # see the release job
           install_args: go
 
       # Scan the compiled provider rather than the repository: the SBOM then
@@ -192,6 +196,10 @@ jobs:
 
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
+          # No cache: this workflow publishes releases, and a cache written by an
+          # earlier run (main is readable from tag builds) must not be able to
+          # influence what ships.
+          cache: false
           install_args: go
 
       - name: Install syft (SBOM generation)
