@@ -9,3 +9,19 @@ We take the security of our software seriously. If you find a security vulnerabi
 Instead, please report them by emailing us at [security@charpand.nl](mailto:security@charpand.nl).
 
 We will acknowledge your report within 48 hours and provide a timeline for a fix, if applicable. We request that you do not disclose the vulnerability publicly until we have had a chance to address it.
+
+## Verifying a release
+
+Each release publishes, next to the provider archives, a `SHA256SUMS` file, a detached GPG signature of it (`SHA256SUMS.sig`), and a CycloneDX SBOM per archive. Archives from `v1.4.0` onwards also carry signed SLSA build provenance.
+
+```sh
+# 1. Checksums: verify the GPG signature of SHA256SUMS, then the archive against it
+gpg --verify terraform-provider-openprovider_<version>_SHA256SUMS.sig terraform-provider-openprovider_<version>_SHA256SUMS
+sha256sum --check --ignore-missing terraform-provider-openprovider_<version>_SHA256SUMS
+
+# 2. Provenance: the archive was built by this repository's release workflow
+gh attestation verify terraform-provider-openprovider_<version>_<os>_<arch>.zip \
+  --repo charpand/terraform-provider-openprovider
+```
+
+Terraform itself verifies the GPG signature when it installs the provider from the registry.
