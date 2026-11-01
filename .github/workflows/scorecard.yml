@@ -20,7 +20,10 @@ jobs:
   analysis:
     name: scorecard
     timeout-minutes: 15
-    runs-on: ubuntu-26.04-arm
+    # x86 on purpose: ossf/scorecard-action runs a Docker image that is only
+    # published for linux/amd64 ("exec format error" on the ARM runners that
+    # the other workflows use).
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write # upload SARIF
