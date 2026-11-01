@@ -6,7 +6,10 @@ We take the security of our software seriously. If you find a security vulnerabi
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them by emailing us at [security@charpand.nl](mailto:security@charpand.nl).
+Instead, please report them privately, in either of two ways:
+
+- on GitHub, through [Report a vulnerability](https://github.com/charpand/terraform-provider-openprovider/security/advisories/new) (a private security advisory that only the maintainers can see), or
+- by emailing us at [security@charpand.nl](mailto:security@charpand.nl).
 
 We will acknowledge your report within 48 hours and provide a timeline for a fix, if applicable. We request that you do not disclose the vulnerability publicly until we have had a chance to address it.
 
