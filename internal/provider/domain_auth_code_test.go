@@ -30,6 +30,7 @@ import (
 type authCodeAPI struct {
 	*httptest.Server
 	unlisted bool
+	deleted  bool
 	code     string
 	requests []string
 }
@@ -43,7 +44,11 @@ func newAuthCodeAPI(t *testing.T) *authCodeAPI {
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains" && api.unlisted:
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[],"total":0}}`)
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
-			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[{"id":1,"status":"ACT",`+
+			status := "ACT"
+			if api.deleted {
+				status = "DEL"
+			}
+			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[{"id":1,"status":"`+status+`",`+
 				`"domain":{"name":"example","extension":"com"}}],"total":1}}`)
 		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains/1/authcode":
 			api.requests = append(api.requests, "get "+r.URL.RawQuery)
@@ -147,15 +152,18 @@ func TestDomainAuthCodeOpenFails(t *testing.T) {
 
 	for name, tc := range map[string]struct {
 		unlisted  bool
+		deleted   bool
 		code      string
 		wantError string
 	}{
 		"not held":   {unlisted: true, code: "secret", wantError: "Domain Not Found"},
+		"deleted":    {deleted: true, code: "secret", wantError: "Domain Not Found"},
 		"empty code": {code: "", wantError: "Error Reading Auth Code"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			api := newAuthCodeAPI(t)
 			api.unlisted = tc.unlisted
+			api.deleted = tc.deleted
 			api.code = tc.code
 			defer api.Close()
 
