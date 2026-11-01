@@ -737,12 +737,8 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Map autorenew and ns_group from response. The order response can omit
 	// them, and then the state keeps the planned values that are known.
-	switch {
-	case domain.Autorenew == "on":
-		plan.Autorenew = types.BoolValue(true)
-	case domain.Autorenew == "" && !plan.Autorenew.IsUnknown() && !plan.Autorenew.IsNull():
-	default:
-		plan.Autorenew = types.BoolValue(false)
+	if domain.Autorenew != "" || plan.Autorenew.IsUnknown() || plan.Autorenew.IsNull() {
+		plan.Autorenew = types.BoolValue(domain.Autorenew == "on")
 	}
 	if domain.NSGroup != "" {
 		plan.NSGroup = types.StringValue(domain.NSGroup)
