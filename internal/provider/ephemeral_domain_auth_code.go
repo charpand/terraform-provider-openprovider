@@ -158,8 +158,9 @@ func (v authCodeTypeValidator) ValidateString(ctx context.Context, req validator
 	}
 }
 
-// heldDomainID gives the id of a domain that the account holds. When the
-// account does not hold the domain, or the lookup fails, it adds an error to
+// heldDomainID gives the id of a domain that the account holds. A domain that
+// the account shows only as deleted is not held. When the account does not
+// hold the domain, or the lookup fails, it adds an error to
 // `diags` and gives false.
 func heldDomainID(c *client.Client, name string, diags *diag.Diagnostics) (int, bool) {
 	domain, err := getDomainByName(c, name)
@@ -170,7 +171,7 @@ func heldDomainID(c *client.Client, name string, diags *diag.Diagnostics) (int, 
 		)
 		return 0, false
 	}
-	if domain == nil {
+	if domain == nil || domain.Status == domainStatusDeleted {
 		diags.AddError(
 			"Domain Not Found",
 			fmt.Sprintf("The account does not hold domain %s.", name),
