@@ -1,13 +1,13 @@
-# Default reviewer for everything
-*  @dsdeboer @dsdeboerbot
+# Default reviewers for everything: the maintainers team (dsdeboer and dsdeboerbot)
+*  @charpand/maintainers
 
 # Paths that decide what is built, signed and released. Listed explicitly so
 # that they keep a required owner if the default rule above is ever loosened.
-/.github/             @dsdeboer @dsdeboerbot
-/.goreleaser.yaml     @dsdeboer @dsdeboerbot
-/go.mod               @dsdeboer @dsdeboerbot
-/go.sum               @dsdeboer @dsdeboerbot
-/mise.toml            @dsdeboer @dsdeboerbot
-/mise.lock            @dsdeboer @dsdeboerbot
-/scripts/             @dsdeboer @dsdeboerbot
-/SECURITY.md          @dsdeboer @dsdeboerbot
+/.github/             @charpand/maintainers
+/.goreleaser.yaml     @charpand/maintainers
+/go.mod               @charpand/maintainers
+/go.sum               @charpand/maintainers
+/mise.toml            @charpand/maintainers
+/mise.lock            @charpand/maintainers
+/scripts/             @charpand/maintainers
+/SECURITY.md          @charpand/maintainers
