@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Releases attest signed SLSA build provenance for every archive (`gh attestation verify`); `SECURITY.md` documents how to verify a release
 
 ### Changed
+- Renovate requests a review from the `maintainers` team instead of the single user `dsdeboer`
 - CI: `jdx/mise-action` no longer caches, so a cache written by an earlier run cannot influence a release build
 - CI: the release job runs in the `release` environment
 - `domains.UpdateDomainRequest.DnssecKeys` and `domains.TransferDomainRequest.DnssecKeys` are now `*[]DnssecKey`
