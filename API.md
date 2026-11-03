@@ -534,7 +534,7 @@ product, err := ssl.GetProduct(c, 1)
 
 ## Contacts
 
-A contact is a login of the control panel (RCP) and the API. It is a different object from a customer: it has an integer id and lives under `/v1beta/contacts`.
+A contact is a login of the control panel (RCP) and the API. It is a different object from a customer: it has an integer id and lives under `/v1/contacts`.
 
 ### Get Contact
 

@@ -12,9 +12,9 @@ import (
 
 // ListRecords lists all DNS records for a zone.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/dns/zones/{name}/records
+// Endpoint: GET https://api.openprovider.eu/v1/dns/zones/{name}/records
 func ListRecords(c *client.Client, zoneName string) ([]Record, error) {
-	path := fmt.Sprintf("/v1beta/dns/zones/%s/records", zoneName)
+	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func ListRecords(c *client.Client, zoneName string) ([]Record, error) {
 
 // GetRecord retrieves a specific DNS record from a zone.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/dns/zones/{name}/records
+// Endpoint: GET https://api.openprovider.eu/v1/dns/zones/{name}/records
 // Note: The API doesn't support getting a single record directly,
 // so we retrieve all records and filter by name and type.
 func GetRecord(c *client.Client, zoneName string, recordName string, recordType string) (*Record, error) {
@@ -60,14 +60,14 @@ func GetRecord(c *client.Client, zoneName string, recordName string, recordType 
 
 // CreateRecord creates a new DNS record in a zone.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/dns/zones/{name}/records
+// Endpoint: POST https://api.openprovider.eu/v1/dns/zones/{name}/records
 func CreateRecord(c *client.Client, zoneName string, req *CreateRecordRequest) (*Record, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/dns/zones/%s/records", zoneName)
+	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func CreateRecord(c *client.Client, zoneName string, req *CreateRecordRequest) (
 
 // UpdateRecord updates an existing DNS record in a zone.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/dns/zones/{name}/records
+// Endpoint: PUT https://api.openprovider.eu/v1/dns/zones/{name}/records
 // Note: The API uses PUT to update records by filtering on name and type.
 func UpdateRecord(c *client.Client, zoneName string, _ string, _ string, req *UpdateRecordRequest) (*Record, error) {
 	body, err := json.Marshal(req)
@@ -102,7 +102,7 @@ func UpdateRecord(c *client.Client, zoneName string, _ string, _ string, req *Up
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/dns/zones/%s/records", zoneName)
+	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
 	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func UpdateRecord(c *client.Client, zoneName string, _ string, _ string, req *Up
 
 // DeleteRecord deletes a DNS record from a zone.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/dns/zones/{name}/records
+// Endpoint: DELETE https://api.openprovider.eu/v1/dns/zones/{name}/records
 // Note: The API uses DELETE with body to specify the record to remove.
 func DeleteRecord(c *client.Client, zoneName string, recordName string, recordType string, value string) error {
 	req := DeleteRecordRequest{
@@ -143,7 +143,7 @@ func DeleteRecord(c *client.Client, zoneName string, recordName string, recordTy
 		return err
 	}
 
-	path := fmt.Sprintf("/v1beta/dns/zones/%s/records", zoneName)
+	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
 	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return err

@@ -11,9 +11,9 @@ import (
 
 // ListZones lists all DNS zones.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/dns/zones
+// Endpoint: GET https://api.openprovider.eu/v1/dns/zones
 func ListZones(c *client.Client) ([]Zone, error) {
-	path := "/v1beta/dns/zones"
+	path := "/v1/dns/zones"
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -39,9 +39,9 @@ func ListZones(c *client.Client) ([]Zone, error) {
 
 // GetZone retrieves a specific DNS zone by name.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/dns/zones/{name}
+// Endpoint: GET https://api.openprovider.eu/v1/dns/zones/{name}
 func GetZone(c *client.Client, zoneName string) (*Zone, error) {
-	path := fmt.Sprintf("/v1beta/dns/zones/%s", zoneName)
+	path := fmt.Sprintf("/v1/dns/zones/%s", zoneName)
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

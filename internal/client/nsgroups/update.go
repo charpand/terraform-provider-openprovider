@@ -24,14 +24,14 @@ type UpdateNSGroupResponse struct {
 
 // Update updates an existing nameserver group by name via the Openprovider API.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/dns/nameservers/groups/{ns_group}
+// Endpoint: PUT https://api.openprovider.eu/v1/dns/nameservers/groups/{ns_group}
 func Update(c *client.Client, name string, req *UpdateNSGroupRequest) (*NSGroup, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/dns/nameservers/groups/%s", name)
+	path := fmt.Sprintf("/v1/dns/nameservers/groups/%s", name)
 	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

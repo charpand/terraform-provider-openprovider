@@ -11,9 +11,9 @@ import (
 
 // ListProducts lists all available SSL products.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/ssl/products
+// Endpoint: GET https://api.openprovider.eu/v1/ssl/products
 func ListProducts(c *client.Client) ([]SSLProduct, error) {
-	path := "/v1beta/ssl/products"
+	path := "/v1/ssl/products"
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -39,9 +39,9 @@ func ListProducts(c *client.Client) ([]SSLProduct, error) {
 
 // GetProduct retrieves a specific SSL product by ID.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/ssl/products/{id}
+// Endpoint: GET https://api.openprovider.eu/v1/ssl/products/{id}
 func GetProduct(c *client.Client, productID int) (*SSLProduct, error) {
-	path := fmt.Sprintf("/v1beta/ssl/products/%d", productID)
+	path := fmt.Sprintf("/v1/ssl/products/%d", productID)
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

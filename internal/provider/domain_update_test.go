@@ -23,9 +23,9 @@ func listingOf(t *testing.T, name, extension string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + domain + `],"total":1}}`))
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/1":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/domains/1":
 			_, _ = w.Write([]byte(`{"code":0,"data":` + domain + `}`))
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)

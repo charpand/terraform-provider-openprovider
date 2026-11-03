@@ -12,9 +12,9 @@ import (
 
 // ListOrders lists all SSL orders.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/ssl/orders
+// Endpoint: GET https://api.openprovider.eu/v1/ssl/orders
 func ListOrders(c *client.Client) ([]SSLOrder, error) {
-	path := "/v1beta/ssl/orders"
+	path := "/v1/ssl/orders"
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -40,9 +40,9 @@ func ListOrders(c *client.Client) ([]SSLOrder, error) {
 
 // GetOrder retrieves a specific SSL order by ID.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/ssl/orders/{id}
+// Endpoint: GET https://api.openprovider.eu/v1/ssl/orders/{id}
 func GetOrder(c *client.Client, orderID int) (*SSLOrder, error) {
-	path := fmt.Sprintf("/v1beta/ssl/orders/%d", orderID)
+	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
 	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -68,14 +68,14 @@ func GetOrder(c *client.Client, orderID int) (*SSLOrder, error) {
 
 // CreateOrder creates a new SSL order.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/ssl/orders
+// Endpoint: POST https://api.openprovider.eu/v1/ssl/orders
 func CreateOrder(c *client.Client, req *CreateSSLOrderRequest) (*SSLOrder, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := "/v1beta/ssl/orders"
+	path := "/v1/ssl/orders"
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -102,14 +102,14 @@ func CreateOrder(c *client.Client, req *CreateSSLOrderRequest) (*SSLOrder, error
 
 // UpdateOrder updates an existing SSL order (e.g., autorenew settings).
 //
-// Endpoint: PATCH https://api.openprovider.eu/v1beta/ssl/orders/{id}
+// Endpoint: PATCH https://api.openprovider.eu/v1/ssl/orders/{id}
 func UpdateOrder(c *client.Client, orderID int, req *UpdateSSLOrderRequest) (*SSLOrder, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/ssl/orders/%d", orderID)
+	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
 	httpReq, err := http.NewRequest("PATCH", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -136,14 +136,14 @@ func UpdateOrder(c *client.Client, orderID int, req *UpdateSSLOrderRequest) (*SS
 
 // RenewOrder renews an existing SSL order.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/ssl/orders/{id}/renew
+// Endpoint: POST https://api.openprovider.eu/v1/ssl/orders/{id}/renew
 func RenewOrder(c *client.Client, orderID int, req *RenewSSLOrderRequest) (*SSLOrder, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/ssl/orders/%d/renew", orderID)
+	path := fmt.Sprintf("/v1/ssl/orders/%d/renew", orderID)
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -170,14 +170,14 @@ func RenewOrder(c *client.Client, orderID int, req *RenewSSLOrderRequest) (*SSLO
 
 // ReissueOrder reissues an existing SSL order.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/ssl/orders/{id}/reissue
+// Endpoint: POST https://api.openprovider.eu/v1/ssl/orders/{id}/reissue
 func ReissueOrder(c *client.Client, orderID int, req *ReissueSSLOrderRequest) (*SSLOrder, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/ssl/orders/%d/reissue", orderID)
+	path := fmt.Sprintf("/v1/ssl/orders/%d/reissue", orderID)
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -204,9 +204,9 @@ func ReissueOrder(c *client.Client, orderID int, req *ReissueSSLOrderRequest) (*
 
 // CancelOrder cancels an SSL order.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/ssl/orders/{id}
+// Endpoint: DELETE https://api.openprovider.eu/v1/ssl/orders/{id}
 func CancelOrder(c *client.Client, orderID int) error {
-	path := fmt.Sprintf("/v1beta/ssl/orders/%d", orderID)
+	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
 	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return err

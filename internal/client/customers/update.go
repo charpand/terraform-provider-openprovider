@@ -31,14 +31,14 @@ type UpdateCustomerResponse struct {
 
 // Update updates an existing customer via the Openprovider API.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/customers/{handle}
+// Endpoint: PUT https://api.openprovider.eu/v1/customers/{handle}
 func Update(c *client.Client, handle string, req *UpdateCustomerRequest) error {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
 
-	path := fmt.Sprintf("/v1beta/customers/%s", handle)
+	path := fmt.Sprintf("/v1/customers/%s", handle)
 	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return err

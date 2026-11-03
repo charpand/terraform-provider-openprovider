@@ -81,9 +81,9 @@ func do(c *client.Client, req *http.Request) (json.RawMessage, error) {
 
 // Get retrieves one glue record by host name.
 //
-// Endpoint: GET /v1beta/dns/nameservers/{name}
+// Endpoint: GET /v1/dns/nameservers/{name}
 func Get(c *client.Client, name string) (*Nameserver, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1beta/dns/nameservers/%s", c.BaseURL, name), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
 	if err != nil {
 		return nil, err
 	}

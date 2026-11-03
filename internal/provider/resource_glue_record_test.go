@@ -55,7 +55,7 @@ func TestGlueRecordCreatePublishesTheAddresses(t *testing.T) {
 	ctx := context.Background()
 	var gotBody string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/dns/nameservers" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/dns/nameservers" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -159,7 +159,7 @@ func TestGlueRecordReadRemovesAMissingRecord(t *testing.T) {
 func TestGlueRecordReadRefreshesTheAddresses(t *testing.T) {
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/dns/nameservers/ns1.example.com" {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/dns/nameservers/ns1.example.com" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -221,7 +221,7 @@ func TestGlueRecordDeleteWithdrawsTheRecord(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("delete: %v", resp.Diagnostics)
 	}
-	if deletedPath != "/v1beta/dns/nameservers/ns1.example.com" {
+	if deletedPath != "/v1/dns/nameservers/ns1.example.com" {
 		t.Errorf("expected a delete for ns1.example.com, got %q", deletedPath)
 	}
 }

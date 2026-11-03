@@ -27,10 +27,10 @@ type GetCustomerResponse struct {
 
 // Get retrieves a customer by handle from the Openprovider API.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/customers/{handle}
+// Endpoint: GET https://api.openprovider.eu/v1/customers/{handle}
 // Returns (nil, nil) if the customer is not found (404).
 func Get(c *client.Client, handle string) (*Customer, error) {
-	path := fmt.Sprintf("/v1beta/customers/%s", handle)
+	path := fmt.Sprintf("/v1/customers/%s", handle)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

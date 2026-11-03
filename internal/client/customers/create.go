@@ -31,14 +31,14 @@ type CreateCustomerResponse struct {
 
 // Create creates a new customer via the Openprovider API.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/customers
+// Endpoint: POST https://api.openprovider.eu/v1/customers
 func Create(c *client.Client, req *CreateCustomerRequest) (string, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return "", err
 	}
 
-	path := "/v1beta/customers"
+	path := "/v1/customers"
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return "", err

@@ -22,7 +22,7 @@ type rcpAllowList struct {
 // list replaces the whole whitelist, and an empty list switches the
 // whitelist off. A nil list is sent as an empty one.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/contacts/{id}
+// Endpoint: PUT https://api.openprovider.eu/v1/contacts/{id}
 func SetRCPAllowList(c *client.Client, id int, allow []string) error {
 	if allow == nil {
 		allow = []string{}
@@ -35,7 +35,7 @@ func SetRCPAllowList(c *client.Client, id int, allow []string) error {
 		return err
 	}
 
-	path := fmt.Sprintf("/v1beta/contacts/%d", id)
+	path := fmt.Sprintf("/v1/contacts/%d", id)
 	req, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return err

@@ -18,9 +18,9 @@ type GetContactResponse struct {
 // (nil, nil) for a contact that does not exist, so a caller can tell "gone"
 // apart from a failed request.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/contacts/{id}
+// Endpoint: GET https://api.openprovider.eu/v1/contacts/{id}
 func Get(c *client.Client, id int) (*Contact, error) {
-	path := fmt.Sprintf("/v1beta/contacts/%d", id)
+	path := fmt.Sprintf("/v1/contacts/%d", id)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

@@ -17,9 +17,9 @@ type GetDomainResponse struct {
 
 // Get retrieves a single domain by ID from the Openprovider API.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/domains/{id}
+// Endpoint: GET https://api.openprovider.eu/v1/domains/{id}
 func Get(c *client.Client, id int) (*Domain, error) {
-	path := fmt.Sprintf("/v1beta/domains/%d", id)
+	path := fmt.Sprintf("/v1/domains/%d", id)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

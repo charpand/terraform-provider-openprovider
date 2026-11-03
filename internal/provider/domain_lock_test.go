@@ -38,19 +38,19 @@ func newLockAPI(t *testing.T, locked bool) *lockAPI {
 	api.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains/prices":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains/prices":
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"is_premium":false,"price":{`+
 				`"product":{"currency":"EUR","price":15},`+
 				`"reseller":{"currency":"EUR","price":15}}}}`)
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains" && api.unlisted:
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains" && api.unlisted:
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"id":1,"status":"ACT"}}`)
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":` + domain() + `}`))
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains" && api.unlisted:
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains" && api.unlisted:
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[],"total":0}}`)
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + domain() + `],"total":1}}`))
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/1":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/domains/1":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Errorf("read update: %v", err)

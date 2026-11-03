@@ -21,9 +21,9 @@ func readAPI(t *testing.T, listing map[string]any, checkStatus string) *httptest
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			_ = json.NewEncoder(w).Encode(listing)
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains/check":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains/check":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"data": map[string]any{

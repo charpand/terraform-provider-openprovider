@@ -24,14 +24,14 @@ type CreateNSGroupResponse struct {
 
 // Create creates a new nameserver group via the Openprovider API.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/dns/nameservers/groups
+// Endpoint: POST https://api.openprovider.eu/v1/dns/nameservers/groups
 func Create(c *client.Client, req *CreateNSGroupRequest) (*NSGroup, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := "/v1beta/dns/nameservers/groups"
+	path := "/v1/dns/nameservers/groups"
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

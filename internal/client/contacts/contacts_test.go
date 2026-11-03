@@ -16,7 +16,7 @@ func testClient(server *httptest.Server) *client.Client {
 
 func TestGet(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/contacts/42" {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/contacts/42" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		_, _ = w.Write([]byte(`{"code":0,"data":{"id":42,"username":"me","rcp_client_ip_list":{"allow":["192.0.2.1","2001:db8::/32"],"deny":["198.51.100.1"]}}}`))
@@ -84,7 +84,7 @@ func TestSetRCPAllowListSendsOnlyAllow(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				body, _ := io.ReadAll(r.Body)
-				if r.Method != http.MethodPut || r.URL.Path != "/v1beta/contacts/7" {
+				if r.Method != http.MethodPut || r.URL.Path != "/v1/contacts/7" {
 					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 				}
 				if string(body) != tc.want {
@@ -116,7 +116,7 @@ func TestSetRCPAllowListError(t *testing.T) {
 func TestCreate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/contacts" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/contacts" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		want := `{"username":"ci","password":"s3cret","email":"ci@example.com","is_active":true,"name":{"first_name":"C","last_name":"I"}}`
@@ -151,7 +151,7 @@ func TestCreateWithoutIDFails(t *testing.T) {
 func TestUpdateSendsOnlySetFields(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		if r.Method != http.MethodPut || r.URL.Path != "/v1beta/contacts/5" {
+		if r.Method != http.MethodPut || r.URL.Path != "/v1/contacts/5" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		if string(body) != `{"email":"new@example.com"}` {
@@ -169,7 +169,7 @@ func TestUpdateSendsOnlySetFields(t *testing.T) {
 func TestDelete(t *testing.T) {
 	status := http.StatusOK
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete || r.URL.Path != "/v1beta/contacts/5" {
+		if r.Method != http.MethodDelete || r.URL.Path != "/v1/contacts/5" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		w.WriteHeader(status)

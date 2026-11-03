@@ -7,7 +7,7 @@ description: |-
 
 # openprovider_contact (Resource)
 
-Manages a contact, a login of the control panel (RCP) and the API, through `/v1beta/contacts`. A contact has a numeric id and is a different object from a customer (`openprovider_customer`).
+Manages a contact, a login of the control panel (RCP) and the API, through `/v1/contacts`. A contact has a numeric id and is a different object from a customer (`openprovider_customer`).
 
 A contact can be created by Terraform or imported. Every optional attribute is also computed: an attribute you leave out is not managed and keeps the value the contact has at OpenProvider, so you can import a contact and manage only part of it. The IP lists are not part of this resource; use `openprovider_rcp_ip_whitelist` for the control panel whitelist.
 
@@ -113,7 +113,7 @@ resource "openprovider_rcp_ip_whitelist" "ci" {
 - `is_active` (Boolean) Whether the contact is active.
 - `locale` (String) The language of the contact, for example `en_GB`.
 - `name` (Attributes) The name of the contact. (see [below for nested schema](#nestedatt--name))
-- `on_destroy` (String) What destroying this resource does at OpenProvider. `retain` (the default) only forgets the contact in state: it stays in the account, and a later `import` takes it back. `delete` deletes the contact through `DELETE /v1beta/contacts/{id}`. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.
+- `on_destroy` (String) What destroying this resource does at OpenProvider. `retain` (the default) only forgets the contact in state: it stays in the account, and a later `import` takes it back. `delete` deletes the contact through `DELETE /v1/contacts/{id}`. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.
 - `password` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) The password of a new contact. It is write-only: it is sent when the contact is created, and is never stored in the plan or state (this needs Terraform 1.11 or later). The API has no way to change it afterwards through this resource, so changing it has no effect. Required to create a contact, ignored for an imported one.
 - `phone` (Attributes) The phone number of the contact. (see [below for nested schema](#nestedatt--phone))
 - `role` (String) The role of the contact, for example `tech`; the contact you log in with has `admin`. Required to create a contact, as the API refuses it otherwise.

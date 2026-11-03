@@ -41,14 +41,14 @@ type CheckDomainsResponse struct {
 
 // Check asks whether domains are available to register.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/domains/check
+// Endpoint: POST https://api.openprovider.eu/v1/domains/check
 func Check(c *client.Client, domainsToCheck []CheckDomain) ([]CheckResult, error) {
 	body, err := json.Marshal(CheckDomainsRequest{Domains: domainsToCheck})
 	if err != nil {
 		return nil, err
 	}
 
-	path := "/v1beta/domains/check"
+	path := "/v1/domains/check"
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

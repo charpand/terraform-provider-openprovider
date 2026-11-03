@@ -46,7 +46,7 @@ type GetNSGroupResponse struct {
 
 // List retrieves a list of nameserver groups from the Openprovider API.
 func List(c *client.Client) ([]NSGroup, error) {
-	path := "/v1beta/dns/nameservers/groups"
+	path := "/v1/dns/nameservers/groups"
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func List(c *client.Client) ([]NSGroup, error) {
 // that no longer exists, so a caller can tell "gone" apart from a failed
 // request.
 func Get(c *client.Client, name string) (*NSGroup, error) {
-	path := fmt.Sprintf("/v1beta/dns/nameservers/groups/%s", name)
+	path := fmt.Sprintf("/v1/dns/nameservers/groups/%s", name)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

@@ -43,7 +43,7 @@ var listPageSize = 100
 // just the first page the API would otherwise hand back; a caller that wants
 // one specific page sets Limit and Offset itself and gets exactly that page.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/domains
+// Endpoint: GET https://api.openprovider.eu/v1/domains
 func ListWith(c *client.Client, opts ListOptions) ([]Domain, error) {
 	if opts.Limit > 0 {
 		page, _, err := listOnePage(c, opts)
@@ -85,7 +85,7 @@ func listOnePage(c *client.Client, opts ListOptions) ([]Domain, int, error) {
 		query.Set("is_deleted", strconv.FormatBool(*opts.IsDeleted))
 	}
 
-	path := "/v1beta/domains"
+	path := "/v1/domains"
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}

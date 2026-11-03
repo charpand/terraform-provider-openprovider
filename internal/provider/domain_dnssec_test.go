@@ -46,7 +46,7 @@ func TestDomainResourceCreateTransferWithNoKeysSendsAnEmptyList(t *testing.T) {
 				OnDestroy:       types.StringValue(onDestroyRetain),
 			})
 
-			if api.ordered != "/v1beta/domains/transfer" {
+			if api.ordered != "/v1/domains/transfer" {
 				t.Fatalf("order sent to %q, want the transfer", api.ordered)
 			}
 			if sent, ok := api.order["dnssec_keys"].([]any); !ok || len(sent) != 0 {
@@ -71,9 +71,9 @@ func TestDomainResourceUpdateWithNoKeysRemovesTheKeys(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"results":[` + domain + `],"total":1}}`))
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/1":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/domains/1":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Errorf("read update: %v", err)

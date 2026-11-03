@@ -19,9 +19,9 @@ type DeleteDomainResponse struct {
 
 // Delete deletes a domain by ID from the Openprovider API.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/domains/{id}
+// Endpoint: DELETE https://api.openprovider.eu/v1/domains/{id}
 func Delete(c *client.Client, id int) error {
-	path := fmt.Sprintf("/v1beta/domains/%d", id)
+	path := fmt.Sprintf("/v1/domains/%d", id)
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return err

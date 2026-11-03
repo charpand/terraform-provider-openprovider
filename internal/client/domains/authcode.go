@@ -40,9 +40,9 @@ type ResetAuthCodeRequest struct {
 // GetAuthCode retrieves the auth code of a domain by ID from the Openprovider
 // API. An empty `authCodeType` gives the `external` code.
 //
-// Endpoint: GET https://api.openprovider.eu/v1beta/domains/{id}/authcode
+// Endpoint: GET https://api.openprovider.eu/v1/domains/{id}/authcode
 func GetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, error) {
-	path := fmt.Sprintf("/v1beta/domains/%d/authcode", id)
+	path := fmt.Sprintf("/v1/domains/%d/authcode", id)
 	if authCodeType != "" {
 		path += "?" + url.Values{"auth_code_type": {authCodeType}}.Encode()
 	}
@@ -58,14 +58,14 @@ func GetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, erro
 // the Openprovider API, and returns the new code. The old code then no longer
 // transfers the domain. An empty `authCodeType` resets the `external` code.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/domains/{id}/authcode/reset
+// Endpoint: POST https://api.openprovider.eu/v1/domains/{id}/authcode/reset
 func ResetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, error) {
 	body, err := json.Marshal(&ResetAuthCodeRequest{ID: id, AuthCodeType: authCodeType})
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/domains/%d/authcode/reset", id)
+	path := fmt.Sprintf("/v1/domains/%d/authcode/reset", id)
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

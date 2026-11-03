@@ -1,8 +1,8 @@
 // Package contacts provides functionality for working with contacts, the
 // objects that carry a login to the control panel (RCP) and the API.
 //
-// A contact is not a customer: it lives under `/v1beta/contacts/{id}` with an
-// integer id, where a customer lives under `/v1beta/customers/{handle}`.
+// A contact is not a customer: it lives under `/v1/contacts/{id}` with an
+// integer id, where a customer lives under `/v1/customers/{handle}`.
 package contacts
 
 // ClientIPList is the access list a contact carries for the control panel.
