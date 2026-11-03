@@ -16,16 +16,17 @@ type CreateDomainRequest struct {
 		Name      string `json:"name"`
 		Extension string `json:"extension"`
 	} `json:"domain"`
-	OwnerHandle     string       `json:"owner_handle"`
-	AdminHandle     string       `json:"admin_handle,omitempty"`
-	TechHandle      string       `json:"tech_handle,omitempty"`
-	BillingHandle   string       `json:"billing_handle,omitempty"`
-	Period          int          `json:"period,omitempty"`
-	Autorenew       string       `json:"autorenew,omitempty"`
-	Nameservers     []Nameserver `json:"name_servers,omitempty"`
-	NSGroup         string       `json:"ns_group,omitempty"`
-	DnssecKeys      []DnssecKey  `json:"dnssec_keys,omitempty"`
-	IsDnssecEnabled *bool        `json:"is_dnssec_enabled,omitempty"`
+	OwnerHandle     string            `json:"owner_handle"`
+	AdminHandle     string            `json:"admin_handle,omitempty"`
+	TechHandle      string            `json:"tech_handle,omitempty"`
+	BillingHandle   string            `json:"billing_handle,omitempty"`
+	Period          int               `json:"period,omitempty"`
+	Autorenew       string            `json:"autorenew,omitempty"`
+	Nameservers     []Nameserver      `json:"name_servers,omitempty"`
+	NSGroup         string            `json:"ns_group,omitempty"`
+	DnssecKeys      []DnssecKey       `json:"dnssec_keys,omitempty"`
+	IsDnssecEnabled *bool             `json:"is_dnssec_enabled,omitempty"`
+	AdditionalData  map[string]string `json:"additional_data,omitempty"`
 }
 
 // CreateDomainResponse represents a response for creating a domain.

@@ -50,10 +50,11 @@ func heldDomainState(t *testing.T, r *DomainResource) tfsdk.State {
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
 	state := tfsdk.State{Schema: schemaResp.Schema}
 	diags := state.Set(ctx, DomainModel{
-		ID:          types.StringValue("example.com"),
-		Domain:      types.StringValue("example.com"),
-		OwnerHandle: types.StringValue("XX000000-NL"),
-		DnssecKeys:  types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		ID:             types.StringValue("example.com"),
+		Domain:         types.StringValue("example.com"),
+		OwnerHandle:    types.StringValue("XX000000-NL"),
+		DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		AdditionalData: types.MapNull(types.StringType),
 	})
 	if diags.HasError() {
 		t.Fatalf("setting state: %v", diags)
@@ -155,6 +156,7 @@ func TestDomainResourceReadKeepsTheDnssecOfATransferInFlight(t *testing.T) {
 				OwnerHandle:     types.StringValue("XX000000-NL"),
 				Status:          types.StringValue(domainStatusRequested),
 				DnssecKeys:      keys,
+				AdditionalData:  types.MapNull(types.StringType),
 				IsDnssecEnabled: types.BoolValue(true),
 			})
 			resp := &resource.ReadResponse{State: state}

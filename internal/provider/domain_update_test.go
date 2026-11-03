@@ -54,8 +54,9 @@ func stateOf(ctx context.Context, t *testing.T, r *DomainResource, m DomainModel
 }
 
 // TestDomainResourceUpdateKeepsOrderFields covers an update that follows an
-// import. The prior state then holds no `period`, `max_cost` or `currency`,
-// the API has no record of them, and the plan states all three. The applied
+// import. The prior state then holds no `period`, `max_cost`, `currency` or
+// `additional_data`, the API has no record of them, and the plan states all
+// four. The applied
 // state must carry the plan's values whether or not the update had a request
 // to send, or the framework rejects the result as inconsistent with the plan.
 func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
@@ -66,17 +67,21 @@ func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	prior := DomainModel{
-		ID:          types.StringValue("example.com"),
-		Domain:      types.StringValue("example.com"),
-		Status:      types.StringValue("ACT"),
-		Autorenew:   types.BoolValue(false),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		DnssecKeys:  noKeys,
+		ID:             types.StringValue("example.com"),
+		Domain:         types.StringValue("example.com"),
+		Status:         types.StringValue("ACT"),
+		Autorenew:      types.BoolValue(false),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
 	}
 	ordered := prior
 	ordered.Period = types.Int64Value(1)
 	ordered.MaxCost = types.Int64Value(1500)
 	ordered.Currency = types.StringValue("EUR")
+	ordered.AdditionalData = types.MapValueMust(types.StringType, map[string]attr.Value{
+		"dk_acceptance": types.StringValue("1"),
+	})
 
 	for name, autorenew := range map[string]bool{
 		"nothing to send": false,
@@ -99,9 +104,10 @@ func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
 				t.Fatalf("get: %v", diags)
 			}
 			for field, want := range map[string]struct{ got, want attr.Value }{
-				"period":   {got.Period, plan.Period},
-				"max_cost": {got.MaxCost, plan.MaxCost},
-				"currency": {got.Currency, plan.Currency},
+				"period":          {got.Period, plan.Period},
+				"max_cost":        {got.MaxCost, plan.MaxCost},
+				"currency":        {got.Currency, plan.Currency},
+				"additional_data": {got.AdditionalData, plan.AdditionalData},
 			} {
 				if !want.got.Equal(want.want) {
 					t.Errorf("%s: got %v, want %v", field, want.got, want.want)
@@ -127,12 +133,13 @@ func TestDomainResourceUpdateResolvesAnUnknownPeriod(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	prior := DomainModel{
-		ID:          types.StringValue("example.com"),
-		Domain:      types.StringValue("example.com"),
-		Status:      types.StringValue("ACT"),
-		Autorenew:   types.BoolValue(false),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		DnssecKeys:  noKeys,
+		ID:             types.StringValue("example.com"),
+		Domain:         types.StringValue("example.com"),
+		Status:         types.StringValue("ACT"),
+		Autorenew:      types.BoolValue(false),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
 	}
 	plan := prior
 	plan.Period = types.Int64Unknown()
@@ -174,12 +181,13 @@ func TestDomainResourceUpdateKeepsOnDestroy(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	prior := DomainModel{
-		ID:          types.StringValue("example.com"),
-		Domain:      types.StringValue("example.com"),
-		Status:      types.StringValue("ACT"),
-		Autorenew:   types.BoolValue(false),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		DnssecKeys:  noKeys,
+		ID:             types.StringValue("example.com"),
+		Domain:         types.StringValue("example.com"),
+		Status:         types.StringValue("ACT"),
+		Autorenew:      types.BoolValue(false),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
 	}
 	plan := prior
 	plan.OnDestroy = types.StringValue(onDestroyRetain)

@@ -105,16 +105,17 @@ func TestDomainResourceCreateSetsTheLock(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	base := DomainModel{
-		ID:          types.StringUnknown(),
-		Status:      types.StringUnknown(),
-		Domain:      types.StringValue("example.com"),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		Autorenew:   types.BoolValue(false),
-		DnssecKeys:  noKeys,
-		Period:      types.Int64Value(1),
-		MaxCost:     types.Int64Value(10000),
-		Currency:    types.StringValue("EUR"),
-		OnDestroy:   types.StringValue(onDestroyRetain),
+		ID:             types.StringUnknown(),
+		Status:         types.StringUnknown(),
+		Domain:         types.StringValue("example.com"),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		Autorenew:      types.BoolValue(false),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
+		Period:         types.Int64Value(1),
+		MaxCost:        types.Int64Value(10000),
+		Currency:       types.StringValue("EUR"),
+		OnDestroy:      types.StringValue(onDestroyRetain),
 	}
 
 	for name, tc := range map[string]struct {
@@ -185,13 +186,14 @@ func TestDomainResourceUpdateSetsTheLock(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	base := DomainModel{
-		ID:          types.StringValue("example.com"),
-		Domain:      types.StringValue("example.com"),
-		Status:      types.StringValue("ACT"),
-		Autorenew:   types.BoolValue(false),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		DnssecKeys:  noKeys,
-		OnDestroy:   types.StringValue(onDestroyRetain),
+		ID:             types.StringValue("example.com"),
+		Domain:         types.StringValue("example.com"),
+		Status:         types.StringValue("ACT"),
+		Autorenew:      types.BoolValue(false),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
+		OnDestroy:      types.StringValue(onDestroyRetain),
 	}
 
 	for name, tc := range map[string]struct {

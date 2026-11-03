@@ -530,6 +530,11 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"additional_data": schema.MapAttribute{
+				MarkdownDescription: "Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = \"1\" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider, and the provider does not read it back.",
+				ElementType:         types.StringType,
+				Optional:            true,
+			},
 			"expiration_date": schema.StringAttribute{
 				MarkdownDescription: "The domain expiration date.",
 				Computed:            true,
@@ -654,6 +659,11 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			transferReq.IsDnssecEnabled = &enabled
 		}
 
+		transferReq.AdditionalData = convertAdditionalDataToAPI(ctx, plan.AdditionalData, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
 		domain, err = domains.Transfer(r.client, transferReq)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -715,6 +725,11 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		if !plan.IsDnssecEnabled.IsNull() {
 			enabled := plan.IsDnssecEnabled.ValueBool()
 			createReq.IsDnssecEnabled = &enabled
+		}
+
+		createReq.AdditionalData = convertAdditionalDataToAPI(ctx, plan.AdditionalData, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
 		}
 
 		// Create the domain
@@ -1162,6 +1177,9 @@ func (r *DomainResource) refreshAfterUpdate(ctx context.Context, plan, state Dom
 	if final.DnssecKeys.IsNull() && isEmptyDnssecKeys(plan.DnssecKeys) {
 		final.DnssecKeys = plan.DnssecKeys
 	}
+	// The API does not give back `additional_data`, so the value is the one
+	// of the plan.
+	final.AdditionalData = plan.AdditionalData
 	resp.Diagnostics.Append(resp.State.Set(ctx, &final)...)
 }
 
@@ -1359,4 +1377,15 @@ func findDomainByName(c *client.Client, opts domains.ListOptions) (*domains.Doma
 	}
 
 	return deleted, nil
+}
+
+// convertAdditionalDataToAPI gives the `additional_data` of an order, or nil
+// for a null map, which sends no `additional_data`.
+func convertAdditionalDataToAPI(ctx context.Context, data types.Map, diags *diag.Diagnostics) map[string]string {
+	if data.IsNull() || data.IsUnknown() {
+		return nil
+	}
+	var out map[string]string
+	diags.Append(data.ElementsAs(ctx, &out, false)...)
+	return out
 }

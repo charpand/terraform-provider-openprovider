@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -107,13 +108,14 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 
 	noKeys := types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes})
 	base := DomainModel{
-		Domain:      types.StringValue("example.com"),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		Autorenew:   types.BoolValue(false),
-		DnssecKeys:  noKeys,
-		MaxCost:     types.Int64Value(10000),
-		Currency:    types.StringValue("EUR"),
-		OnDestroy:   types.StringValue(onDestroyRetain),
+		Domain:         types.StringValue("example.com"),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		Autorenew:      types.BoolValue(false),
+		DnssecKeys:     noKeys,
+		AdditionalData: types.MapNull(types.StringType),
+		MaxCost:        types.Int64Value(10000),
+		Currency:       types.StringValue("EUR"),
+		OnDestroy:      types.StringValue(onDestroyRetain),
 	}
 
 	for name, tc := range map[string]struct {
@@ -221,9 +223,10 @@ func TestPeriodRejectsBelowOne(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			state := stateOf(ctx, t, r, DomainModel{
-				Period:     tc.in,
-				AuthCode:   tc.authCode,
-				DnssecKeys: types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+				Period:         tc.in,
+				AuthCode:       tc.authCode,
+				DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+				AdditionalData: types.MapNull(types.StringType),
 			})
 			req := validator.Int64Request{
 				Path:        path.Root("period"),
@@ -277,6 +280,7 @@ func TestDomainResourceCreateTransfersTheDnssecKeys(t *testing.T) {
 		Period:          types.Int64Unknown(),
 		Status:          types.StringUnknown(),
 		DnssecKeys:      keys,
+		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolValue(true),
 		OnDestroy:       types.StringValue(onDestroyRetain),
 	})
@@ -323,6 +327,7 @@ func TestDomainResourceCreateTransferWithoutDnssecSendsNone(t *testing.T) {
 		Period:          types.Int64Unknown(),
 		Status:          types.StringUnknown(),
 		DnssecKeys:      types.ListUnknown(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolUnknown(),
 		OnDestroy:       types.StringValue(onDestroyRetain),
 	})
@@ -361,6 +366,7 @@ func TestDomainResourceCreateIgnoresADeletedRecord(t *testing.T) {
 		Period:          types.Int64Unknown(),
 		Status:          types.StringUnknown(),
 		DnssecKeys:      keys,
+		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolValue(true),
 		OnDestroy:       types.StringValue(onDestroyRetain),
 	})
@@ -386,16 +392,17 @@ func TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits(t *testing.T) {
 	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
 
 	got := createDomain(ctx, t, r, DomainModel{
-		ID:          types.StringUnknown(),
-		Domain:      types.StringValue("example.com"),
-		OwnerHandle: types.StringValue("XX000001-NL"),
-		AuthCode:    types.StringValue("secret"),
-		Autorenew:   types.BoolValue(true),
-		NSGroup:     types.StringValue("dns-openprovider"),
-		Period:      types.Int64Unknown(),
-		Status:      types.StringUnknown(),
-		DnssecKeys:  types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
-		OnDestroy:   types.StringValue(onDestroyRetain),
+		ID:             types.StringUnknown(),
+		Domain:         types.StringValue("example.com"),
+		OwnerHandle:    types.StringValue("XX000001-NL"),
+		AuthCode:       types.StringValue("secret"),
+		Autorenew:      types.BoolValue(true),
+		NSGroup:        types.StringValue("dns-openprovider"),
+		Period:         types.Int64Unknown(),
+		Status:         types.StringUnknown(),
+		DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		AdditionalData: types.MapNull(types.StringType),
+		OnDestroy:      types.StringValue(onDestroyRetain),
 	})
 
 	if !got.Autorenew.Equal(types.BoolValue(true)) {
@@ -406,5 +413,77 @@ func TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits(t *testing.T) {
 	}
 	if got.Status.ValueString() != domainStatusRequested {
 		t.Errorf("status: got %v, want the %q of the order", got.Status, domainStatusRequested)
+	}
+}
+
+// TestDomainResourceCreateSendsTheAdditionalData covers the registration and
+// the transfer of a domain with and without `additional_data`. The order
+// sends the map as given, or no `additional_data` for a null map, and the
+// state keeps the planned value, because the API does not give it back.
+func TestDomainResourceCreateSendsTheAdditionalData(t *testing.T) {
+	ctx := context.Background()
+	acceptance := types.MapValueMust(types.StringType, map[string]attr.Value{
+		"dk_acceptance": types.StringValue("1"),
+	})
+
+	for name, tc := range map[string]struct {
+		authCode types.String
+		period   types.Int64
+		data     types.Map
+		wantPath string
+		wantSent any
+	}{
+		"registration": {
+			authCode: types.StringNull(), period: types.Int64Value(1), data: acceptance,
+			wantPath: "/v1/domains", wantSent: map[string]any{"dk_acceptance": "1"},
+		},
+		"transfer": {
+			authCode: types.StringValue("secret"), period: types.Int64Unknown(), data: acceptance,
+			wantPath: "/v1/domains/transfer", wantSent: map[string]any{"dk_acceptance": "1"},
+		},
+		"registration without data": {
+			authCode: types.StringNull(), period: types.Int64Value(1), data: types.MapNull(types.StringType),
+			wantPath: "/v1/domains",
+		},
+		"transfer without data": {
+			authCode: types.StringValue("secret"), period: types.Int64Unknown(), data: types.MapNull(types.StringType),
+			wantPath: "/v1/domains/transfer",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			api := newOrderAPI(t, "example", "dk", domainStatusActive)
+			defer api.Close()
+			r := &DomainResource{client: client.NewClient(client.Config{BaseURL: api.URL, Token: "test"})}
+
+			got := createDomain(ctx, t, r, DomainModel{
+				ID:             types.StringUnknown(),
+				Domain:         types.StringValue("example.dk"),
+				OwnerHandle:    types.StringValue("XX000001-NL"),
+				AuthCode:       tc.authCode,
+				Autorenew:      types.BoolValue(false),
+				Period:         tc.period,
+				Status:         types.StringUnknown(),
+				DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+				AdditionalData: tc.data,
+				MaxCost:        types.Int64Value(10000),
+				Currency:       types.StringValue("EUR"),
+				OnDestroy:      types.StringValue(onDestroyRetain),
+			})
+
+			if api.ordered != tc.wantPath {
+				t.Fatalf("order sent to %q, want %q", api.ordered, tc.wantPath)
+			}
+			sent, ok := api.order["additional_data"]
+			if tc.wantSent == nil {
+				if ok {
+					t.Errorf("the order should not send additional_data, sent %v", sent)
+				}
+			} else if fmt.Sprint(sent) != fmt.Sprint(tc.wantSent) {
+				t.Errorf("additional_data sent: got %v, want %v", sent, tc.wantSent)
+			}
+			if !got.AdditionalData.Equal(tc.data) {
+				t.Errorf("additional_data: got %v, want the planned %v", got.AdditionalData, tc.data)
+			}
+		})
 	}
 }

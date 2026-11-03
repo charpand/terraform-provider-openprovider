@@ -27,8 +27,9 @@ type TransferDomainRequest struct {
 	// DnssecKeys is a pointer, so that a request can send an empty list: nil
 	// sends no keys, and a pointer to an empty slice sends `[]`, which
 	// removes the keys of the domain.
-	DnssecKeys      *[]DnssecKey `json:"dnssec_keys,omitempty"`
-	IsDnssecEnabled *bool        `json:"is_dnssec_enabled,omitempty"`
+	DnssecKeys      *[]DnssecKey      `json:"dnssec_keys,omitempty"`
+	IsDnssecEnabled *bool             `json:"is_dnssec_enabled,omitempty"`
+	AdditionalData  map[string]string `json:"additional_data,omitempty"`
 }
 
 // TransferDomainResponse represents a response for transferring a domain.

@@ -42,6 +42,7 @@ func TestDomainResourceCreateTransferWithNoKeysSendsAnEmptyList(t *testing.T) {
 				Period:          types.Int64Unknown(),
 				Status:          types.StringUnknown(),
 				DnssecKeys:      noDnssecKeys(),
+				AdditionalData:  types.MapNull(types.StringType),
 				IsDnssecEnabled: types.BoolUnknown(),
 				OnDestroy:       types.StringValue(onDestroyRetain),
 			})
@@ -97,6 +98,7 @@ func TestDomainResourceUpdateWithNoKeysRemovesTheKeys(t *testing.T) {
 		Autorenew:       types.BoolValue(false),
 		OwnerHandle:     types.StringValue("XX000001-NL"),
 		DnssecKeys:      dnssecKeys(t, "AwEAAa"),
+		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolValue(true),
 	}
 	plan := prior
@@ -146,11 +148,12 @@ func TestDomainResourceReadKeepsAnEmptyList(t *testing.T) {
 			r := &DomainResource{client: client.NewClient(client.Config{BaseURL: server.URL, Token: "test"})}
 
 			state := stateOf(ctx, t, r, DomainModel{
-				ID:          types.StringValue("example.com"),
-				Domain:      types.StringValue("example.com"),
-				OwnerHandle: types.StringValue("XX000001-NL"),
-				Status:      types.StringValue("ACT"),
-				DnssecKeys:  prior,
+				ID:             types.StringValue("example.com"),
+				Domain:         types.StringValue("example.com"),
+				OwnerHandle:    types.StringValue("XX000001-NL"),
+				Status:         types.StringValue("ACT"),
+				DnssecKeys:     prior,
+				AdditionalData: types.MapNull(types.StringType),
 			})
 			resp := &resource.ReadResponse{State: state}
 			r.Read(ctx, resource.ReadRequest{State: state}, resp)
