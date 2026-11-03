@@ -20,7 +20,7 @@ func domainAPI(t *testing.T, deleted *[]string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"data": map[string]any{
@@ -32,7 +32,7 @@ func domainAPI(t *testing.T, deleted *[]string) *httptest.Server {
 					"total": 1,
 				},
 			})
-		case r.Method == http.MethodDelete && r.URL.Path == "/v1beta/domains/123":
+		case r.Method == http.MethodDelete && r.URL.Path == "/v1/domains/123":
 			*deleted = append(*deleted, r.URL.Path)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
@@ -105,7 +105,7 @@ func TestDomainResourceDeleteDeletes(t *testing.T) {
 	if errored {
 		t.Fatal("deleting a domain should not error")
 	}
-	if len(deleted) != 1 || deleted[0] != "/v1beta/domains/123" {
+	if len(deleted) != 1 || deleted[0] != "/v1/domains/123" {
 		t.Fatalf("deleting a domain should send one delete for its id, sent %v", deleted)
 	}
 }
@@ -118,7 +118,7 @@ func expireAPI(t *testing.T, autorenew string, held bool, checkStatus string, up
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			results := []map[string]any{}
 			if held {
 				results = append(results, map[string]any{
@@ -132,14 +132,14 @@ func expireAPI(t *testing.T, autorenew string, held bool, checkStatus string, up
 				"code": 0,
 				"data": map[string]any{"results": results, "total": len(results)},
 			})
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains/check" && checkStatus != "":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains/check" && checkStatus != "":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"data": map[string]any{"results": []map[string]any{
 					{"domain": "example.com", "status": checkStatus},
 				}},
 			})
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/123":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/domains/123":
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decoding update: %v", err)

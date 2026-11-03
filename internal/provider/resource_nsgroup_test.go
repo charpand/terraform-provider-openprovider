@@ -46,9 +46,9 @@ func TestNSGroupCreateReadsBackTheGroup(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/dns/nameservers/groups":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/dns/nameservers/groups":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"success":true}}`))
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/dns/nameservers/groups/my-group":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/dns/nameservers/groups/my-group":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"ns_group":"my-group","name_servers":[{"name":"ns1.example.com","ip":"192.0.2.1"}]}}`))
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
@@ -116,9 +116,9 @@ func TestNSGroupUpdatePreservesAllowDeletion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/dns/nameservers/groups/my-group":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/dns/nameservers/groups/my-group":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"success":true}}`))
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/dns/nameservers/groups/my-group":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/dns/nameservers/groups/my-group":
 			_, _ = w.Write([]byte(`{"code":0,"data":{"ns_group":"my-group","name_servers":[{"name":"ns1.example.com","ip":"192.0.2.1"}]}}`))
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
@@ -221,7 +221,7 @@ func TestNSGroupDeleteDeletesWhenAllowed(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("delete: %v", resp.Diagnostics)
 	}
-	if deletedPath != "/v1beta/dns/nameservers/groups/my-group" {
+	if deletedPath != "/v1/dns/nameservers/groups/my-group" {
 		t.Errorf("expected a delete for my-group, got %q", deletedPath)
 	}
 }

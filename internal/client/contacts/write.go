@@ -43,9 +43,9 @@ func send(c *client.Client, method, path string, payload any) (*http.Response, e
 
 // Create creates a contact and returns its id.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/contacts
+// Endpoint: POST https://api.openprovider.eu/v1/contacts
 func Create(c *client.Client, req *Request) (int, error) {
-	resp, err := send(c, "POST", "/v1beta/contacts", req)
+	resp, err := send(c, "POST", "/v1/contacts", req)
 	if resp != nil {
 		defer func() {
 			_ = resp.Body.Close()
@@ -67,9 +67,9 @@ func Create(c *client.Client, req *Request) (int, error) {
 
 // Update changes the fields that are set in req on an existing contact.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/contacts/{id}
+// Endpoint: PUT https://api.openprovider.eu/v1/contacts/{id}
 func Update(c *client.Client, id int, req *Request) error {
-	resp, err := send(c, "PUT", fmt.Sprintf("/v1beta/contacts/%d", id), req)
+	resp, err := send(c, "PUT", fmt.Sprintf("/v1/contacts/%d", id), req)
 	if resp != nil {
 		_ = resp.Body.Close()
 	}
@@ -78,9 +78,9 @@ func Update(c *client.Client, id int, req *Request) error {
 
 // Delete deletes a contact. A contact that is already gone is not an error.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/contacts/{id}
+// Endpoint: DELETE https://api.openprovider.eu/v1/contacts/{id}
 func Delete(c *client.Client, id int) error {
-	resp, err := send(c, "DELETE", fmt.Sprintf("/v1beta/contacts/%d", id), nil)
+	resp, err := send(c, "DELETE", fmt.Sprintf("/v1/contacts/%d", id), nil)
 	if resp != nil {
 		_ = resp.Body.Close()
 	}

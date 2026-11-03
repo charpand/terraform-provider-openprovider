@@ -34,7 +34,7 @@ func newDeletedAPI(t *testing.T, listed, deleted []map[string]any, checkStatus s
 	api.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			filter := r.URL.Query().Get("is_deleted")
 			api.filters = append(api.filters, filter)
 			results := listed
@@ -45,14 +45,14 @@ func newDeletedAPI(t *testing.T, listed, deleted []map[string]any, checkStatus s
 				"code": 0,
 				"data": map[string]any{"results": results, "total": len(results)},
 			})
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains/check" && checkStatus != "":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains/check" && checkStatus != "":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"data": map[string]any{"results": []map[string]any{
 					{"domain": "example.com", "status": checkStatus},
 				}},
 			})
-		case r.Method == http.MethodPut && r.URL.Path == "/v1beta/domains/123":
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/domains/123":
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decoding update: %v", err)

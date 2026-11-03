@@ -185,7 +185,7 @@ func (r *ContactResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				}),
 			},
 			"on_destroy": schema.StringAttribute{
-				MarkdownDescription: "What destroying this resource does at OpenProvider. `retain` (the default) only forgets the contact in state: it stays in the account, and a later `import` takes it back. `delete` deletes the contact through `DELETE /v1beta/contacts/{id}`. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
+				MarkdownDescription: "What destroying this resource does at OpenProvider. `retain` (the default) only forgets the contact in state: it stays in the account, and a later `import` takes it back. `delete` deletes the contact through `DELETE /v1/contacts/{id}`. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(onDestroyRetain),

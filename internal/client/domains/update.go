@@ -35,14 +35,14 @@ type UpdateDomainResponse struct {
 
 // Update updates an existing domain by ID via the Openprovider API.
 //
-// Endpoint: PUT https://api.openprovider.eu/v1beta/domains/{id}
+// Endpoint: PUT https://api.openprovider.eu/v1/domains/{id}
 func Update(c *client.Client, id int, req *UpdateDomainRequest) (*Domain, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := fmt.Sprintf("/v1beta/domains/%d", id)
+	path := fmt.Sprintf("/v1/domains/%d", id)
 	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

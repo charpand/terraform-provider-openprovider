@@ -7,7 +7,7 @@ description: |-
 
 # openprovider_rcp_ip_whitelist (Resource)
 
-Manages the IP whitelist for the OpenProvider control panel (RCP) of one contact, through `PUT /v1beta/contacts/{id}` (`rcp_client_ip_list.allow`).
+Manages the IP whitelist for the OpenProvider control panel (RCP) of one contact, through `PUT /v1/contacts/{id}` (`rcp_client_ip_list.allow`).
 
 The contact is the login contact, an object with a numeric id under `/contacts`, and not a customer handle from `openprovider_customer`. The resource does not create or delete the contact; it owns only the contact's `allow` list.
 

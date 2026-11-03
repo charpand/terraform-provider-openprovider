@@ -29,7 +29,7 @@ func (f *fakeContact) handler(t *testing.T) http.HandlerFunc {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path != "/v1beta/contacts/7" {
+		if r.URL.Path != "/v1/contacts/7" {
 			t.Errorf("unexpected path %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return

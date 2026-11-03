@@ -1,3 +1,5 @@
 # False positive: openapi_spec_hash in the OpenAPI generator's .stats.yml is a
 # content hash of the spec, not a credential (the file has since been removed).
 9658389872d37258c55af1309e40197341cc35bf:.stats.yml:generic-api-key:3
+1c003adbe7ee9690a2f15813179d704865ebe7a8:.stats.yml:generic-api-key:3
+.stats.yml:generic-api-key:3

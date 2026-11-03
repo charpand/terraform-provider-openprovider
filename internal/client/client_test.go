@@ -14,7 +14,7 @@ type mockAuthTransport struct {
 }
 
 func (m *mockAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if strings.HasSuffix(req.URL.Path, "/v1beta/auth/login") {
+	if strings.HasSuffix(req.URL.Path, "/v1/auth/login") {
 		m.loginCalled = true
 		return &http.Response{
 			StatusCode: http.StatusOK,
@@ -166,7 +166,7 @@ func TestDoRepeatsAGatewayError(t *testing.T) {
 	t.Run("a GET answered by a 502 is sent again", func(t *testing.T) {
 		transport := &flakyTransport{failures: 2, status: http.StatusBadGateway}
 		client := NewClient(Config{Token: "token", HTTPClient: &http.Client{Transport: transport}})
-		req, _ := http.NewRequest("GET", client.BaseURL+"/v1beta/domains", nil)
+		req, _ := http.NewRequest("GET", client.BaseURL+"/v1/domains", nil)
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -181,7 +181,7 @@ func TestDoRepeatsAGatewayError(t *testing.T) {
 	t.Run("a PUT is sent again with its body", func(t *testing.T) {
 		transport := &flakyTransport{failures: 1, status: http.StatusServiceUnavailable}
 		client := NewClient(Config{Token: "token", HTTPClient: &http.Client{Transport: transport}})
-		req, _ := http.NewRequest("PUT", client.BaseURL+"/v1beta/domains/1", strings.NewReader(`{"a":1}`))
+		req, _ := http.NewRequest("PUT", client.BaseURL+"/v1/domains/1", strings.NewReader(`{"a":1}`))
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -196,7 +196,7 @@ func TestDoRepeatsAGatewayError(t *testing.T) {
 	t.Run("a POST answered by a 502 is not sent again", func(t *testing.T) {
 		transport := &flakyTransport{failures: 1, status: http.StatusBadGateway}
 		client := NewClient(Config{Token: "token", HTTPClient: &http.Client{Transport: transport}})
-		req, _ := http.NewRequest("POST", client.BaseURL+"/v1beta/domains", strings.NewReader(`{}`))
+		req, _ := http.NewRequest("POST", client.BaseURL+"/v1/domains", strings.NewReader(`{}`))
 
 		if _, err := client.Do(req); err == nil {
 			t.Fatal("Expected the 502 to be an error")
@@ -209,7 +209,7 @@ func TestDoRepeatsAGatewayError(t *testing.T) {
 	t.Run("a GET that keeps failing is given up after the attempts", func(t *testing.T) {
 		transport := &flakyTransport{failures: 10, status: http.StatusGatewayTimeout}
 		client := NewClient(Config{Token: "token", HTTPClient: &http.Client{Transport: transport}})
-		req, _ := http.NewRequest("GET", client.BaseURL+"/v1beta/domains", nil)
+		req, _ := http.NewRequest("GET", client.BaseURL+"/v1/domains", nil)
 
 		if _, err := client.Do(req); err == nil {
 			t.Fatal("Expected the last 504 to be an error")
@@ -222,7 +222,7 @@ func TestDoRepeatsAGatewayError(t *testing.T) {
 	t.Run("a 500 is not sent again", func(t *testing.T) {
 		transport := &flakyTransport{failures: 1, status: http.StatusInternalServerError}
 		client := NewClient(Config{Token: "token", HTTPClient: &http.Client{Transport: transport}})
-		req, _ := http.NewRequest("GET", client.BaseURL+"/v1beta/domains", nil)
+		req, _ := http.NewRequest("GET", client.BaseURL+"/v1/domains", nil)
 
 		if _, err := client.Do(req); err == nil {
 			t.Fatal("Expected the 500 to be an error")

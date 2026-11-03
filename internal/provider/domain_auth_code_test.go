@@ -41,19 +41,19 @@ func newAuthCodeAPI(t *testing.T) *authCodeAPI {
 	api.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains" && api.unlisted:
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains" && api.unlisted:
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[],"total":0}}`)
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			status := "ACT"
 			if api.deleted {
 				status = "DEL"
 			}
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"results":[{"id":1,"status":"`+status+`",`+
 				`"domain":{"name":"example","extension":"com"}}],"total":1}}`)
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains/1/authcode":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains/1/authcode":
 			api.requests = append(api.requests, "get "+r.URL.RawQuery)
 			_, _ = fmt.Fprintf(w, `{"code":0,"data":{"auth_code":%q}}`, api.code)
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/domains/1/authcode/reset":
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/domains/1/authcode/reset":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Errorf("read reset: %v", err)

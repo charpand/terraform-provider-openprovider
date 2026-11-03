@@ -12,14 +12,14 @@ import (
 
 // Create registers a glue record.
 //
-// Endpoint: POST /v1beta/dns/nameservers
+// Endpoint: POST /v1/dns/nameservers
 func Create(c *client.Client, ns *Nameserver) error {
 	body, err := json.Marshal(ns)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1beta/dns/nameservers", c.BaseURL), bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/dns/nameservers", c.BaseURL), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -32,14 +32,14 @@ func Create(c *client.Client, ns *Nameserver) error {
 // Update changes the addresses published for an existing glue record. The host
 // name is the key, so it is passed in the path and cannot be changed here.
 //
-// Endpoint: PUT /v1beta/dns/nameservers/{name}
+// Endpoint: PUT /v1/dns/nameservers/{name}
 func Update(c *client.Client, name string, ns *Nameserver) error {
 	body, err := json.Marshal(ns)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/v1beta/dns/nameservers/%s", c.BaseURL, name), bytes.NewBuffer(body))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -52,9 +52,9 @@ func Update(c *client.Client, name string, ns *Nameserver) error {
 // Delete removes a glue record. A record that is already gone is not an error,
 // because that is the state the caller asked for.
 //
-// Endpoint: DELETE /v1beta/dns/nameservers/{name}
+// Endpoint: DELETE /v1/dns/nameservers/{name}
 func Delete(c *client.Client, name string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/v1beta/dns/nameservers/%s", c.BaseURL, name), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
 	if err != nil {
 		return err
 	}

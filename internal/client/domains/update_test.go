@@ -143,7 +143,7 @@ func TestUpdateDomainWithError(t *testing.T) {
 
 func TestUpdateDomainWithErrorCode(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/v1beta/domains/123" {
+		if r.Method != http.MethodPut || r.URL.Path != "/v1/domains/123" {
 			t.Errorf("Unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")

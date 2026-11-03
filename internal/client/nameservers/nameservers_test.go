@@ -17,7 +17,7 @@ func testClient(t *testing.T, server *httptest.Server) *client.Client {
 
 func TestGetReadsANameserver(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/dns/nameservers/ns1.example.com" {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/dns/nameservers/ns1.example.com" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -86,7 +86,7 @@ func TestGetReportsAnAPIError(t *testing.T) {
 func TestCreatePostsTheNameserver(t *testing.T) {
 	var gotBody string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/dns/nameservers" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/dns/nameservers" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -109,7 +109,7 @@ func TestCreatePostsTheNameserver(t *testing.T) {
 
 func TestUpdatePutsToTheHostPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/v1beta/dns/nameservers/ns1.example.com" {
+		if r.Method != http.MethodPut || r.URL.Path != "/v1/dns/nameservers/ns1.example.com" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return

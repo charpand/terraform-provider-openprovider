@@ -10,9 +10,9 @@ import (
 
 // Delete deletes a customer via the Openprovider API.
 //
-// Endpoint: DELETE https://api.openprovider.eu/v1beta/customers/{handle}
+// Endpoint: DELETE https://api.openprovider.eu/v1/customers/{handle}
 func Delete(c *client.Client, handle string) error {
-	path := fmt.Sprintf("/v1beta/customers/%s", handle)
+	path := fmt.Sprintf("/v1/customers/%s", handle)
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return err

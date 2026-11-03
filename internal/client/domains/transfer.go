@@ -39,14 +39,14 @@ type TransferDomainResponse struct {
 
 // Transfer initiates a domain transfer via the Openprovider API.
 //
-// Endpoint: POST https://api.openprovider.eu/v1beta/domains/transfer
+// Endpoint: POST https://api.openprovider.eu/v1/domains/transfer
 func Transfer(c *client.Client, req *TransferDomainRequest) (*Domain, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	path := "/v1beta/domains/transfer"
+	path := "/v1/domains/transfer"
 	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err

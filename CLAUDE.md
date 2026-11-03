@@ -16,7 +16,8 @@ This repository contains a Terraform provider for Openprovider, which includes a
 - **Project Overview**: `README.md`
 - **Contributor Notes**: `CONTRIBUTING.md`
 - **API Examples**: `API.md`
-- **Openprovider API Documentation**: [swagger.json](https://docs.openprovider.com/swagger.json)
+- **Openprovider API Documentation**: [swagger.json](https://developer.openprovider.com/data/swagger.json) (API reference portal: [developer.openprovider.com](https://developer.openprovider.com))
+- **Openprovider MCP Server**: [mcp.openprovider.com/docs](https://mcp.openprovider.com/docs). A hosted MCP server (`https://mcp.openprovider.com/mcp`) that wraps the API for AI assistants, with a tool reference at `/docs/tools`. It is not a spec source for this repository.
 
 ## Workflow
 
@@ -43,7 +44,7 @@ This repository contains a Terraform provider for Openprovider, which includes a
 ### API Function Implementation
 ```go
 func GetResource(c *client.Client, id int) (*Resource, error) {
-	path := fmt.Sprintf("/v1beta/resource/%d", id)
+	path := fmt.Sprintf("/v1/resource/%d", id)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

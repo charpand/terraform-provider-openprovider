@@ -44,7 +44,7 @@ func (f *fakeContactAPI) handler(t *testing.T, wantPath string) http.HandlerFunc
 		f.bodies[r.Method] = append(f.bodies[r.Method], string(body))
 		switch r.Method {
 		case http.MethodPost:
-			if r.URL.Path != "/v1beta/contacts" {
+			if r.URL.Path != "/v1/contacts" {
 				t.Errorf("unexpected path %s", r.URL.Path)
 			}
 			_, _ = w.Write([]byte(`{"code":0,"data":{"id":99,"token":"tok"}}`))
@@ -104,7 +104,7 @@ func unplanned() ContactResourceModel {
 func TestContactCreateSendsPasswordAndKeepsItOutOfState(t *testing.T) {
 	ctx := context.Background()
 	f := &fakeContactAPI{}
-	server := httptest.NewServer(f.handler(t, "/v1beta/contacts/99"))
+	server := httptest.NewServer(f.handler(t, "/v1/contacts/99"))
 	defer server.Close()
 
 	res := contactResource(server)
@@ -195,7 +195,7 @@ func TestContactCreateRequiresRole(t *testing.T) {
 func TestContactReadMapsAndDropsSecrets(t *testing.T) {
 	ctx := context.Background()
 	f := &fakeContactAPI{}
-	server := httptest.NewServer(f.handler(t, "/v1beta/contacts/99"))
+	server := httptest.NewServer(f.handler(t, "/v1/contacts/99"))
 	defer server.Close()
 
 	res := contactResource(server)
@@ -226,7 +226,7 @@ func TestContactReadMapsAndDropsSecrets(t *testing.T) {
 func TestContactReadGoneRemovesResource(t *testing.T) {
 	ctx := context.Background()
 	f := &fakeContactAPI{getCode: http.StatusNotFound}
-	server := httptest.NewServer(f.handler(t, "/v1beta/contacts/99"))
+	server := httptest.NewServer(f.handler(t, "/v1/contacts/99"))
 	defer server.Close()
 
 	res := contactResource(server)
@@ -243,7 +243,7 @@ func TestContactReadGoneRemovesResource(t *testing.T) {
 func TestContactUpdateSendsPlannedFieldsOnly(t *testing.T) {
 	ctx := context.Background()
 	f := &fakeContactAPI{}
-	server := httptest.NewServer(f.handler(t, "/v1beta/contacts/99"))
+	server := httptest.NewServer(f.handler(t, "/v1/contacts/99"))
 	defer server.Close()
 
 	res := contactResource(server)

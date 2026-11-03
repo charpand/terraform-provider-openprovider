@@ -7,7 +7,7 @@ description: |-
 
 # openprovider_contact (Resource)
 
-Manages a contact, a login of the control panel (RCP) and the API, through `/v1beta/contacts`. A contact has a numeric id and is a different object from a customer (`openprovider_customer`).
+Manages a contact, a login of the control panel (RCP) and the API, through `/v1/contacts`. A contact has a numeric id and is a different object from a customer (`openprovider_customer`).
 
 A contact can be created by Terraform or imported. Every optional attribute is also computed: an attribute you leave out is not managed and keeps the value the contact has at OpenProvider, so you can import a contact and manage only part of it. The IP lists are not part of this resource; use `openprovider_rcp_ip_whitelist` for the control panel whitelist.
 

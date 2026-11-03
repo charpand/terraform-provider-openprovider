@@ -19,7 +19,7 @@ func checkAPI(t *testing.T, status string, premium bool, bodies *[]map[string]an
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/domains/check" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/domains/check" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return

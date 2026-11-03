@@ -59,7 +59,7 @@ type ListCustomersResponse struct {
 
 // List retrieves a list of customers from the Openprovider API.
 func List(c *client.Client) ([]Customer, error) {
-	path := "/v1beta/customers"
+	path := "/v1/customers"
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
 	if err != nil {
 		return nil, err

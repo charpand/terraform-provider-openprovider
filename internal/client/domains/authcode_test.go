@@ -71,19 +71,19 @@ func TestAuthCodeRequests(t *testing.T) {
 		{
 			name: "get",
 			call: func() (*domains.AuthCode, error) { return domains.GetAuthCode(c, 7, "") },
-			want: request{method: "GET", path: "/v1beta/domains/7/authcode"},
+			want: request{method: "GET", path: "/v1/domains/7/authcode"},
 		},
 		{
 			name: "get internal",
 			call: func() (*domains.AuthCode, error) {
 				return domains.GetAuthCode(c, 7, domains.AuthCodeTypeInternal)
 			},
-			want: request{method: "GET", path: "/v1beta/domains/7/authcode", query: "auth_code_type=internal"},
+			want: request{method: "GET", path: "/v1/domains/7/authcode", query: "auth_code_type=internal"},
 		},
 		{
 			name: "reset",
 			call: func() (*domains.AuthCode, error) { return domains.ResetAuthCode(c, 7, "") },
-			want: request{method: "POST", path: "/v1beta/domains/7/authcode/reset", body: map[string]any{"id": float64(7)}},
+			want: request{method: "POST", path: "/v1/domains/7/authcode/reset", body: map[string]any{"id": float64(7)}},
 		},
 		{
 			name: "reset internal",
@@ -92,7 +92,7 @@ func TestAuthCodeRequests(t *testing.T) {
 			},
 			want: request{
 				method: "POST",
-				path:   "/v1beta/domains/7/authcode/reset",
+				path:   "/v1/domains/7/authcode/reset",
 				body:   map[string]any{"id": float64(7), "auth_code_type": "internal"},
 			},
 		},

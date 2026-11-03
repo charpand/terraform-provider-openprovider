@@ -45,12 +45,12 @@ func newOrderAPI(t *testing.T, name, extension, status string) *orderAPI {
 	api.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains/prices":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains/prices":
 			api.quoted = append(api.quoted, r.URL.Query().Get("period"))
 			_, _ = fmt.Fprint(w, `{"code":0,"data":{"is_premium":false,"price":{`+
 				`"product":{"currency":"EUR","price":15},`+
 				`"reseller":{"currency":"EUR","price":15}}}}`)
-		case r.Method == http.MethodPost && (r.URL.Path == "/v1beta/domains" || r.URL.Path == "/v1beta/domains/transfer"):
+		case r.Method == http.MethodPost && (r.URL.Path == "/v1/domains" || r.URL.Path == "/v1/domains/transfer"):
 			api.ordered = r.URL.Path
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -64,7 +64,7 @@ func newOrderAPI(t *testing.T, name, extension, status string) *orderAPI {
 				ordered = `{"id":1,"status":"` + status + `"}`
 			}
 			_, _ = w.Write([]byte(`{"code":0,"data":` + ordered + `}`))
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/domains":
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/domains":
 			listed := domain
 			if api.listedStatus != "" {
 				listed = domainWith(api.listedStatus)
@@ -127,7 +127,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		"registration, period unknown": {
 			authCode:    types.StringNull(),
 			period:      types.Int64Unknown(),
-			wantPath:    "/v1beta/domains",
+			wantPath:    "/v1/domains",
 			wantQuoted:  "1",
 			wantOrdered: float64(1),
 			wantState:   types.Int64Value(1),
@@ -135,7 +135,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		"registration, period 2": {
 			authCode:    types.StringNull(),
 			period:      types.Int64Value(2),
-			wantPath:    "/v1beta/domains",
+			wantPath:    "/v1/domains",
 			wantQuoted:  "2",
 			wantOrdered: float64(2),
 			wantState:   types.Int64Value(2),
@@ -143,7 +143,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		"transfer, period unknown": {
 			authCode:    types.StringValue("secret"),
 			period:      types.Int64Unknown(),
-			wantPath:    "/v1beta/domains/transfer",
+			wantPath:    "/v1/domains/transfer",
 			wantQuoted:  "1",
 			wantOrdered: nil,
 			wantState:   types.Int64Null(),
@@ -151,7 +151,7 @@ func TestDomainResourceCreateResolvesThePeriod(t *testing.T) {
 		"transfer, period 0": {
 			authCode:    types.StringValue("secret"),
 			period:      types.Int64Value(0),
-			wantPath:    "/v1beta/domains/transfer",
+			wantPath:    "/v1/domains/transfer",
 			wantQuoted:  "1",
 			wantOrdered: nil,
 			wantState:   types.Int64Value(0),
@@ -281,7 +281,7 @@ func TestDomainResourceCreateTransfersTheDnssecKeys(t *testing.T) {
 		OnDestroy:       types.StringValue(onDestroyRetain),
 	})
 
-	if api.ordered != "/v1beta/domains/transfer" {
+	if api.ordered != "/v1/domains/transfer" {
 		t.Fatalf("order sent to %q, want the transfer", api.ordered)
 	}
 	sent, ok := api.order["dnssec_keys"].([]any)

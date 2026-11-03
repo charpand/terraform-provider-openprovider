@@ -65,7 +65,7 @@ func Transfer(c *client.Client, name, extension string) (*Quote, error) {
 
 // get asks what `operation` on `name`.`extension` for `period` years costs.
 //
-// Endpoint: GET /v1beta/domains/prices
+// Endpoint: GET /v1/domains/prices
 //
 // The domain parameters are dotted, not underscored: an underscored spelling
 // is read as no domain at all and the endpoint answers `300`, "Your domain
@@ -77,7 +77,7 @@ func get(c *client.Client, operation, name, extension string, period int64) (*Qu
 	query.Set("operation", operation)
 	query.Set("period", fmt.Sprintf("%d", period))
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1beta/domains/prices?%s", c.BaseURL, query.Encode()), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/domains/prices?%s", c.BaseURL, query.Encode()), nil)
 	if err != nil {
 		return nil, err
 	}

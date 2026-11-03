@@ -17,7 +17,7 @@ import (
 func priceAPI(t *testing.T, price float64, currency string) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/domains/prices" {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/domains/prices" {
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
