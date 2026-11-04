@@ -287,7 +287,7 @@ resource "openprovider_domain" "transferred" {
 
 ### Optional
 
-- `additional_data` (Map of String) Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = "1" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider, and the provider does not read it back.
+- `additional_data` (Map of String) Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = "1" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider and gives a warning, and the provider does not read it back.
 - `admin_handle` (String) The admin contact handle for the domain.
 - `auth_code` (String, Sensitive) The EPP/Authorization code for domain transfer (also known as transfer code or auth code). This is obtained from the current registrar. When provided, the domain will be transferred instead of registered.
 - `autorenew` (Boolean) Whether the domain should auto-renew.

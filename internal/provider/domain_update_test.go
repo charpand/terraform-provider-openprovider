@@ -117,6 +117,65 @@ func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
 	}
 }
 
+// TestDomainResourceUpdateWarnsOfChangedAdditionalData covers a change of
+// `additional_data` after the order. Only the order sends it, so `Update`
+// gives a warning. A null map and an empty map are equal.
+func TestDomainResourceUpdateWarnsOfChangedAdditionalData(t *testing.T) {
+	ctx := context.Background()
+	server := listingOf(t, "example", "dk")
+	defer server.Close()
+	r := &DomainResource{client: client.NewClient(client.Config{BaseURL: server.URL, Token: "test"})}
+
+	null := types.MapNull(types.StringType)
+	empty := types.MapValueMust(types.StringType, map[string]attr.Value{})
+	acceptance := types.MapValueMust(types.StringType, map[string]attr.Value{
+		"dk_acceptance": types.StringValue("1"),
+	})
+
+	for name, tc := range map[string]struct {
+		prior, plan types.Map
+		wantWarning bool
+	}{
+		"set":                 {prior: null, plan: acceptance, wantWarning: true},
+		"removed":             {prior: acceptance, plan: null, wantWarning: true},
+		"not changed":         {prior: acceptance, plan: acceptance},
+		"null to empty":       {prior: null, plan: empty},
+		"unknown in the plan": {prior: acceptance, plan: types.MapUnknown(types.StringType)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			prior := DomainModel{
+				ID:             types.StringValue("example.dk"),
+				Domain:         types.StringValue("example.dk"),
+				Status:         types.StringValue("ACT"),
+				Autorenew:      types.BoolValue(false),
+				OwnerHandle:    types.StringValue("XX000001-NL"),
+				DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+				AdditionalData: tc.prior,
+			}
+			plan := prior
+			plan.AdditionalData = tc.plan
+			priorState := stateOf(ctx, t, r, prior)
+			resp := resource.UpdateResponse{State: priorState}
+			r.Update(ctx, resource.UpdateRequest{
+				Plan:  tfsdk.Plan{Schema: priorState.Schema, Raw: stateOf(ctx, t, r, plan).Raw},
+				State: priorState,
+			}, &resp)
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("update: %v", resp.Diagnostics)
+			}
+			warned := false
+			for _, d := range resp.Diagnostics.Warnings() {
+				if d.Summary() == "Additional Data Not Sent" {
+					warned = true
+				}
+			}
+			if warned != tc.wantWarning {
+				t.Errorf("warning about additional_data: got %v, want %v", warned, tc.wantWarning)
+			}
+		})
+	}
+}
+
 // TestDomainResourceUpdateResolvesAnUnknownPeriod covers a domain whose
 // prior state holds `period` as null -- one that predates the field, or was
 // imported before it was ever set -- with nothing else changed. `period`'s

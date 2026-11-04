@@ -531,7 +531,7 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"additional_data": schema.MapAttribute{
-				MarkdownDescription: "Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = \"1\" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider, and the provider does not read it back.",
+				MarkdownDescription: "Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = \"1\" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider and gives a warning, and the provider does not read it back.",
 				ElementType:         types.StringType,
 				Optional:            true,
 			},
@@ -986,6 +986,13 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	domainName := state.Domain.ValueString()
 
+	if additionalDataChanged(state.AdditionalData, plan.AdditionalData) {
+		resp.Diagnostics.AddWarning(
+			"Additional Data Not Sent",
+			fmt.Sprintf("additional_data of %s changed, but only the registration or the transfer sends it. The change makes no change at OpenProvider. The state keeps the configured value.", domainName),
+		)
+	}
+
 	// Get domain to get its ID
 	domain, err := getDomainByName(r.client, domainName)
 	if err != nil {
@@ -1388,4 +1395,17 @@ func convertAdditionalDataToAPI(ctx context.Context, data types.Map, diags *diag
 	var out map[string]string
 	diags.Append(data.ElementsAs(ctx, &out, false)...)
 	return out
+}
+
+// additionalDataChanged tells if `additional_data` changed from the prior
+// state to the plan. A null map and an empty map are equal, because the order
+// sends `additional_data` for neither.
+func additionalDataChanged(prior, plan types.Map) bool {
+	if plan.IsUnknown() {
+		return false
+	}
+	if len(prior.Elements()) == 0 && len(plan.Elements()) == 0 {
+		return false
+	}
+	return !prior.Equal(plan)
 }
