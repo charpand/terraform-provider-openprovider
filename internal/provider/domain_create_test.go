@@ -418,13 +418,15 @@ func TestDomainResourceCreateKeepsThePlannedValuesTheOrderOmits(t *testing.T) {
 
 // TestDomainResourceCreateSendsTheAdditionalData covers the registration and
 // the transfer of a domain with and without `additional_data`. The order
-// sends the map as given, or no `additional_data` for a null map, and the
-// state keeps the planned value, because the API does not give it back.
+// sends the map as given, or no `additional_data` for a null or an empty map,
+// and the state keeps the planned value, because the API does not give it
+// back.
 func TestDomainResourceCreateSendsTheAdditionalData(t *testing.T) {
 	ctx := context.Background()
 	acceptance := types.MapValueMust(types.StringType, map[string]attr.Value{
 		"dk_acceptance": types.StringValue("1"),
 	})
+	empty := types.MapValueMust(types.StringType, map[string]attr.Value{})
 
 	for name, tc := range map[string]struct {
 		authCode types.String
@@ -447,6 +449,14 @@ func TestDomainResourceCreateSendsTheAdditionalData(t *testing.T) {
 		},
 		"transfer without data": {
 			authCode: types.StringValue("secret"), period: types.Int64Unknown(), data: types.MapNull(types.StringType),
+			wantPath: "/v1/domains/transfer",
+		},
+		"registration with an empty map": {
+			authCode: types.StringNull(), period: types.Int64Value(1), data: empty,
+			wantPath: "/v1/domains",
+		},
+		"transfer with an empty map": {
+			authCode: types.StringValue("secret"), period: types.Int64Unknown(), data: empty,
 			wantPath: "/v1/domains/transfer",
 		},
 	} {
