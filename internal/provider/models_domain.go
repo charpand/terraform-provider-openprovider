@@ -26,6 +26,7 @@ type DomainModel struct {
 	DnssecKeys      types.List   `tfsdk:"dnssec_keys"`
 	IsDnssecEnabled types.Bool   `tfsdk:"is_dnssec_enabled"`
 	IsLocked        types.Bool   `tfsdk:"is_locked"`
+	AdditionalData  types.Map    `tfsdk:"additional_data"`
 	ExpirationDate  types.String `tfsdk:"expiration_date"`
 }
 
