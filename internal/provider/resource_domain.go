@@ -49,6 +49,10 @@ const (
 // registrar. The account no longer holds the name.
 const domainStatusDeleted = "DEL"
 
+// domainStatusFailed is the status of a domain with a last operation that
+// failed, for example a transfer that the registry refused.
+const domainStatusFailed = "FAI"
+
 // domainTransferIsInFlight reports whether status is one the API uses for a
 // domain whose transfer has been requested but has not yet completed -- the
 // one case an authorization code is still in play.

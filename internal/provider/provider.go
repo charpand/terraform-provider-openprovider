@@ -123,6 +123,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewRCPIPWhitelistResource,
 		NewContactResource,
 		NewDomainAuthCodeResetResource,
+		NewDomainTransferRestartResource,
 	}
 }
 

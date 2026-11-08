@@ -388,6 +388,16 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/doma
 code, err := domains.ResetAuthCode(c, 123, domains.AuthCodeTypeExternal)
 ```
 
+### Restart Last Operation
+
+Sends the last operation of a domain to the registry again, without a new order. This operation is not always a transfer, so first make sure that the domain is in the expected status. An empty auth code sends no auth code.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+err := domains.RestartLastOperation(c, 123, "example", "com", "auth-code")
+```
+
 ## DNS Records
 
 ### List DNS Records
