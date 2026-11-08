@@ -46,6 +46,16 @@ func (d *NSGroupDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				MarkdownDescription: "The name of the nameserver group.",
 				Required:            true,
 			},
+			"allow_missing": schema.BoolAttribute{
+				MarkdownDescription: "Whether a group that does not exist is a result instead of an error. " +
+					"When `true`, such a group has `exists` set to `false` and an empty `nameservers`. " +
+					"A configuration can use this to find out if it must adopt the group or create it. Defaults to `false`.",
+				Optional: true,
+			},
+			"exists": schema.BoolAttribute{
+				MarkdownDescription: "Whether the account holds the group.",
+				Computed:            true,
+			},
 			"nameservers": schema.ListNestedAttribute{
 				MarkdownDescription: "List of nameservers in the group.",
 				Computed:            true,
@@ -108,6 +118,14 @@ func (d *NSGroupDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	if group == nil && config.AllowMissing.ValueBool() {
+		config.ID = config.Name
+		config.Exists = types.BoolValue(false)
+		config.Nameservers = []NSGroupNameserverModel{}
+		resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
+		return
+	}
+
 	if group == nil {
 		resp.Diagnostics.AddError(
 			"NS Group Not Found",
@@ -119,6 +137,8 @@ func (d *NSGroupDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	var state NSGroupModel
 	state.ID = types.StringValue(group.Name)
 	state.Name = types.StringValue(group.Name)
+	state.AllowMissing = config.AllowMissing
+	state.Exists = types.BoolValue(true)
 
 	if len(group.Nameservers) > 0 {
 		state.Nameservers = make([]NSGroupNameserverModel, len(group.Nameservers))
