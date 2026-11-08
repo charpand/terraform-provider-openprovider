@@ -12,6 +12,10 @@ import (
 
 // UpdateDomainRequest represents a request to update a domain.
 type UpdateDomainRequest struct {
+	// OwnerHandle changes the owner of the domain. The request has no field
+	// for `accept_update_fee`, thus the registrar refuses a change that
+	// requires a fee.
+	OwnerHandle   string       `json:"owner_handle,omitempty"`
 	AdminHandle   string       `json:"admin_handle,omitempty"`
 	TechHandle    string       `json:"tech_handle,omitempty"`
 	BillingHandle string       `json:"billing_handle,omitempty"`

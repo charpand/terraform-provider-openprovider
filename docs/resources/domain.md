@@ -283,7 +283,7 @@ resource "openprovider_domain" "transferred" {
 ### Required
 
 - `domain` (String) The domain name (e.g., example.com).
-- `owner_handle` (String) The owner contact handle for the domain.
+- `owner_handle` (String) The owner contact handle for the domain. A change of this handle changes the owner of the domain at the registrar. The provider does not accept a fee for the change: when the registry requires a fee or a trade, the registrar refuses the update and the apply fails.
 
 ### Optional
 

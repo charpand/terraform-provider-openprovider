@@ -241,6 +241,20 @@ req := &domains.UpdateDomainRequest{
 domain, err := domains.Update(c, 123, req)
 ```
 
+#### Change the Owner of a Domain
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+req := &domains.UpdateDomainRequest{
+    OwnerHandle: "XX000002-NL",
+}
+
+domain, err := domains.Update(c, 123, req)
+```
+
+The request does not accept a fee. When the registry requires a fee or a trade, the registrar refuses the change, and `Update` returns an error.
+
 #### Update Domain Nameservers
 
 ```go
