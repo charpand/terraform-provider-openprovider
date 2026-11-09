@@ -137,6 +137,7 @@ func (p *OpenproviderProvider) EphemeralResources(_ context.Context) []func() ep
 func (p *OpenproviderProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewCustomerDataSource,
+		NewCustomerExistsDataSource,
 		NewDomainDataSource,
 		NewDomainCheckDataSource,
 		NewDomainsDataSource,

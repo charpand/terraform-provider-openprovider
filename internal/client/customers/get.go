@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -68,4 +69,49 @@ func Get(c *client.Client, handle string) (*Customer, error) {
 	}
 
 	return customer, nil
+}
+
+// Exists reports whether the account holds a customer with the handle.
+//
+// A deleted customer does not exist. Exists decodes only the fields that it
+// needs, so that the data of the customer does not reach the caller.
+//
+// Endpoint: GET https://api.openprovider.eu/v1/customers/{handle}
+func Exists(c *client.Client, handle string) (bool, error) {
+	path := fmt.Sprintf("/v1/customers/%s", url.PathEscape(handle))
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	var result struct {
+		Data struct {
+			Handle    string `json:"handle"`
+			IsDeleted bool   `json:"is_deleted"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false, err
+	}
+
+	if result.Data.IsDeleted {
+		return false, nil
+	}
+	if result.Data.Handle == "" {
+		return false, fmt.Errorf("the answer for customer %q has no handle", handle)
+	}
+
+	return true, nil
 }

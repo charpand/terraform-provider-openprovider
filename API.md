@@ -28,6 +28,16 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/cust
 customer, err := customers.Get(c, "XX123456-XX")
 ```
 
+### Check if a Customer Exists
+
+Returns only the answer. A deleted customer does not exist. A failed read is an error.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/customers"
+
+exists, err := customers.Exists(c, "XX123456-XX")
+```
+
 ### Create Customer
 
 ```go
