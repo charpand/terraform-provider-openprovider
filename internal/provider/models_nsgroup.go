@@ -14,9 +14,11 @@ type NSGroupNameserverModel struct {
 
 // NSGroupModel represents the Terraform state model for a nameserver group.
 type NSGroupModel struct {
-	ID          types.String             `tfsdk:"id"`
-	Name        types.String             `tfsdk:"name"`
-	Nameservers []NSGroupNameserverModel `tfsdk:"nameservers"`
+	ID           types.String             `tfsdk:"id"`
+	Name         types.String             `tfsdk:"name"`
+	AllowMissing types.Bool               `tfsdk:"allow_missing"`
+	Exists       types.Bool               `tfsdk:"exists"`
+	Nameservers  []NSGroupNameserverModel `tfsdk:"nameservers"`
 }
 
 // NSGroupResourceModel represents the Terraform state model for a nameserver
