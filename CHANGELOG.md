@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Releases attest signed SLSA build provenance for every archive (`gh attestation verify`); `SECURITY.md` documents how to verify a release
 
 ### Changed
+- `openprovider_domain`: a change of `owner_handle` changes the owner of the domain with an update; `domains.UpdateDomainRequest` has `OwnerHandle`. The provider does not send `accept_update_fee`, so the registrar refuses a change that requires a fee, and the apply fails
 - The client calls the `/v1` endpoints of the Openprovider API instead of `/v1beta`, following the new API reference at `developer.openprovider.com`; the mock server and `.stats.yml` use its spec (`/data/swagger.json`)
 - Renovate requests a review from the `maintainers` team instead of the single user `dsdeboer`
 - CI: `jdx/mise-action` no longer caches, so a cache written by an earlier run cannot influence a release build

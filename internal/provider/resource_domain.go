@@ -429,8 +429,10 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"owner_handle": schema.StringAttribute{
-				MarkdownDescription: "The owner contact handle for the domain.",
-				Required:            true,
+				MarkdownDescription: "The owner contact handle for the domain. A change of this handle changes the owner of the domain " +
+					"at the registrar. The provider does not accept a fee for the change: when the registry requires a fee or a trade, " +
+					"the registrar refuses the update and the apply fails.",
+				Required: true,
 			},
 			"admin_handle": schema.StringAttribute{
 				MarkdownDescription: "The admin contact handle for the domain.",
@@ -1017,7 +1019,8 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	// to null) is not a supported operation in the Openprovider API, so we don't detect it
 	// as a change. Users cannot use Terraform to clear handles to null. If a handle in the
 	// plan is null, it should match the state value.
-	hasChanges := (!plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull()) ||
+	hasChanges := !plan.OwnerHandle.Equal(state.OwnerHandle) ||
+		(!plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull()) ||
 		(!plan.TechHandle.Equal(state.TechHandle) && !plan.TechHandle.IsNull()) ||
 		(!plan.BillingHandle.Equal(state.BillingHandle) && !plan.BillingHandle.IsNull()) ||
 		!plan.Autorenew.Equal(state.Autorenew) ||
@@ -1038,11 +1041,13 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Create update request with only changed mutable attributes
-	// Note: OwnerHandle is not updatable (typically immutable after domain creation)
 	updateReq := &domains.UpdateDomainRequest{}
 
 	// Update contact handles if changed
 	// Only set values if they are not null in the plan
+	if !plan.OwnerHandle.Equal(state.OwnerHandle) {
+		updateReq.OwnerHandle = plan.OwnerHandle.ValueString()
+	}
 	if !plan.AdminHandle.Equal(state.AdminHandle) && !plan.AdminHandle.IsNull() {
 		updateReq.AdminHandle = plan.AdminHandle.ValueString()
 	}
