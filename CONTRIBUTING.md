@@ -33,6 +33,20 @@ This section guides you through submitting an enhancement suggestion, including 
 *   Ensure the linter passes by running `./scripts/lint`.
 *   **If you modify provider resources or data sources**, regenerate documentation by running `./scripts/docs` and commit the changes. The CI will verify that docs are up-to-date.
 
+#### Sending several pull requests: chain them
+
+Branches must be up to date with `main` before they can merge, and most changes touch the same few files (`internal/provider/provider.go`, `API.md`, `CHANGELOG.md`). Several independent pull requests that all start from `main` thus conflict with each other, and every merge forces a rebase of the rest.
+
+When you have more than one change in flight, please send them as a **chained PR train** instead:
+
+1.  Branch the first PR from `main`.
+2.  Branch each next PR from the branch of the PR before it, and set the **base branch** of that PR to the branch before it, not to `main`. Each PR then shows only its own commits.
+3.  Keep every PR small and complete: it builds, passes the tests, and stands on its own once the PRs before it are merged.
+4.  Mention the order in the description, for example "Follows #195".
+5.  We merge from the front of the train. When a PR is merged and its branch is deleted, GitHub retargets the next PR to `main`. If that PR then shows conflicts or extra commits, run `git rebase --onto main <old-parent-branch> <your-branch>` once and push with `--force-with-lease`. With a train this is a single, mechanical step, instead of resolving the same conflicts again for each PR.
+
+If a PR in the middle needs a change, push it to that PR's branch and rebase the later branches on top of it.
+
 ## Styleguides
 
 ### Git Commit Messages
