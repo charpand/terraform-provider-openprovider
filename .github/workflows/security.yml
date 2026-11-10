@@ -47,7 +47,7 @@ jobs:
 
       # The Go toolchain is part of what is scanned (its standard library is
       # linked into the binary), so build with the pinned release version.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           cache: false # see the release job
           install_args: go
@@ -171,20 +171,20 @@ jobs:
           persist-credentials: false
 
       # The Go version pinned in mise.toml, so the build matches CI.
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         if: matrix.language == 'go'
         with:
           install_args: go
           cache: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.language == 'go' && 'autobuild' || 'none' }}
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           category: /language:${{ matrix.language }}
 
@@ -204,7 +204,7 @@ jobs:
           fetch-depth: '0'
           persist-credentials: false
 
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install_args: gitleaks
           cache: false
@@ -224,7 +224,7 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           # Fail the check on findings instead of uploading SARIF only.
           advanced-security: false
