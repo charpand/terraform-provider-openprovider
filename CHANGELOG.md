@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_domain`: `additional_data`, a map of strings that the registration and the transfer send as `additional_data`, for example the acceptance flag of the terms of a registry (`dk_acceptance = "1"`); a change after the order gives a warning
 - CI: supply-chain checks: `zizmor` (workflow analysis), `govulncheck` (reachable Go vulnerabilities, also daily), dependency review on pull requests, CodeQL (Go and workflows), OpenSSF Scorecard, `gitleaks` secret scanning (also in the pre-commit hook), `go mod verify`, and `harden-runner` in audit mode on the `ci.yml` jobs
 - Releases attest signed SLSA build provenance for every archive (`gh attestation verify`); `SECURITY.md` documents how to verify a release
+- Fuzz tests (`go test -fuzz`) for the `Retry-After` handling, the domain name split and the IP whitelist validator
 
 ### Changed
 - `openprovider_domain`: a change of `owner_handle` changes the owner of the domain with an update; `domains.UpdateDomainRequest` has `OwnerHandle`. The provider does not send `accept_update_fee`, so the registrar refuses a change that requires a fee, and the apply fails
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `domains.UpdateDomainRequest.DnssecKeys` and `domains.TransferDomainRequest.DnssecKeys` are now `*[]DnssecKey`
 
 ### Fixed
+- Client: a `Retry-After` header with a huge number of seconds overflowed to a negative pause, so the request was repeated at once instead of after the 30 s cap
 - `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 
 ## [1.3.0] - 2026-11-01
