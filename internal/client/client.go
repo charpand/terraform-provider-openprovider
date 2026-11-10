@@ -186,7 +186,12 @@ func retryDelay(attempt int, resp *http.Response, now time.Time) time.Duration {
 	if resp != nil {
 		if raw := resp.Header.Get("Retry-After"); raw != "" {
 			if seconds, err := strconv.Atoi(raw); err == nil && seconds >= 0 {
-				return min(time.Duration(seconds)*time.Second, retryCap)
+				// Compare in whole seconds first: converting a huge value
+				// to a Duration overflows to a negative pause.
+				if seconds >= int(retryCap/time.Second) {
+					return retryCap
+				}
+				return time.Duration(seconds) * time.Second
 			}
 			if when, err := http.ParseTime(raw); err == nil {
 				if until := when.Sub(now); until > 0 {
