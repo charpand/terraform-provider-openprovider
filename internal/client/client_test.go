@@ -257,6 +257,13 @@ func TestRetryDelay(t *testing.T) {
 		t.Errorf("Expected the cap %v, got %v", retryCap, got)
 	}
 
+	// A value too large to hold as a Duration must still mean the cap, not
+	// overflow to a negative pause that retries at once.
+	resp.Header.Set("Retry-After", "9223372036854775807")
+	if got := retryDelay(1, resp, now); got != retryCap {
+		t.Errorf("Expected the cap %v for an overflowing header, got %v", retryCap, got)
+	}
+
 	resp.Header.Set("Retry-After", now.Add(5*time.Second).UTC().Format(http.TimeFormat))
 	if got := retryDelay(1, resp, now); got != 5*time.Second {
 		t.Errorf("Expected the header's date 5s ahead, got %v", got)
