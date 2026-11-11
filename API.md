@@ -600,3 +600,15 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/cont
 
 err := contacts.SetRCPAllowList(c, 123456, []string{"203.0.113.10", "2001:db8::/32"})
 ```
+
+## Extensions
+
+### Get Extension
+
+A role that the API does not report is `nil`. An extension that Openprovider does not offer is an error.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/tlds"
+
+tld, err := tlds.Get(c, "com")
+```
