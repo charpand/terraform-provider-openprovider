@@ -159,6 +159,28 @@ resource "openprovider_domain" "transferred" {
 }
 ```
 
+#### Transfer with a Write-only Auth Code
+
+```terraform
+# Transfer a domain with an auth code that stays out of the plan and the state.
+# Write-only arguments need Terraform 1.11 or OpenTofu 1.11, or later.
+variable "auth_code" {
+  type        = string
+  sensitive   = true
+  ephemeral   = true
+  description = "The authorization code from your current registrar"
+}
+
+resource "openprovider_domain" "transferred" {
+  domain       = "example.com"
+  auth_code_wo = var.auth_code
+  # Increase this to send the transfer again with a new code.
+  auth_code_wo_version = 1
+  owner_handle         = "XX123456-XX"
+  autorenew            = true
+}
+```
+
 #### Transfer with Import Options
 
 ```terraform
@@ -287,9 +309,13 @@ resource "openprovider_domain" "transferred" {
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `additional_data` (Map of String) Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = "1" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider and gives a warning, and the provider does not read it back.
 - `admin_handle` (String) The admin contact handle for the domain.
 - `auth_code` (String, Sensitive) The EPP/Authorization code for domain transfer (also known as transfer code or auth code). This is obtained from the current registrar. When provided, the domain will be transferred instead of registered.
+- `auth_code_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) The auth code for a domain transfer, as a write-only argument. Terraform does not keep the value in the plan or in the state, and it can come from an ephemeral value. The provider uses it only when it creates the domain. To transfer again with a new code, change `auth_code_wo_version`. Conflicts with `auth_code`.
+- `auth_code_wo_version` (Number) A version of `auth_code_wo`. A change of the version replaces the domain, so the provider sends the transfer again with the code that `auth_code_wo` has then.
 - `autorenew` (Boolean) Whether the domain should auto-renew.
 - `billing_handle` (String) The billing contact handle for the domain.
 - `currency` (String) The currency `max_cost` is stated in. Defaults to EUR. A quote that comes back in another currency fails the apply rather than being converted, because a wrong conversion would spend money.

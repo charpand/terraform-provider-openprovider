@@ -11,6 +11,8 @@ type DomainModel struct {
 	ID              types.String `tfsdk:"id"`
 	Domain          types.String `tfsdk:"domain"`
 	AuthCode        types.String `tfsdk:"auth_code"`
+	AuthCodeWO      types.String `tfsdk:"auth_code_wo"`
+	AuthCodeVersion types.Int64  `tfsdk:"auth_code_wo_version"`
 	Status          types.String `tfsdk:"status"`
 	Autorenew       types.Bool   `tfsdk:"autorenew"`
 	OnDestroy       types.String `tfsdk:"on_destroy"`

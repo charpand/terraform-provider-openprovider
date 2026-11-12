@@ -127,10 +127,38 @@ func (v oneOfValidator) ValidateString(_ context.Context, req validator.StringRe
 	)
 }
 
+// authCodeConflictValidator refuses `auth_code_wo` when `auth_code` is also
+// set, because the two give the same code in two ways.
+type authCodeConflictValidator struct{}
+
+func (v authCodeConflictValidator) Description(_ context.Context) string {
+	return "value must not be set together with auth_code"
+}
+
+func (v authCodeConflictValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v authCodeConflictValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+	var authCode types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auth_code"), &authCode)...)
+	if resp.Diagnostics.HasError() || authCode.IsNull() {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Invalid Attribute Combination",
+		"Set auth_code or auth_code_wo, not both.",
+	)
+}
+
 // registrationPeriodValidator accepts a known `period` only when it is 1 or
 // more, because `Create` orders at least one year for a registration and
 // keeps the period in state. A transfer does not send `period`, so the check
-// does not apply when `auth_code` is set. An unknown `auth_code` can still
+// does not apply when `auth_code` or `auth_code_wo` is set. An unknown code can still
 // become empty, which is a registration, so the check applies to it.
 type registrationPeriodValidator struct{}
 
@@ -150,13 +178,15 @@ func (v registrationPeriodValidator) ValidateInt64(ctx context.Context, req vali
 	if value >= 1 {
 		return
 	}
-	var authCode types.String
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auth_code"), &authCode)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if !authCode.IsNull() && !authCode.IsUnknown() && authCode.ValueString() != "" {
-		return
+	for _, attribute := range []string{"auth_code", "auth_code_wo"} {
+		var authCode types.String
+		resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root(attribute), &authCode)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if !authCode.IsNull() && !authCode.IsUnknown() && authCode.ValueString() != "" {
+			return
+		}
 	}
 	resp.Diagnostics.AddAttributeError(
 		req.Path,
@@ -410,6 +440,22 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"auth_code_wo": schema.StringAttribute{
+				MarkdownDescription: "The auth code for a domain transfer, as a write-only argument. Terraform does not keep the value in the plan or in the state, and it can come from an ephemeral value. The provider uses it only when it creates the domain. To transfer again with a new code, change `auth_code_wo_version`. Conflicts with `auth_code`.",
+				Optional:            true,
+				Sensitive:           true,
+				WriteOnly:           true,
+				Validators: []validator.String{
+					authCodeConflictValidator{},
+				},
+			},
+			"auth_code_wo_version": schema.Int64Attribute{
+				MarkdownDescription: "A version of `auth_code_wo`. A change of the version replaces the domain, so the provider sends the transfer again with the code that `auth_code_wo` has then.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).",
 				Computed:            true,
@@ -595,8 +641,19 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	var domain *domains.Domain
 	var err error
 
-	// Check if this is a transfer (auth_code provided) or a new registration
-	isTransfer := !plan.AuthCode.IsNull() && plan.AuthCode.ValueString() != ""
+	// Check if this is a transfer (auth_code provided) or a new registration.
+	// The plan never has a write-only value, so `auth_code_wo` comes from the
+	// configuration.
+	authCode := plan.AuthCode.ValueString()
+	if authCode == "" && !req.Config.Raw.IsNull() {
+		var authCodeWO types.String
+		resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auth_code_wo"), &authCodeWO)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		authCode = authCodeWO.ValueString()
+	}
+	isTransfer := authCode != ""
 
 	// Read the live quote and hold it against `max_cost` before anything is
 	// ordered. An apply that would spend more than it was told to must fail
@@ -627,7 +684,7 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		transferReq := &domains.TransferDomainRequest{}
 		transferReq.Domain.Name = name
 		transferReq.Domain.Extension = extension
-		transferReq.AuthCode = plan.AuthCode.ValueString()
+		transferReq.AuthCode = authCode
 		transferReq.OwnerHandle = plan.OwnerHandle.ValueString()
 
 		if !plan.AdminHandle.IsNull() {
@@ -844,7 +901,8 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.ExpirationDate = types.StringNull()
 	}
 
-	// Save state
+	// Save state. The state never keeps a write-only value.
+	plan.AuthCodeWO = types.StringNull()
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
