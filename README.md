@@ -1,6 +1,7 @@
 # OpenProvider Terraform Provider
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/charpand/terraform-provider-openprovider/badge)](https://scorecard.dev/viewer/?uri=github.com/charpand/terraform-provider-openprovider)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16857/badge)](https://www.bestpractices.dev/projects/16857)
 
 Terraform provider for managing Openprovider domains and customers.
 
