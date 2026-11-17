@@ -4,20 +4,26 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/charpand/terraform-provider-openprovider/internal/client/ssl"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &SSLOrderResource{}
-	_ resource.ResourceWithConfigure = &SSLOrderResource{}
+	_ resource.Resource                = &SSLOrderResource{}
+	_ resource.ResourceWithConfigure   = &SSLOrderResource{}
+	_ resource.ResourceWithImportState = &SSLOrderResource{}
 )
 
 // SSLOrderResource is the resource implementation.
@@ -27,21 +33,25 @@ type SSLOrderResource struct {
 
 // SSLOrderModel describes the resource data model.
 type SSLOrderModel struct {
-	ID                     types.Int64  `tfsdk:"id"`
-	ProductID              types.Int64  `tfsdk:"product_id"`
-	CommonName             types.String `tfsdk:"common_name"`
-	BrandName              types.String `tfsdk:"brand_name"`
-	Status                 types.String `tfsdk:"status"`
-	OrderDate              types.String `tfsdk:"order_date"`
-	ActiveDate             types.String `tfsdk:"active_date"`
-	ExpirationDate         types.String `tfsdk:"expiration_date"`
-	Autorenew              types.Bool   `tfsdk:"autorenew"`
-	OwnerHandle            types.String `tfsdk:"owner_handle"`
-	AdminHandle            types.String `tfsdk:"admin_handle"`
-	BillingHandle          types.String `tfsdk:"billing_handle"`
-	TechnicalHandle        types.String `tfsdk:"technical_handle"`
-	AdditionalDomains      types.List   `tfsdk:"additional_domains"`
-	DomainValidationMethod types.String `tfsdk:"domain_validation_method"`
+	ID                      types.Int64  `tfsdk:"id"`
+	ProductID               types.Int64  `tfsdk:"product_id"`
+	CommonName              types.String `tfsdk:"common_name"`
+	BrandName               types.String `tfsdk:"brand_name"`
+	Status                  types.String `tfsdk:"status"`
+	OrderDate               types.String `tfsdk:"order_date"`
+	ActiveDate              types.String `tfsdk:"active_date"`
+	ExpirationDate          types.String `tfsdk:"expiration_date"`
+	Autorenew               types.Bool   `tfsdk:"autorenew"`
+	OwnerHandle             types.String `tfsdk:"owner_handle"`
+	AdminHandle             types.String `tfsdk:"admin_handle"`
+	BillingHandle           types.String `tfsdk:"billing_handle"`
+	TechnicalHandle         types.String `tfsdk:"technical_handle"`
+	AdditionalDomains       types.List   `tfsdk:"additional_domains"`
+	DomainValidationMethod  types.String `tfsdk:"domain_validation_method"`
+	CSR                     types.String `tfsdk:"csr"`
+	Certificate             types.String `tfsdk:"certificate"`
+	IntermediateCertificate types.String `tfsdk:"intermediate_certificate"`
+	RootCertificate         types.String `tfsdk:"root_certificate"`
 }
 
 // NewSSLOrderResource returns a new instance of the SSL order resource.
@@ -129,8 +139,49 @@ func (r *SSLOrderResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Computed:            true,
 				Default:             stringdefault.StaticString("dns"),
 			},
+			"csr": schema.StringAttribute{
+				MarkdownDescription: "A certificate signing request (PEM) for the order. Without one, OpenProvider generates a key pair and a request, " +
+					"and you do not hold the private key. A change replaces the order, which is charged again. " +
+					"When the order is imported, the request that OpenProvider holds is read into the state, and a request that differs only in whitespace is no change.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIf(csrChanged, "A change of the CSR replaces the order.", "A change of the CSR replaces the order."),
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"certificate": schema.StringAttribute{
+				MarkdownDescription: "The issued certificate (PEM). Empty until the order is active.",
+				Computed:            true,
+			},
+			"intermediate_certificate": schema.StringAttribute{
+				MarkdownDescription: "The intermediate certificate (PEM) of the chain. Empty until the order is active.",
+				Computed:            true,
+			},
+			"root_certificate": schema.StringAttribute{
+				MarkdownDescription: "The root certificate (PEM) of the chain. Empty until the order is active.",
+				Computed:            true,
+			},
 		},
 	}
+}
+
+// csrChanged tells if the CSR changed in a way that replaces the order. A CSR
+// that differs only in whitespace, or a state without a CSR (an order that was
+// imported), is no change.
+func csrChanged(_ context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() || req.PlanValue.IsUnknown() {
+		return
+	}
+	resp.RequiresReplace = strings.TrimSpace(req.StateValue.ValueString()) != strings.TrimSpace(req.PlanValue.ValueString())
+}
+
+// applyOrderCertificates copies the certificate and its chain of an order into
+// the model; a part that the order does not hold yet is empty.
+func applyOrderCertificates(m *SSLOrderModel, order *ssl.SSLOrder) {
+	m.Certificate = types.StringValue(order.Certificate)
+	m.IntermediateCertificate = types.StringValue(order.IntermediateCertificate)
+	m.RootCertificate = types.StringValue(order.RootCertificate)
 }
 
 // Configure adds the provider configured client to the resource.
@@ -193,6 +244,9 @@ func (r *SSLOrderResource) Create(ctx context.Context, req resource.CreateReques
 	} else {
 		createReq.Autorenew = "off"
 	}
+	if !plan.CSR.IsNull() && !plan.CSR.IsUnknown() {
+		createReq.CSR = plan.CSR.ValueString()
+	}
 
 	order, err := ssl.CreateOrder(r.client, createReq)
 	if err != nil {
@@ -215,6 +269,11 @@ func (r *SSLOrderResource) Create(ctx context.Context, req resource.CreateReques
 	plan.AdminHandle = types.StringValue(order.AdminHandle)
 	plan.BillingHandle = types.StringValue(order.BillingHandle)
 	plan.TechnicalHandle = types.StringValue(order.TechnicalHandle)
+	applyOrderCertificates(&plan, order)
+	// The CSR is what the plan holds; without one, OpenProvider generated it.
+	if plan.CSR.IsNull() || plan.CSR.IsUnknown() {
+		plan.CSR = types.StringValue(order.CSR)
+	}
 
 	if len(order.AdditionalDomains) > 0 {
 		domainsVal, diags := types.ListValueFrom(ctx, types.StringType, order.AdditionalDomains)
@@ -260,6 +319,29 @@ func (r *SSLOrderResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.AdminHandle = types.StringValue(order.AdminHandle)
 	state.BillingHandle = types.StringValue(order.BillingHandle)
 	state.TechnicalHandle = types.StringValue(order.TechnicalHandle)
+	applyOrderCertificates(&state, order)
+
+	// An import has only the id; the arguments that the configuration sets are
+	// read from the order. After a create or a refresh the state keeps its own.
+	if state.ProductID.IsNull() {
+		state.ProductID = types.Int64Value(int64(order.ProductID))
+	}
+	if state.CommonName.IsNull() {
+		state.CommonName = types.StringValue(order.CommonName)
+	}
+	if state.DomainValidationMethod.IsNull() {
+		method := order.ValidationMethod
+		if method == "" {
+			method = order.DomainValidationMethod
+		}
+		if method == "" {
+			method = "dns"
+		}
+		state.DomainValidationMethod = types.StringValue(method)
+	}
+	if state.CSR.IsNull() || state.CSR.IsUnknown() {
+		state.CSR = types.StringValue(order.CSR)
+	}
 
 	if len(order.AdditionalDomains) > 0 {
 		domainsVal, diags := types.ListValueFrom(ctx, types.StringType, order.AdditionalDomains)
@@ -305,6 +387,7 @@ func (r *SSLOrderResource) Update(ctx context.Context, req resource.UpdateReques
 	plan.Status = types.StringValue(order.Status)
 	plan.ExpirationDate = types.StringValue(order.ExpirationDate)
 	plan.Autorenew = types.BoolValue(order.Autorenew == "on")
+	applyOrderCertificates(&plan, order)
 
 	// Set state
 	diags = resp.State.Set(ctx, plan)
@@ -333,4 +416,18 @@ func (r *SSLOrderResource) Delete(ctx context.Context, req resource.DeleteReques
 			"To cancel or renew this SSL order, use the OpenProvider dashboard directly.",
 			orderID, commonName),
 	)
+}
+
+// ImportState imports an SSL order by its numeric id, as `openprovider_ssl_orders` lists it.
+func (r *SSLOrderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	id, err := strconv.ParseInt(req.ID, 10, 64)
+	if err != nil || id <= 0 {
+		resp.Diagnostics.AddError(
+			"Invalid Import Identifier",
+			fmt.Sprintf("Expected the numeric id of an SSL order (e.g. 12345), got: %s", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 }
