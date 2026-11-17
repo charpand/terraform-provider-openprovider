@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dns.CreateZone` and `dns.DeleteZone` client functions
 - `openprovider_dns_record`: import an existing record by `zone_name/name/type`, or `zone_name/name/type/value` where the zone has several records of one name and type; an imported record starts with `allow_deletion` false
 - `dns.GetRecordWithValue` client function
+- `openprovider_dns_template` resource: defines a set of DNS records once, for a new zone to start with; the API has no call to change a template, so a change replaces it; imports by id
+- `dns.CreateTemplate`, `dns.GetTemplate` and `dns.DeleteTemplate` client functions
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes

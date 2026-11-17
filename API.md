@@ -491,6 +491,7 @@ err := dns.DeleteRecord(c, "example.com", "www", "A", "192.0.2.1")
 ```
 
 ### Create DNS Zone
+### DNS Templates
 
 ```go
 import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
@@ -509,6 +510,15 @@ Deletes the zone and all of its records.
 import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
 
 err := dns.DeleteZone(c, "example.com")
+id, err := dns.CreateTemplate(c, &dns.CreateTemplateRequest{
+	Name: "web",
+	Records: []dns.TemplateRecord{
+		{Name: "www", Type: "A", Value: "192.0.2.1", TTL: 3600},
+	},
+})
+
+template, err := dns.GetTemplate(c, id)
+err = dns.DeleteTemplate(c, id)
 ```
 
 ### List DNS Zones
