@@ -57,6 +57,35 @@ func GetRecord(c *client.Client, zoneName string, recordName string, recordType 
 	return nil, fmt.Errorf("record not found: %s (type: %s)", recordName, recordType)
 }
 
+// GetRecordWithValue retrieves a DNS record from a zone like GetRecord, but
+// where a zone has several records of the same name and type (for example two
+// MX records), it returns the one with `value`. If none has this value, it
+// returns the first record of the name and type, as GetRecord does.
+func GetRecordWithValue(c *client.Client, zoneName string, recordName string, recordType string, value string) (*Record, error) {
+	records, err := ListRecords(c, zoneName)
+	if err != nil {
+		return nil, err
+	}
+
+	var first *Record
+	for i, record := range records {
+		if record.Name != recordName || record.Type != recordType {
+			continue
+		}
+		if record.Value == value {
+			return &records[i], nil
+		}
+		if first == nil {
+			first = &records[i]
+		}
+	}
+	if first != nil {
+		return first, nil
+	}
+
+	return nil, fmt.Errorf("record not found: %s (type: %s)", recordName, recordType)
+}
+
 // CreateRecord creates a new DNS record in a zone.
 //
 // Endpoint: POST https://api.openprovider.eu/v1/dns/zones/{name}/records

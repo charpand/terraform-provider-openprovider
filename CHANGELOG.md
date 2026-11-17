@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_ssl_orders` data source: lists the SSL orders of the account with their status and expiration date, optionally for one `common_name` or some `status` values
 - `openprovider_dns_zones` data source: lists every DNS zone of the account
 - `openprovider_dns_records` data source: lists every record of a DNS zone
+- `openprovider_domain_renewal` resource: renews a domain for 1 to 10 years when it is created or replaced, and only when the domain is active and OpenProvider allows a renewal now; `triggers` renews again
+- `openprovider_domains` data source: `can_renew` shows whether OpenProvider allows a renewal of the domain now
+- `domains.Renew` client function
+- `openprovider_domain_restore` resource: restores a domain that has expired, where the registry and the API allow it, when it is created or replaced; also finds a domain that is deleted since it expired; `triggers` restores again
+- `domains.Restore` client function
+- `openprovider_dns_zone` resource: creates a DNS zone, optionally from a DNS template, and imports an existing zone by its name; a destroy only removes the zone from the state unless `allow_deletion` is true, as for `openprovider_dns_record`
+- `dns.CreateZone` and `dns.DeleteZone` client functions
+- `openprovider_dns_record`: import an existing record by `zone_name/name/type`, or `zone_name/name/type/value` where the zone has several records of one name and type; an imported record starts with `allow_deletion` false
+- `dns.GetRecordWithValue` client function
+- `openprovider_dns_template` resource: defines a set of DNS records once, for a new zone to start with; the API has no call to change a template, so a change replaces it; imports by id
+- `dns.CreateTemplate`, `dns.GetTemplate` and `dns.DeleteTemplate` client functions
+- `openprovider_ssl_order`: `csr` orders with your own certificate signing request, `certificate`, `intermediate_certificate` and `root_certificate` hold the issued certificate and its chain once the order is active, and an existing order is imported by its id; a change of the CSR replaces the order, except a change of whitespace or the CSR that an import read
+- `openprovider_domain`: `is_private_whois_enabled` (WHOIS privacy) with `is_private_whois_allowed`, `comments`, and `nameservers`, a list of nameservers of your own (`name`, `ip`, `ip6`) instead of `ns_group`; the registration, the transfer and an update send them, and a domain that does not set them keeps the values that OpenProvider has. Tags are not included: the API's tags are account-wide key-value pairs with no link to a domain
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes
@@ -34,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `ssl.ListOrders` pages through the listing; before, it returned only the API's first page of 100 orders
 - `dns.ListZones` and `dns.ListRecords` page through the listing; before, they returned only the API's first page of 100, so `openprovider_dns_record` could not find a record beyond it
+- `openprovider_dns_record`: a refresh reads the record with the value in the state, so a zone with several records of one name and type (for example two MX records) no longer reads the first of them
 - Client: a `Retry-After` header with a huge number of seconds overflowed to a negative pause, so the request was repeated at once instead of after the 30 s cap
 - `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 

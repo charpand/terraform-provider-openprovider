@@ -119,11 +119,15 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewNSGroupResource,
 		NewGlueRecordResource,
 		NewDNSRecordResource,
+		NewDNSZoneResource,
+		NewDNSTemplateResource,
 		NewSSLOrderResource,
 		NewRCPIPWhitelistResource,
 		NewContactResource,
 		NewDomainAuthCodeResetResource,
 		NewDomainTransferRestartResource,
+		NewDomainRenewalResource,
+		NewDomainRestoreResource,
 	}
 }
 

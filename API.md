@@ -409,6 +409,18 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/pric
 
 quote, err := prices.Get(c, "renew", "example", "com", 2)
 charge := quote.Charge() // the amount that is debited, and its currency
+### Renew a Domain
+
+Charges the account. Returns the status that the API answers with.
+### Restore a Domain
+
+Restores a domain that has expired, where the registry and the API allow it. Charges the account.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+status, err := domains.Renew(c, 123, "example", "com", 2)
+status, err := domains.Restore(c, 123, "example", "com")
 ```
 
 ## DNS Records
@@ -427,6 +439,16 @@ records, err := dns.ListRecords(c, "example.com")
 import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
 
 record, err := dns.GetRecord(c, "example.com", "www", "A")
+```
+
+### Get DNS Record by Value
+
+Where a zone has several records of one name and type, returns the one with the value.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+record, err := dns.GetRecordWithValue(c, "example.com", "example.com", "MX", "mail1.example.com")
 ```
 
 ### Create DNS Record
@@ -466,6 +488,37 @@ record, err := dns.UpdateRecord(c, "example.com", "www", "A", req)
 import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
 
 err := dns.DeleteRecord(c, "example.com", "www", "A", "192.0.2.1")
+```
+
+### Create DNS Zone
+### DNS Templates
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+err := dns.CreateZone(c, &dns.CreateZoneRequest{
+	Domain: dns.ZoneDomain{Name: "example", Extension: "com"},
+	Type:   "master",
+})
+```
+
+### Delete DNS Zone
+
+Deletes the zone and all of its records.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+err := dns.DeleteZone(c, "example.com")
+id, err := dns.CreateTemplate(c, &dns.CreateTemplateRequest{
+	Name: "web",
+	Records: []dns.TemplateRecord{
+		{Name: "www", Type: "A", Value: "192.0.2.1", TTL: 3600},
+	},
+})
+
+template, err := dns.GetTemplate(c, id)
+err = dns.DeleteTemplate(c, id)
 ```
 
 ### List DNS Zones

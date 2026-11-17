@@ -59,6 +59,7 @@ func domainState(t *testing.T, r *DomainResource, onDestroy types.String) tfsdk.
 		OwnerHandle:    types.StringValue("XX000000-NL"),
 		OnDestroy:      onDestroy,
 		DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	})
 	if diags.HasError() {

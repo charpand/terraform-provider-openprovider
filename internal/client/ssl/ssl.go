@@ -4,25 +4,29 @@ package ssl
 // SSLOrder represents an SSL certificate order.
 // nolint:revive
 type SSLOrder struct {
-	ID                     int      `json:"id"`
-	ProductID              int      `json:"product_id"`
-	CommonName             string   `json:"common_name"`
-	BrandName              string   `json:"brand_name,omitempty"`
-	Status                 string   `json:"status"`
-	OrderDate              string   `json:"order_date"`
-	ActiveDate             string   `json:"active_date,omitempty"`
-	ExpirationDate         string   `json:"expiration_date,omitempty"`
-	Autorenew              string   `json:"autorenew,omitempty"`
-	OwnerHandle            string   `json:"owner_handle,omitempty"`
-	AdminHandle            string   `json:"admin_handle,omitempty"`
-	BillingHandle          string   `json:"billing_handle,omitempty"`
-	TechnicalHandle        string   `json:"technical_handle,omitempty"`
-	AdditionalDomains      []string `json:"additional_domains,omitempty"`
-	Certificate            string   `json:"certificate,omitempty"`
-	CertificateCA          string   `json:"certificate_ca,omitempty"`
-	DomainValidationMethod string   `json:"domain_validation_method,omitempty"`
-	ApprovedBy             string   `json:"approved_by,omitempty"`
-	ApprovedDate           string   `json:"approved_date,omitempty"`
+	ID                      int      `json:"id"`
+	ProductID               int      `json:"product_id"`
+	CommonName              string   `json:"common_name"`
+	BrandName               string   `json:"brand_name,omitempty"`
+	Status                  string   `json:"status"`
+	OrderDate               string   `json:"order_date"`
+	ActiveDate              string   `json:"active_date,omitempty"`
+	ExpirationDate          string   `json:"expiration_date,omitempty"`
+	Autorenew               string   `json:"autorenew,omitempty"`
+	OwnerHandle             string   `json:"owner_handle,omitempty"`
+	AdminHandle             string   `json:"admin_handle,omitempty"`
+	BillingHandle           string   `json:"billing_handle,omitempty"`
+	TechnicalHandle         string   `json:"technical_handle,omitempty"`
+	AdditionalDomains       []string `json:"additional_domains,omitempty"`
+	Certificate             string   `json:"certificate,omitempty"`
+	CertificateCA           string   `json:"certificate_ca,omitempty"`
+	IntermediateCertificate string   `json:"intermediate_certificate,omitempty"`
+	RootCertificate         string   `json:"root_certificate,omitempty"`
+	CSR                     string   `json:"csr,omitempty"`
+	ValidationMethod        string   `json:"validation_method,omitempty"`
+	DomainValidationMethod  string   `json:"domain_validation_method,omitempty"`
+	ApprovedBy              string   `json:"approved_by,omitempty"`
+	ApprovedDate            string   `json:"approved_date,omitempty"`
 }
 
 // SSLProduct represents an available SSL product.
@@ -69,6 +73,9 @@ type CreateSSLOrderRequest struct {
 	TechnicalHandle        string   `json:"technical_handle,omitempty"`
 	DomainValidationMethod string   `json:"domain_validation_method,omitempty"`
 	Autorenew              string   `json:"autorenew,omitempty"`
+	// CSR is a certificate signing request that the order uses, in PEM format.
+	// Without one, OpenProvider generates a key pair and a request.
+	CSR string `json:"csr,omitempty"`
 }
 
 // CreateSSLOrderResponse represents the API response for creating an SSL order.

@@ -81,6 +81,10 @@ func (d *DomainsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							MarkdownDescription: "When the registration expires.",
 							Computed:            true,
 						},
+						"can_renew": schema.BoolAttribute{
+							MarkdownDescription: "Whether OpenProvider allows a renewal of the domain now (see `openprovider_domain_renewal`).",
+							Computed:            true,
+						},
 					},
 				},
 			},
@@ -140,6 +144,7 @@ func (d *DomainsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			NSGroup:        types.StringValue(domain.NSGroup),
 			Autorenew:      types.BoolValue(domain.Autorenew == "on"),
 			ExpirationDate: types.StringValue(domain.ExpirationDate),
+			CanRenew:       types.BoolValue(domain.CanRenew),
 		})
 	}
 

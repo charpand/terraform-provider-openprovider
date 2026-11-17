@@ -25,6 +25,7 @@ func transferWithWriteOnlyCode(code types.String) DomainModel {
 		Period:          types.Int64Unknown(),
 		Status:          types.StringUnknown(),
 		DnssecKeys:      noDnssecKeys(),
+		Nameservers:     types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolUnknown(),
 		OnDestroy:       types.StringValue(onDestroyRetain),
