@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_domain_price` data source: reads what a registration, transfer, renewal or restore of a domain costs, without ordering it
 - `prices.Get` client function: prices any operation, where `prices.Create` and `prices.Transfer` price two
 - `openprovider_ssl_orders` data source: lists the SSL orders of the account with their status and expiration date, optionally for one `common_name` or some `status` values
+- `openprovider_dns_zones` data source: lists every DNS zone of the account
+- `openprovider_dns_records` data source: lists every record of a DNS zone
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `ssl.ListOrders` pages through the listing; before, it returned only the API's first page of 100 orders
+- `dns.ListZones` and `dns.ListRecords` page through the listing; before, they returned only the API's first page of 100, so `openprovider_dns_record` could not find a record beyond it
 - Client: a `Retry-After` header with a huge number of seconds overflowed to a negative pause, so the request was repeated at once instead of after the 30 s cap
 - `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 
