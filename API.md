@@ -480,6 +480,27 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
 err := dns.DeleteRecord(c, "example.com", "www", "A", "192.0.2.1")
 ```
 
+### Create DNS Zone
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+err := dns.CreateZone(c, &dns.CreateZoneRequest{
+	Domain: dns.ZoneDomain{Name: "example", Extension: "com"},
+	Type:   "master",
+})
+```
+
+### Delete DNS Zone
+
+Deletes the zone and all of its records.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+err := dns.DeleteZone(c, "example.com")
+```
+
 ### List DNS Zones
 
 ```go

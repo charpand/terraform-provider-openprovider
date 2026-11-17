@@ -2,9 +2,11 @@
 package dns
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -89,4 +91,98 @@ func GetZone(c *client.Client, zoneName string) (*Zone, error) {
 	}
 
 	return &result.Data, nil
+}
+
+// CreateZoneRequest represents a request to create a DNS zone.
+type CreateZoneRequest struct {
+	Domain       ZoneDomain `json:"domain"`
+	Type         string     `json:"type,omitempty"`
+	Provider     string     `json:"provider,omitempty"`
+	Secured      *bool      `json:"secured,omitempty"`
+	MasterIP     string     `json:"master_ip,omitempty"`
+	TemplateName string     `json:"template_name,omitempty"`
+	Records      []Record   `json:"records,omitempty"`
+}
+
+// ZoneDomain is the name and extension of the domain of a zone.
+type ZoneDomain struct {
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+}
+
+type zoneResultResponse struct {
+	Code int    `json:"code"`
+	Desc string `json:"desc,omitempty"`
+	Data struct {
+		Success *bool `json:"success"`
+	} `json:"data"`
+}
+
+func (r zoneResultResponse) err(action string) error {
+	if r.Code != 0 {
+		return fmt.Errorf("%s failed with code %d: %s", action, r.Code, r.Desc)
+	}
+	if r.Data.Success != nil && !*r.Data.Success {
+		return fmt.Errorf("%s was not successful: %s", action, r.Desc)
+	}
+	return nil
+}
+
+// CreateZone creates a DNS zone.
+//
+// Endpoint: POST https://api.openprovider.eu/v1/dns/zones
+func CreateZone(c *client.Client, req *CreateZoneRequest) error {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/dns/zones", c.BaseURL), bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.Do(httpReq)
+	if resp != nil {
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+	}
+	if err != nil {
+		return err
+	}
+
+	var result zoneResultResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	return result.err("create zone")
+}
+
+// DeleteZone deletes a DNS zone and all of its records.
+//
+// Endpoint: DELETE https://api.openprovider.eu/v1/dns/zones/{name}
+func DeleteZone(c *client.Client, zoneName string) error {
+	path := fmt.Sprintf("/v1/dns/zones/%s", url.PathEscape(zoneName))
+	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(httpReq)
+	if resp != nil {
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+	}
+	if err != nil {
+		return err
+	}
+
+	var result zoneResultResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+	return result.err("delete zone")
 }

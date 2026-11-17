@@ -119,6 +119,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewNSGroupResource,
 		NewGlueRecordResource,
 		NewDNSRecordResource,
+		NewDNSZoneResource,
 		NewSSLOrderResource,
 		NewRCPIPWhitelistResource,
 		NewContactResource,
