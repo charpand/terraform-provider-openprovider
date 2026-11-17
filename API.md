@@ -398,6 +398,19 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/doma
 err := domains.RestartLastOperation(c, 123, "example", "com", "auth-code")
 ```
 
+## Prices
+
+### Look up a domain price
+
+`operation` is `create`, `transfer`, `renew` or `restore`.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/prices"
+
+quote, err := prices.Get(c, "renew", "example", "com", 2)
+charge := quote.Charge() // the amount that is debited, and its currency
+```
+
 ## DNS Records
 
 ### List DNS Records

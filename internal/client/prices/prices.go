@@ -63,6 +63,12 @@ func Transfer(c *client.Client, name, extension string) (*Quote, error) {
 	return get(c, "transfer", name, extension, 1)
 }
 
+// Get asks what `operation` on `name`.`extension` for `period` years costs.
+// `operation` is one of `create`, `transfer`, `renew` and `restore`.
+func Get(c *client.Client, operation, name, extension string, period int64) (*Quote, error) {
+	return get(c, operation, name, extension, period)
+}
+
 // get asks what `operation` on `name`.`extension` for `period` years costs.
 //
 // Endpoint: GET /v1/domains/prices

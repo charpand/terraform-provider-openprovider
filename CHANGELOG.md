@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `openprovider_domain_price` data source: reads what a registration, transfer, renewal or restore of a domain costs, without ordering it
+- `prices.Get` client function: prices any operation, where `prices.Create` and `prices.Transfer` price two
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes
