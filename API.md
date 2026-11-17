@@ -412,11 +412,15 @@ charge := quote.Charge() // the amount that is debited, and its currency
 ### Renew a Domain
 
 Charges the account. Returns the status that the API answers with.
+### Restore a Domain
+
+Restores a domain that has expired, where the registry and the API allow it. Charges the account.
 
 ```go
 import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
 
 status, err := domains.Renew(c, 123, "example", "com", 2)
+status, err := domains.Restore(c, 123, "example", "com")
 ```
 
 ## DNS Records
