@@ -409,6 +409,14 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/pric
 
 quote, err := prices.Get(c, "renew", "example", "com", 2)
 charge := quote.Charge() // the amount that is debited, and its currency
+### Renew a Domain
+
+Charges the account. Returns the status that the API answers with.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/domains"
+
+status, err := domains.Renew(c, 123, "example", "com", 2)
 ```
 
 ## DNS Records

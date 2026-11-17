@@ -124,6 +124,7 @@ func (p *OpenproviderProvider) Resources(_ context.Context) []func() resource.Re
 		NewContactResource,
 		NewDomainAuthCodeResetResource,
 		NewDomainTransferRestartResource,
+		NewDomainRenewalResource,
 	}
 }
 

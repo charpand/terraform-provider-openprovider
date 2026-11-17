@@ -46,6 +46,7 @@ locals {
 Read-Only:
 
 - `autorenew` (Boolean) Whether the domain is set to auto-renew.
+- `can_renew` (Boolean) Whether OpenProvider allows a renewal of the domain now (see `openprovider_domain_renewal`).
 - `domain` (String) The domain name.
 - `expiration_date` (String) When the registration expires.
 - `id` (Number) The domain's numeric identifier at OpenProvider.

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openprovider_ssl_orders` data source: lists the SSL orders of the account with their status and expiration date, optionally for one `common_name` or some `status` values
 - `openprovider_dns_zones` data source: lists every DNS zone of the account
 - `openprovider_dns_records` data source: lists every record of a DNS zone
+- `openprovider_domain_renewal` resource: renews a domain for 1 to 10 years when it is created or replaced, and only when the domain is active and OpenProvider allows a renewal now; `triggers` renews again
+- `openprovider_domains` data source: `can_renew` shows whether OpenProvider allows a renewal of the domain now
+- `domains.Renew` client function
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes

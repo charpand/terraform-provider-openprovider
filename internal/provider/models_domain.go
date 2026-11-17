@@ -67,4 +67,5 @@ type DomainsEntryModel struct {
 	NSGroup        types.String `tfsdk:"ns_group"`
 	Autorenew      types.Bool   `tfsdk:"autorenew"`
 	ExpirationDate types.String `tfsdk:"expiration_date"`
+	CanRenew       types.Bool   `tfsdk:"can_renew"`
 }
