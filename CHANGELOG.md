@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client: a `Retry-After` header with a huge number of seconds overflowed to a negative pause, so the request was repeated at once instead of after the 30 s cap
 - `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 
+## [1.3.1] - 2026-11-17
+
+### Fixed
+- Release: `SHA256SUMS` lists only the archives and the registry manifest, not the SBOMs. In v1.3.0 it listed the `.cdx.json` files too, and the Terraform Registry rejected the release with `missing files in request body`; the SBOMs are still attached to the release
+
 ## [1.3.0] - 2026-11-01
 
 ### Added
