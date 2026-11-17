@@ -4,9 +4,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 	"github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -16,8 +18,9 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &DNSRecordResource{}
-	_ resource.ResourceWithConfigure = &DNSRecordResource{}
+	_ resource.Resource                = &DNSRecordResource{}
+	_ resource.ResourceWithConfigure   = &DNSRecordResource{}
+	_ resource.ResourceWithImportState = &DNSRecordResource{}
 )
 
 // DNSRecordResource is the resource implementation.
@@ -174,7 +177,15 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 	recordName := state.Name.ValueString()
 	recordType := state.Type.ValueString()
 
-	record, err := dns.GetRecord(r.client, zoneName, recordName, recordType)
+	// A zone can hold several records of one name and type; the value tells
+	// which one this resource manages. An import has no value yet.
+	var record *dns.Record
+	var err error
+	if state.Value.IsNull() || state.Value.IsUnknown() {
+		record, err = dns.GetRecord(r.client, zoneName, recordName, recordType)
+	} else {
+		record, err = dns.GetRecordWithValue(r.client, zoneName, recordName, recordType, state.Value.ValueString())
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading DNS record",
@@ -271,4 +282,27 @@ func (r *DNSRecordResource) Delete(ctx context.Context, req resource.DeleteReque
 		)
 		return
 	}
+}
+
+// ImportState imports a record by `zone_name/name/type`, for example
+// `example.com/www/A`. Where the zone has several records of this name and
+// type, `zone_name/name/type/value` picks the one with this value. The record
+// is imported with `allow_deletion` false, as a new record starts with it.
+func (r *DNSRecordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.SplitN(req.ID, "/", 4)
+	if len(parts) < 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" || (len(parts) == 4 && parts[3] == "") {
+		resp.Diagnostics.AddError(
+			"Invalid Import Identifier",
+			fmt.Sprintf("Expected zone_name/name/type or zone_name/name/type/value (e.g. example.com/www/A), got: %s", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone_name"), parts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), parts[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), parts[2])...)
+	if len(parts) == 4 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("value"), parts[3])...)
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_deletion"), false)...)
 }

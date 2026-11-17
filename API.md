@@ -441,6 +441,16 @@ import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
 record, err := dns.GetRecord(c, "example.com", "www", "A")
 ```
 
+### Get DNS Record by Value
+
+Where a zone has several records of one name and type, returns the one with the value.
+
+```go
+import "github.com/charpand/terraform-provider-openprovider/internal/client/dns"
+
+record, err := dns.GetRecordWithValue(c, "example.com", "example.com", "MX", "mail1.example.com")
+```
+
 ### Create DNS Record
 
 ```go

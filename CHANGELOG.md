@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `domains.Restore` client function
 - `openprovider_dns_zone` resource: creates a DNS zone, optionally from a DNS template, and imports an existing zone by its name; a destroy only removes the zone from the state unless `allow_deletion` is true, as for `openprovider_dns_record`
 - `dns.CreateZone` and `dns.DeleteZone` client functions
+- `openprovider_dns_record`: import an existing record by `zone_name/name/type`, or `zone_name/name/type/value` where the zone has several records of one name and type; an imported record starts with `allow_deletion` false
+- `dns.GetRecordWithValue` client function
 - `openprovider_domain`: `auth_code_wo` and `auth_code_wo_version`, a write-only auth code for a transfer that Terraform keeps out of the plan and the state; a change of the version replaces the domain and sends the transfer again
 - `openprovider_domain_transfer_restart`: sends a transfer that failed to the registry again, without a new order
 - `data.openprovider_tld`: reads which contact roles a domain of an extension takes
@@ -41,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `ssl.ListOrders` pages through the listing; before, it returned only the API's first page of 100 orders
 - `dns.ListZones` and `dns.ListRecords` page through the listing; before, they returned only the API's first page of 100, so `openprovider_dns_record` could not find a record beyond it
+- `openprovider_dns_record`: a refresh reads the record with the value in the state, so a zone with several records of one name and type (for example two MX records) no longer reads the first of them
 - Client: a `Retry-After` header with a huge number of seconds overflowed to a negative pause, so the request was repeated at once instead of after the 30 s cap
 - `openprovider_domain`: `dnssec_keys = []` removes the keys of the domain on update and sends an empty list on transfer; before, the empty list was dropped from the request
 
