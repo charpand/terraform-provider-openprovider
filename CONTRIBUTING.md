@@ -29,6 +29,7 @@ This section guides you through submitting an enhancement suggestion, including 
 *   Fill in the required template (if available).
 *   Do not include issue numbers in the PR title.
 *   Follow the Go style guidelines (use `gofmt`).
+*   **Add automated tests for new functionality.** A new resource, data source, client function or behaviour change needs tests in a `*_test.go` file next to the code (see `internal/testutils` for the mock client), and a bug fix needs a test that fails without the fix. A pull request that adds functionality without tests will not be merged.
 *   Ensure the test suite passes by running `./scripts/test`.
 *   Ensure the linter passes by running `./scripts/lint`.
 *   **If you modify provider resources or data sources**, regenerate documentation by running `./scripts/docs` and commit the changes. The CI will verify that docs are up-to-date.
