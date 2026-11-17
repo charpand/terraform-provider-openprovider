@@ -31,7 +31,8 @@ builds:
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
-  - formats:
+  - id: zip
+    formats:
       - zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 # One CycloneDX SBOM per release archive, taken from the compiled binary so it
@@ -47,7 +48,12 @@ sboms:
       - '$artifact'
       - '--output'
       - 'cyclonedx-json@1.6=$document'
+# The Terraform Registry rejects a release when SHA256SUMS lists files it does
+# not fetch (the SBOMs), so restrict the checksums to the archives; the
+# manifest is added through extra_files. The SBOMs stay attached to the release.
 checksum:
+  ids:
+    - zip
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
