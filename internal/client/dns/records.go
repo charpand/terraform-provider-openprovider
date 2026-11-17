@@ -6,36 +6,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
-// ListRecords lists all DNS records for a zone.
+// ListRecords lists all DNS records for a zone, paging through the listing.
 //
 // Endpoint: GET https://api.openprovider.eu/v1/dns/zones/{name}/records
 func ListRecords(c *client.Client, zoneName string) ([]Record, error) {
-	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
+	all := make([]Record, 0)
+	for offset := 0; ; {
+		path := fmt.Sprintf("/v1/dns/zones/%s/records?limit=%d&offset=%d", url.PathEscape(zoneName), listPageSize, offset)
+		httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
+		if err != nil {
+			return nil, err
+		}
 
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
+		page, total, err := doList[ListRecordsResponse, Record](c, httpReq, func(r ListRecordsResponse) ([]Record, int) {
+			return r.Data.Results, r.Data.Total
+		})
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		offset += len(page)
+		if len(page) < listPageSize || offset >= total {
+			return all, nil
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	var result ListRecordsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result.Data.Results, nil
 }
 
 // GetRecord retrieves a specific DNS record from a zone.

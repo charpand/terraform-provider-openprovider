@@ -22,6 +22,7 @@ type Zone struct {
 	Name             string `json:"name"`
 	Extension        string `json:"extension"`
 	Type             string `json:"type,omitempty"`
+	Provider         string `json:"provider,omitempty"`
 	CreationDate     string `json:"creation_date,omitempty"`
 	ModificationDate string `json:"modification_date,omitempty"`
 }
