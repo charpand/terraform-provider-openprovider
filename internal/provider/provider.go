@@ -141,6 +141,7 @@ func (p *OpenproviderProvider) DataSources(_ context.Context) []func() datasourc
 		NewCustomerExistsDataSource,
 		NewDomainDataSource,
 		NewDomainCheckDataSource,
+		NewDomainPriceDataSource,
 		NewDomainsDataSource,
 		NewNSGroupDataSource,
 		NewDNSZoneDataSource,
