@@ -30,6 +30,10 @@ type TransferDomainRequest struct {
 	DnssecKeys      *[]DnssecKey      `json:"dnssec_keys,omitempty"`
 	IsDnssecEnabled *bool             `json:"is_dnssec_enabled,omitempty"`
 	AdditionalData  map[string]string `json:"additional_data,omitempty"`
+	// IsPrivateWhoisEnabled hides the owner data in the WHOIS. A pointer, so
+	// that nil sends nothing and the registry keeps its default.
+	IsPrivateWhoisEnabled *bool  `json:"is_private_whois_enabled,omitempty"`
+	Comments              string `json:"comments,omitempty"`
 }
 
 // TransferDomainResponse represents a response for transferring a domain.

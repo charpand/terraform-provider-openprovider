@@ -318,11 +318,14 @@ resource "openprovider_domain" "transferred" {
 - `auth_code_wo_version` (Number) A version of `auth_code_wo`. A change of the version replaces the domain, so the provider sends the transfer again with the code that `auth_code_wo` has then.
 - `autorenew` (Boolean) Whether the domain should auto-renew.
 - `billing_handle` (String) The billing contact handle for the domain.
+- `comments` (String) Comments on the domain, for your own use. An empty string removes them. If you do not set it, the provider keeps the comments that the domain has.
 - `currency` (String) The currency `max_cost` is stated in. Defaults to EUR. A quote that comes back in another currency fails the apply rather than being converted, because a wrong conversion would spend money.
 - `dnssec_keys` (Attributes List) DNSSEC keys for the domain. Optional. An empty list removes the keys of the domain; when unset, the domain keeps the keys it has. A transfer sends the keys with the transfer request; while the transfer is in progress (status `REQ` or `PEN`), the state keeps the configured keys. (see [below for nested schema](#nestedatt--dnssec_keys))
 - `is_dnssec_enabled` (Boolean) Enable DNSSEC for the domain.
 - `is_locked` (Boolean) Whether the domain is locked against a transfer to a different registrar. Set it to `false` before you transfer the domain out, and get the authorization code from OpenProvider. If you do not set it, the provider keeps the value that OpenProvider has. Not all extensions have a lock: for such an extension, do not set `is_locked`.
+- `is_private_whois_enabled` (Boolean) Whether the owner data of the domain is hidden in the WHOIS (WHOIS privacy). If you do not set it, the provider keeps the value that OpenProvider has. Not every extension allows it: see `is_private_whois_allowed`.
 - `max_cost` (Number) The most, in minor units of `currency` (cents for EUR and USD), that this registration or transfer may cost. The live quote is read before anything is ordered, and the apply fails without spending if the quote is higher. No bound is held when this is unset.
+- `nameservers` (Attributes List) A list of nameservers of your own, in order, instead of a nameserver group. Use either this or `ns_group`. If you do not set it, the provider does not manage the nameservers, and removing the list from the configuration changes nothing at OpenProvider. (see [below for nested schema](#nestedatt--nameservers))
 - `ns_group` (String) The nameserver group to use for this domain. Use this instead of nameserver blocks.
 - `on_destroy` (String) What destroying this resource does to the domain at OpenProvider. `retain` (the default) only forgets the domain in state: it stays in the account, and a later `import` takes it back. `expire` also forgets the domain in state, and turns its autorenew off at OpenProvider: the domain stays in the account until its expiration date at OpenProvider, and then expires. For some extensions, that date is some days before the expiration date at the registry. `delete` deletes the domain at OpenProvider through `DELETE /v1/domains/{id}`; where the registry allows it the domain then goes into OpenProvider's soft quarantine, from where a restore is priced separately. When the account shows the domain as deleted (status `DEL`), for example after a transfer to a different registrar, a destroy makes no change at OpenProvider and gives a warning. A destroy uses the value in state, not the value in the configuration: apply a change of `on_destroy` before a destroy. Use `lifecycle { prevent_destroy = true }` to refuse a destroy altogether.
 - `period` (Number) Registration period in years, at least 1. Defaults to 1 when not set. Only applicable for domain registration (not transfers).
@@ -333,6 +336,7 @@ resource "openprovider_domain" "transferred" {
 - `cost` (Number) What the operation was quoted at, in minor units of `currency`, at the time it ran.
 - `expiration_date` (String) The domain expiration date.
 - `id` (String) The domain identifier (domain name).
+- `is_private_whois_allowed` (Boolean) Whether OpenProvider allows WHOIS privacy for this domain.
 - `status` (String) The current status of the domain. Common values: REQ (transfer requested), ACT (active/completed).
 
 <a id="nestedatt--dnssec_keys"></a>
@@ -344,6 +348,19 @@ Required:
 - `flags` (Number) The flags field (typically 257 for KSK or 256 for ZSK).
 - `protocol` (Number) The protocol field (typically 3 for DNSSEC).
 - `public_key` (String) The public key.
+
+
+<a id="nestedatt--nameservers"></a>
+### Nested Schema for `nameservers`
+
+Required:
+
+- `name` (String) The host name of the nameserver.
+
+Optional:
+
+- `ip` (String) The IPv4 address, for a nameserver below the domain itself.
+- `ip6` (String) The IPv6 address, for a nameserver below the domain itself.
 
 
 

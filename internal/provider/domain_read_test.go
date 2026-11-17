@@ -54,6 +54,7 @@ func heldDomainState(t *testing.T, r *DomainResource) tfsdk.State {
 		Domain:         types.StringValue("example.com"),
 		OwnerHandle:    types.StringValue("XX000000-NL"),
 		DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	})
 	if diags.HasError() {
@@ -156,6 +157,7 @@ func TestDomainResourceReadKeepsTheDnssecOfATransferInFlight(t *testing.T) {
 				OwnerHandle:     types.StringValue("XX000000-NL"),
 				Status:          types.StringValue(domainStatusRequested),
 				DnssecKeys:      keys,
+				Nameservers:     types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 				AdditionalData:  types.MapNull(types.StringType),
 				IsDnssecEnabled: types.BoolValue(true),
 			})

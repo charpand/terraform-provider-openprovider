@@ -582,6 +582,49 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"is_private_whois_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether the owner data of the domain is hidden in the WHOIS (WHOIS privacy). If you do not set it, the provider keeps the value that OpenProvider has. Not every extension allows it: see `is_private_whois_allowed`.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"is_private_whois_allowed": schema.BoolAttribute{
+				MarkdownDescription: "Whether OpenProvider allows WHOIS privacy for this domain.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"comments": schema.StringAttribute{
+				MarkdownDescription: "Comments on the domain, for your own use. An empty string removes them. If you do not set it, the provider keeps the comments that the domain has.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"nameservers": schema.ListNestedAttribute{
+				MarkdownDescription: "A list of nameservers of your own, in order, instead of a nameserver group. Use either this or `ns_group`. If you do not set it, the provider does not manage the nameservers, and removing the list from the configuration changes nothing at OpenProvider.",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "The host name of the nameserver.",
+							Required:            true,
+						},
+						"ip": schema.StringAttribute{
+							MarkdownDescription: "The IPv4 address, for a nameserver below the domain itself.",
+							Optional:            true,
+						},
+						"ip6": schema.StringAttribute{
+							MarkdownDescription: "The IPv6 address, for a nameserver below the domain itself.",
+							Optional:            true,
+						},
+					},
+				},
+			},
 			"additional_data": schema.MapAttribute{
 				MarkdownDescription: "Extension-specific data that the registration or the transfer sends as `additional_data`, for example `{ dk_acceptance = \"1\" }` for the acceptance of the terms of the `.dk` registry. Keys and values go to OpenProvider as given. Only the order sends it: a change after the registration or the transfer makes no change at OpenProvider and gives a warning, and the provider does not read it back.",
 				ElementType:         types.StringType,
@@ -621,6 +664,11 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	var plan DomainModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	validateNameservers(plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -727,6 +775,18 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 			return
 		}
 
+		transferReq.Nameservers = nameserversToAPI(ctx, plan.Nameservers, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if whois := plan.IsPrivateWhoisEnabled; !whois.IsNull() && !whois.IsUnknown() {
+			enabled := whois.ValueBool()
+			transferReq.IsPrivateWhoisEnabled = &enabled
+		}
+		if !plan.Comments.IsNull() && !plan.Comments.IsUnknown() {
+			transferReq.Comments = plan.Comments.ValueString()
+		}
+
 		domain, err = domains.Transfer(r.client, transferReq)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -793,6 +853,18 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 		createReq.AdditionalData = convertAdditionalDataToAPI(ctx, plan.AdditionalData, &resp.Diagnostics)
 		if resp.Diagnostics.HasError() {
 			return
+		}
+
+		createReq.Nameservers = nameserversToAPI(ctx, plan.Nameservers, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if whois := plan.IsPrivateWhoisEnabled; !whois.IsNull() && !whois.IsUnknown() {
+			enabled := whois.ValueBool()
+			createReq.IsPrivateWhoisEnabled = &enabled
+		}
+		if !plan.Comments.IsNull() && !plan.Comments.IsUnknown() {
+			createReq.Comments = plan.Comments.ValueString()
 		}
 
 		// Create the domain
@@ -892,6 +964,19 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 				fmt.Sprintf("Could not set the lock of domain %s to %t after its creation, so the next apply tries again: %s", domainName, locked, err.Error()),
 			)
 		}
+	}
+
+	// The settings that the configuration did not set take the value of the
+	// domain. A value that the configuration set stays as planned, because the
+	// order response can omit it, and `Read` shows a difference later.
+	if plan.IsPrivateWhoisEnabled.IsUnknown() {
+		plan.IsPrivateWhoisEnabled = types.BoolValue(domain.IsPrivateWhoisEnabled)
+	}
+	if plan.IsPrivateWhoisAllowed.IsUnknown() {
+		plan.IsPrivateWhoisAllowed = types.BoolValue(domain.IsPrivateWhoisAllowed)
+	}
+	if plan.Comments.IsUnknown() {
+		plan.Comments = types.StringValue(domain.Comments)
 	}
 
 	// Map expiration date if present
@@ -1023,6 +1108,13 @@ func (r *DomainResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	state.IsLocked = types.BoolValue(domain.IsLocked)
+	state.IsPrivateWhoisEnabled = types.BoolValue(domain.IsPrivateWhoisEnabled)
+	state.IsPrivateWhoisAllowed = types.BoolValue(domain.IsPrivateWhoisAllowed)
+	state.Comments = types.StringValue(domain.Comments)
+	state.Nameservers = mapNameserversToState(ctx, domain.Nameservers, state.Nameservers, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Map expiration date if present
 	if domain.ExpirationDate != "" {
@@ -1044,6 +1136,11 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	resp.Diagnostics.Append(diags...)
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	validateNameservers(plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1089,7 +1186,10 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 		!plan.NSGroup.Equal(state.NSGroup) ||
 		!plan.DnssecKeys.Equal(state.DnssecKeys) ||
 		!plan.IsDnssecEnabled.Equal(state.IsDnssecEnabled) ||
-		lockChanges(plan, state)
+		lockChanges(plan, state) ||
+		whoisPrivacyChanges(plan, state) ||
+		commentsChange(plan, state) ||
+		nameserversChange(plan, state)
 
 	// If no changes detected, skip the API call and just refresh state to pick up any
 	// server-side changes (e.g., DNSSEC keys or other computed fields updated by the API).
@@ -1162,6 +1262,21 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if lockChanges(plan, state) {
 		locked := plan.IsLocked.ValueBool()
 		updateReq.IsLocked = &locked
+	}
+
+	if whoisPrivacyChanges(plan, state) {
+		enabled := plan.IsPrivateWhoisEnabled.ValueBool()
+		updateReq.IsPrivateWhoisEnabled = &enabled
+	}
+	if commentsChange(plan, state) {
+		comments := plan.Comments.ValueString()
+		updateReq.Comments = &comments
+	}
+	if nameserversChange(plan, state) {
+		updateReq.Nameservers = nameserversToAPI(ctx, plan.Nameservers, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Send update

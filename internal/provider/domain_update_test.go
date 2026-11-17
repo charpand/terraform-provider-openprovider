@@ -73,6 +73,7 @@ func TestDomainResourceUpdateKeepsOrderFields(t *testing.T) {
 		Autorenew:      types.BoolValue(false),
 		OwnerHandle:    types.StringValue("XX000001-NL"),
 		DnssecKeys:     noKeys,
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	}
 	ordered := prior
@@ -150,6 +151,7 @@ func TestDomainResourceUpdateWarnsOfChangedAdditionalData(t *testing.T) {
 				Autorenew:      types.BoolValue(false),
 				OwnerHandle:    types.StringValue("XX000001-NL"),
 				DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+				Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 				AdditionalData: tc.prior,
 			}
 			plan := prior
@@ -198,6 +200,7 @@ func TestDomainResourceUpdateResolvesAnUnknownPeriod(t *testing.T) {
 		Autorenew:      types.BoolValue(false),
 		OwnerHandle:    types.StringValue("XX000001-NL"),
 		DnssecKeys:     noKeys,
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	}
 	plan := prior
@@ -246,6 +249,7 @@ func TestDomainResourceUpdateKeepsOnDestroy(t *testing.T) {
 		Autorenew:      types.BoolValue(false),
 		OwnerHandle:    types.StringValue("XX000001-NL"),
 		DnssecKeys:     noKeys,
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	}
 	plan := prior

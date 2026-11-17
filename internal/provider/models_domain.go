@@ -8,28 +8,39 @@ import (
 // DomainModel represents the Terraform state model for a domain.
 // This is separate from the API model and uses Terraform framework types.
 type DomainModel struct {
-	ID              types.String `tfsdk:"id"`
-	Domain          types.String `tfsdk:"domain"`
-	AuthCode        types.String `tfsdk:"auth_code"`
-	AuthCodeWO      types.String `tfsdk:"auth_code_wo"`
-	AuthCodeVersion types.Int64  `tfsdk:"auth_code_wo_version"`
-	Status          types.String `tfsdk:"status"`
-	Autorenew       types.Bool   `tfsdk:"autorenew"`
-	OnDestroy       types.String `tfsdk:"on_destroy"`
-	OwnerHandle     types.String `tfsdk:"owner_handle"`
-	AdminHandle     types.String `tfsdk:"admin_handle"`
-	TechHandle      types.String `tfsdk:"tech_handle"`
-	BillingHandle   types.String `tfsdk:"billing_handle"`
-	Period          types.Int64  `tfsdk:"period"`
-	MaxCost         types.Int64  `tfsdk:"max_cost"`
-	Currency        types.String `tfsdk:"currency"`
-	Cost            types.Int64  `tfsdk:"cost"`
-	NSGroup         types.String `tfsdk:"ns_group"`
-	DnssecKeys      types.List   `tfsdk:"dnssec_keys"`
-	IsDnssecEnabled types.Bool   `tfsdk:"is_dnssec_enabled"`
-	IsLocked        types.Bool   `tfsdk:"is_locked"`
-	AdditionalData  types.Map    `tfsdk:"additional_data"`
-	ExpirationDate  types.String `tfsdk:"expiration_date"`
+	ID                    types.String `tfsdk:"id"`
+	Domain                types.String `tfsdk:"domain"`
+	AuthCode              types.String `tfsdk:"auth_code"`
+	AuthCodeWO            types.String `tfsdk:"auth_code_wo"`
+	AuthCodeVersion       types.Int64  `tfsdk:"auth_code_wo_version"`
+	Status                types.String `tfsdk:"status"`
+	Autorenew             types.Bool   `tfsdk:"autorenew"`
+	OnDestroy             types.String `tfsdk:"on_destroy"`
+	OwnerHandle           types.String `tfsdk:"owner_handle"`
+	AdminHandle           types.String `tfsdk:"admin_handle"`
+	TechHandle            types.String `tfsdk:"tech_handle"`
+	BillingHandle         types.String `tfsdk:"billing_handle"`
+	Period                types.Int64  `tfsdk:"period"`
+	MaxCost               types.Int64  `tfsdk:"max_cost"`
+	Currency              types.String `tfsdk:"currency"`
+	Cost                  types.Int64  `tfsdk:"cost"`
+	NSGroup               types.String `tfsdk:"ns_group"`
+	DnssecKeys            types.List   `tfsdk:"dnssec_keys"`
+	IsDnssecEnabled       types.Bool   `tfsdk:"is_dnssec_enabled"`
+	IsLocked              types.Bool   `tfsdk:"is_locked"`
+	IsPrivateWhoisEnabled types.Bool   `tfsdk:"is_private_whois_enabled"`
+	IsPrivateWhoisAllowed types.Bool   `tfsdk:"is_private_whois_allowed"`
+	Comments              types.String `tfsdk:"comments"`
+	Nameservers           types.List   `tfsdk:"nameservers"`
+	AdditionalData        types.Map    `tfsdk:"additional_data"`
+	ExpirationDate        types.String `tfsdk:"expiration_date"`
+}
+
+// NameserverModel represents a nameserver of a domain in Terraform state.
+type NameserverModel struct {
+	Name types.String `tfsdk:"name"`
+	IP   types.String `tfsdk:"ip"`
+	IP6  types.String `tfsdk:"ip6"`
 }
 
 // DnssecKeyModel represents a DNSSEC key in Terraform state.

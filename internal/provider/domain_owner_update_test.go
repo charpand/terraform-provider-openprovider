@@ -57,6 +57,7 @@ func ownerModel(owner string, autorenew bool) DomainModel {
 		Autorenew:      types.BoolValue(autorenew),
 		OwnerHandle:    types.StringValue(owner),
 		DnssecKeys:     types.ListNull(types.ObjectType{AttrTypes: dnssecKeysAttrTypes}),
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 	}
 }

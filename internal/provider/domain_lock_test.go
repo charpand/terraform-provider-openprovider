@@ -111,6 +111,7 @@ func TestDomainResourceCreateSetsTheLock(t *testing.T) {
 		OwnerHandle:    types.StringValue("XX000001-NL"),
 		Autorenew:      types.BoolValue(false),
 		DnssecKeys:     noKeys,
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 		Period:         types.Int64Value(1),
 		MaxCost:        types.Int64Value(10000),
@@ -192,6 +193,7 @@ func TestDomainResourceUpdateSetsTheLock(t *testing.T) {
 		Autorenew:      types.BoolValue(false),
 		OwnerHandle:    types.StringValue("XX000001-NL"),
 		DnssecKeys:     noKeys,
+		Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData: types.MapNull(types.StringType),
 		OnDestroy:      types.StringValue(onDestroyRetain),
 	}

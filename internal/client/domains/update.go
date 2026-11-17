@@ -28,6 +28,11 @@ type UpdateDomainRequest struct {
 	// removes the keys of the domain.
 	DnssecKeys      *[]DnssecKey `json:"dnssec_keys,omitempty"`
 	IsDnssecEnabled *bool        `json:"is_dnssec_enabled,omitempty"`
+	// IsPrivateWhoisEnabled hides the owner data in the WHOIS.
+	IsPrivateWhoisEnabled *bool `json:"is_private_whois_enabled,omitempty"`
+	// Comments is a pointer, so that a request can send an empty string,
+	// which removes the comments of the domain.
+	Comments *string `json:"comments,omitempty"`
 }
 
 // UpdateDomainResponse represents a response for updating a domain.

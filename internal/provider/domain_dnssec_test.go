@@ -42,6 +42,7 @@ func TestDomainResourceCreateTransferWithNoKeysSendsAnEmptyList(t *testing.T) {
 				Period:          types.Int64Unknown(),
 				Status:          types.StringUnknown(),
 				DnssecKeys:      noDnssecKeys(),
+				Nameservers:     types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 				AdditionalData:  types.MapNull(types.StringType),
 				IsDnssecEnabled: types.BoolUnknown(),
 				OnDestroy:       types.StringValue(onDestroyRetain),
@@ -98,6 +99,7 @@ func TestDomainResourceUpdateWithNoKeysRemovesTheKeys(t *testing.T) {
 		Autorenew:       types.BoolValue(false),
 		OwnerHandle:     types.StringValue("XX000001-NL"),
 		DnssecKeys:      dnssecKeys(t, "AwEAAa"),
+		Nameservers:     types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 		AdditionalData:  types.MapNull(types.StringType),
 		IsDnssecEnabled: types.BoolValue(true),
 	}
@@ -153,6 +155,7 @@ func TestDomainResourceReadKeepsAnEmptyList(t *testing.T) {
 				OwnerHandle:    types.StringValue("XX000001-NL"),
 				Status:         types.StringValue("ACT"),
 				DnssecKeys:     prior,
+				Nameservers:    types.ListNull(types.ObjectType{AttrTypes: nameserverAttrTypes}),
 				AdditionalData: types.MapNull(types.StringType),
 			})
 			resp := &resource.ReadResponse{State: state}
