@@ -10,16 +10,39 @@ import (
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
-// ListOrders lists all SSL orders.
+// listPageSize is how many orders one request asks for while ListOrders pages
+// through the account. The API's default page is 100, so listing everything
+// must ask more than once; this is the size of each of those requests, not a
+// cap on the result. A var so the tests can shrink it.
+var listPageSize = 100
+
+// ListOrders lists all SSL orders of the account, paging through the listing.
 //
 // Endpoint: GET https://api.openprovider.eu/v1/ssl/orders
 func ListOrders(c *client.Client) ([]SSLOrder, error) {
-	path := "/v1/ssl/orders"
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
+	all := make([]SSLOrder, 0)
+	for offset := 0; ; {
+		path := fmt.Sprintf("/v1/ssl/orders?limit=%d&offset=%d", listPageSize, offset)
+		httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
+		if err != nil {
+			return nil, err
+		}
 
+		page, total, err := listOrdersPage(c, httpReq)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		offset += len(page)
+		// A short or empty page stops the loop even if total disagrees, so a
+		// bad or missing total can't spin this forever.
+		if len(page) < listPageSize || offset >= total {
+			return all, nil
+		}
+	}
+}
+
+func listOrdersPage(c *client.Client, httpReq *http.Request) ([]SSLOrder, int, error) {
 	resp, err := c.Do(httpReq)
 	if resp != nil {
 		defer func() {
@@ -27,15 +50,15 @@ func ListOrders(c *client.Client) ([]SSLOrder, error) {
 		}()
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var result ListSSLOrdersResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return result.Data.Results, nil
+	return result.Data.Results, result.Data.Total, nil
 }
 
 // GetOrder retrieves a specific SSL order by ID.
