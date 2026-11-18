@@ -1,10 +1,7 @@
 package contacts
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -30,22 +27,5 @@ func SetRCPAllowList(c *client.Client, id int, allow []string) error {
 	var payload rcpAllowList
 	payload.RCPClientIPList.Allow = allow
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	path := fmt.Sprintf("/v1/contacts/%d", id)
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Do(req)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	return err
+	return c.JSON("PUT", fmt.Sprintf("/v1/contacts/%d", id), payload, nil)
 }
