@@ -2,11 +2,6 @@
 package nsgroups
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
@@ -26,29 +21,8 @@ type CreateNSGroupResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/dns/nameservers/groups
 func Create(c *client.Client, req *CreateNSGroupRequest) (*NSGroup, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := "/v1/dns/nameservers/groups"
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result CreateNSGroupResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/dns/nameservers/groups", req, &result); err != nil {
 		return nil, err
 	}
 

@@ -2,9 +2,7 @@
 package nsgroups
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -26,23 +24,8 @@ type GetNSGroupByNameResponse struct {
 // GetByName retrieves a nameserver group by name from the Openprovider API.
 // This is useful for import operations where the name is known but not the ID.
 func GetByName(c *client.Client, name string) (*NSGroup, error) {
-	path := fmt.Sprintf("/v1/dns/nameservers/groups?ns_group_pattern=%s", name)
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var results GetNSGroupByNameResponse
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+	if err := c.JSON("GET", fmt.Sprintf("/v1/dns/nameservers/groups?ns_group_pattern=%s", name), nil, &results); err != nil {
 		return nil, err
 	}
 
