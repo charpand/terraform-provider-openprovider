@@ -10,6 +10,23 @@ c := client.NewClient(client.Config{
 })
 ```
 
+## Sending a Request
+
+Every API function sends its request through `Client.JSON`, which encodes the body, sends the request with the token, retries and login of `Client.Do`, and decodes the answer:
+
+```go
+var result GetThingResponse
+err := c.JSON("GET", "/v1/things/42", nil, &result) // nil body, answer decoded into result
+```
+
+A status outside 2xx is an `*client.APIError`; `client.IsNotFound(err)` tells a 404 apart from a failed request:
+
+```go
+if client.IsNotFound(err) {
+	return nil, nil // the thing is gone
+}
+```
+
 ## Customers
 
 ### List Customers
