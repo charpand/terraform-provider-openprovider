@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-18
+
 ### Added
 - `openprovider_domain_price` data source: reads what a registration, transfer, renewal or restore of a domain costs, without ordering it
 - `prices.Get` client function: prices any operation, where `prices.Create` and `prices.Transfer` price two
@@ -196,7 +198,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic token refresh and authentication handling
 - Support for Terraform >= 1.3
 
-[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.3.1...v1.4.0
+[1.3.1]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/charpand/terraform-provider-openprovider/compare/v1.1.1...v1.1.2
