@@ -13,24 +13,8 @@ import (
 //
 // Endpoint: GET https://api.openprovider.eu/v1/ssl/products
 func ListProducts(c *client.Client) ([]SSLProduct, error) {
-	path := "/v1/ssl/products"
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result ListSSLProductsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", "/v1/ssl/products", nil, &result); err != nil {
 		return nil, err
 	}
 

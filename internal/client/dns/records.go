@@ -2,10 +2,7 @@
 package dns
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -18,12 +15,7 @@ func ListRecords(c *client.Client, zoneName string) ([]Record, error) {
 	all := make([]Record, 0)
 	for offset := 0; ; {
 		path := fmt.Sprintf("/v1/dns/zones/%s/records?limit=%d&offset=%d", url.PathEscape(zoneName), listPageSize, offset)
-		httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		page, total, err := doList[ListRecordsResponse, Record](c, httpReq, func(r ListRecordsResponse) ([]Record, int) {
+		page, total, err := doList[ListRecordsResponse, Record](c, path, func(r ListRecordsResponse) ([]Record, int) {
 			return r.Data.Results, r.Data.Total
 		})
 		if err != nil {
@@ -90,30 +82,8 @@ func GetRecordWithValue(c *client.Client, zoneName string, recordName string, re
 //
 // Endpoint: POST https://api.openprovider.eu/v1/dns/zones/{name}/records
 func CreateRecord(c *client.Client, zoneName string, req *CreateRecordRequest) (*Record, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result CreateRecordResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", fmt.Sprintf("/v1/dns/zones/%s/records", zoneName), req, &result); err != nil {
 		return nil, err
 	}
 
@@ -125,30 +95,8 @@ func CreateRecord(c *client.Client, zoneName string, req *CreateRecordRequest) (
 // Endpoint: PUT https://api.openprovider.eu/v1/dns/zones/{name}/records
 // Note: The API uses PUT to update records by filtering on name and type.
 func UpdateRecord(c *client.Client, zoneName string, _ string, _ string, req *UpdateRecordRequest) (*Record, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
-	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result UpdateRecordResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("PUT", fmt.Sprintf("/v1/dns/zones/%s/records", zoneName), req, &result); err != nil {
 		return nil, err
 	}
 
@@ -160,40 +108,12 @@ func UpdateRecord(c *client.Client, zoneName string, _ string, _ string, req *Up
 // Endpoint: DELETE https://api.openprovider.eu/v1/dns/zones/{name}/records
 // Note: The API uses DELETE with body to specify the record to remove.
 func DeleteRecord(c *client.Client, zoneName string, recordName string, recordType string, value string) error {
-	req := DeleteRecordRequest{
+	var result DeleteRecordResponse
+	return c.JSON("DELETE", fmt.Sprintf("/v1/dns/zones/%s/records", zoneName), DeleteRecordRequest{
 		Name:  recordName,
 		Type:  recordType,
 		Value: value,
-	}
-
-	body, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	path := fmt.Sprintf("/v1/dns/zones/%s/records", zoneName)
-	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
-	var result DeleteRecordResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return err
-	}
-
-	return nil
+	}, &result)
 }
 
 // DeleteRecordRequest represents a request to delete a DNS record.

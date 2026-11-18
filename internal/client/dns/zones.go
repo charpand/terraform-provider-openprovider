@@ -2,10 +2,7 @@
 package dns
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -24,12 +21,7 @@ func ListZones(c *client.Client) ([]Zone, error) {
 	all := make([]Zone, 0)
 	for offset := 0; ; {
 		path := fmt.Sprintf("/v1/dns/zones?limit=%d&offset=%d", listPageSize, offset)
-		httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		page, total, err := doList[ListZonesResponse, Zone](c, httpReq, func(r ListZonesResponse) ([]Zone, int) {
+		page, total, err := doList[ListZonesResponse, Zone](c, path, func(r ListZonesResponse) ([]Zone, int) {
 			return r.Data.Results, r.Data.Total
 		})
 		if err != nil {
@@ -46,19 +38,9 @@ func ListZones(c *client.Client) ([]Zone, error) {
 }
 
 // doList sends a listing request and decodes the page that it answers with.
-func doList[R any, T any](c *client.Client, httpReq *http.Request, unpack func(R) ([]T, int)) ([]T, int, error) {
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, 0, err
-	}
-
+func doList[R any, T any](c *client.Client, path string, unpack func(R) ([]T, int)) ([]T, int, error) {
 	var result R
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", path, nil, &result); err != nil {
 		return nil, 0, err
 	}
 	page, total := unpack(result)
@@ -69,24 +51,8 @@ func doList[R any, T any](c *client.Client, httpReq *http.Request, unpack func(R
 //
 // Endpoint: GET https://api.openprovider.eu/v1/dns/zones/{name}
 func GetZone(c *client.Client, zoneName string) (*Zone, error) {
-	path := fmt.Sprintf("/v1/dns/zones/%s", zoneName)
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result GetZoneResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", fmt.Sprintf("/v1/dns/zones/%s", zoneName), nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -132,29 +98,8 @@ func (r zoneResultResponse) err(action string) error {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/dns/zones
 func CreateZone(c *client.Client, req *CreateZoneRequest) error {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/dns/zones", c.BaseURL), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
 	var result zoneResultResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/dns/zones", req, &result); err != nil {
 		return err
 	}
 	return result.err("create zone")
@@ -164,24 +109,8 @@ func CreateZone(c *client.Client, req *CreateZoneRequest) error {
 //
 // Endpoint: DELETE https://api.openprovider.eu/v1/dns/zones/{name}
 func DeleteZone(c *client.Client, zoneName string) error {
-	path := fmt.Sprintf("/v1/dns/zones/%s", url.PathEscape(zoneName))
-	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
 	var result zoneResultResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("DELETE", fmt.Sprintf("/v1/dns/zones/%s", url.PathEscape(zoneName)), nil, &result); err != nil {
 		return err
 	}
 	return result.err("delete zone")
