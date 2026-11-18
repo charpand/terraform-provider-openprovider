@@ -1,10 +1,7 @@
 package domains
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -35,38 +32,16 @@ type restartLastOperationResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/domains/{id}/last-operation/restart
 func RestartLastOperation(c *client.Client, id int, name, extension, authCode string) error {
-	body, err := json.Marshal(&restartLastOperationRequest{
+	var result restartLastOperationResponse
+	err := c.JSON("POST", fmt.Sprintf("/v1/domains/%d/last-operation/restart", id), &restartLastOperationRequest{
 		ID:       id,
 		Domain:   restartLastOperationName{Name: name, Extension: extension},
 		AuthCode: authCode,
-	})
+	}, &result)
 	if err != nil {
 		return err
 	}
 
-	path := fmt.Sprintf("/v1/domains/%d/last-operation/restart", id)
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.Do(req)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
-	var result restartLastOperationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return err
-	}
-
-	// The API can refuse the operation with a non-zero code in a 2xx response.
 	if result.Code != 0 {
 		return fmt.Errorf("restart operation failed with code %d: %s", result.Code, result.Desc)
 	}

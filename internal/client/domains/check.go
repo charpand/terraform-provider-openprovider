@@ -1,10 +1,7 @@
 package domains
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -43,31 +40,8 @@ type CheckDomainsResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/domains/check
 func Check(c *client.Client, domainsToCheck []CheckDomain) ([]CheckResult, error) {
-	body, err := json.Marshal(CheckDomainsRequest{Domains: domainsToCheck})
-	if err != nil {
-		return nil, err
-	}
-
-	path := "/v1/domains/check"
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if err != nil {
-		// A non-2xx response comes back here as both a non-nil resp (its
-		// body already read and closed by Do) and a non-nil err, so the
-		// close below only runs once the body is still open to close.
-		return nil, err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result CheckDomainsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/domains/check", CheckDomainsRequest{Domains: domainsToCheck}, &result); err != nil {
 		return nil, err
 	}
 	if result.Code != 0 {
