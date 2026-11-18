@@ -99,20 +99,7 @@ func (r *RCPIPWhitelistResource) Schema(_ context.Context, _ resource.SchemaRequ
 
 // Configure adds the provider configured client to the resource.
 func (r *RCPIPWhitelistResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // allowStrings returns the entries of the plan's set, sorted.

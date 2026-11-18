@@ -87,20 +87,7 @@ func (r *DomainTransferRestartResource) Schema(_ context.Context, _ resource.Sch
 
 // Configure attaches the API client.
 func (r *DomainTransferRestartResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // Create restarts the transfer. The API restarts the last operation of the

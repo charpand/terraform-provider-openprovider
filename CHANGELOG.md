@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: `jdx/mise-action` no longer caches, so a cache written by an earlier run cannot influence a release build
 - CI: the release job runs in the `release` environment
 - `domains.UpdateDomainRequest.DnssecKeys` and `domains.TransferDomainRequest.DnssecKeys` are now `*[]DnssecKey`
+- Resources, data sources and the ephemeral resource take the API client from the provider through one helper, so a wrong provider data type gives one error message, "Unexpected Provider Data Type", instead of three wordings
 
 ### Fixed
 - `ssl.ListOrders` pages through the listing; before, it returned only the API's first page of 100 orders

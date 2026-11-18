@@ -93,20 +93,7 @@ func (d *ContactDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 
 // Configure adds the provider configured client to the data source.
 func (d *ContactDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = c
+	d.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // Read retrieves the contact.

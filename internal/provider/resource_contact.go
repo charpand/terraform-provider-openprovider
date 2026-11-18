@@ -199,20 +199,7 @@ func (r *ContactResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 // Configure adds the provider configured client to the resource.
 func (r *ContactResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // known returns the value of s when the configuration or plan sets it.

@@ -131,20 +131,7 @@ func (r *DNSTemplateResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 // Configure adds the provider configured client to the resource.
 func (r *DNSTemplateResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // Create creates the template and sets the initial Terraform state.
