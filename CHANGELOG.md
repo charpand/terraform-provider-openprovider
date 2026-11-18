@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resources, data sources and the ephemeral resource take the API client from the provider through one helper, so a wrong provider data type gives one error message, "Unexpected Provider Data Type", instead of three wordings
 - Client functions send their request through the new `Client.JSON`, which replaces the copied build-request, close-body and decode code of most of them; `client.APIError` is the error for a status outside 2xx, with the same message as before, and `client.IsNotFound` tells a 404 apart
 - `internal/provider/resource_domain.go` (1,593 lines) is split by concern into `resource_domain_{schema,create,read,update,delete}.go`, `domain_validators.go`, `domain_dnssec.go` and `domain_lookup.go`; the declarations are moved unchanged
+- Lint: `errorlint`, `usestdlibvars` and `gocritic` are on; errors are compared with `errors.Is`, and requests name their method with `http.MethodGet` and the like
 
 ### Fixed
 - `ssl.ListOrders` pages through the listing; before, it returned only the API's first page of 100 orders

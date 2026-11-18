@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -177,7 +178,7 @@ func (r *GlueRecordResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	name := state.ID.ValueString()
 	ns, err := nameservers.Get(r.client, name)
-	if err == nameservers.ErrNotFound {
+	if errors.Is(err, nameservers.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}

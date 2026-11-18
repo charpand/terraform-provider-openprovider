@@ -44,7 +44,7 @@ func TestJSONSendsBodyAndDecodesAnswer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if req.Method != "POST" || req.URL.String() != "http://api.test/v1/things" {
+	if req.Method != http.MethodPost || req.URL.String() != "http://api.test/v1/things" {
 		t.Errorf("sent %s %s", req.Method, req.URL)
 	}
 	if body != `{"a":"b"}` {
