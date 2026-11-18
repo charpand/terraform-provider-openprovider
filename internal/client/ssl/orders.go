@@ -2,10 +2,7 @@
 package ssl
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -23,12 +20,7 @@ func ListOrders(c *client.Client) ([]SSLOrder, error) {
 	all := make([]SSLOrder, 0)
 	for offset := 0; ; {
 		path := fmt.Sprintf("/v1/ssl/orders?limit=%d&offset=%d", listPageSize, offset)
-		httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		page, total, err := listOrdersPage(c, httpReq)
+		page, total, err := listOrdersPage(c, path)
 		if err != nil {
 			return nil, err
 		}
@@ -42,19 +34,9 @@ func ListOrders(c *client.Client) ([]SSLOrder, error) {
 	}
 }
 
-func listOrdersPage(c *client.Client, httpReq *http.Request) ([]SSLOrder, int, error) {
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, 0, err
-	}
-
+func listOrdersPage(c *client.Client, path string) ([]SSLOrder, int, error) {
 	var result ListSSLOrdersResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", path, nil, &result); err != nil {
 		return nil, 0, err
 	}
 
@@ -65,24 +47,8 @@ func listOrdersPage(c *client.Client, httpReq *http.Request) ([]SSLOrder, int, e
 //
 // Endpoint: GET https://api.openprovider.eu/v1/ssl/orders/{id}
 func GetOrder(c *client.Client, orderID int) (*SSLOrder, error) {
-	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result GetSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", fmt.Sprintf("/v1/ssl/orders/%d", orderID), nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -93,30 +59,8 @@ func GetOrder(c *client.Client, orderID int) (*SSLOrder, error) {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/ssl/orders
 func CreateOrder(c *client.Client, req *CreateSSLOrderRequest) (*SSLOrder, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := "/v1/ssl/orders"
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result CreateSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/ssl/orders", req, &result); err != nil {
 		return nil, err
 	}
 
@@ -127,30 +71,8 @@ func CreateOrder(c *client.Client, req *CreateSSLOrderRequest) (*SSLOrder, error
 //
 // Endpoint: PATCH https://api.openprovider.eu/v1/ssl/orders/{id}
 func UpdateOrder(c *client.Client, orderID int, req *UpdateSSLOrderRequest) (*SSLOrder, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
-	httpReq, err := http.NewRequest("PATCH", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result UpdateSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("PATCH", fmt.Sprintf("/v1/ssl/orders/%d", orderID), req, &result); err != nil {
 		return nil, err
 	}
 
@@ -161,30 +83,8 @@ func UpdateOrder(c *client.Client, orderID int, req *UpdateSSLOrderRequest) (*SS
 //
 // Endpoint: POST https://api.openprovider.eu/v1/ssl/orders/{id}/renew
 func RenewOrder(c *client.Client, orderID int, req *RenewSSLOrderRequest) (*SSLOrder, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/ssl/orders/%d/renew", orderID)
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result RenewSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", fmt.Sprintf("/v1/ssl/orders/%d/renew", orderID), req, &result); err != nil {
 		return nil, err
 	}
 
@@ -195,30 +95,8 @@ func RenewOrder(c *client.Client, orderID int, req *RenewSSLOrderRequest) (*SSLO
 //
 // Endpoint: POST https://api.openprovider.eu/v1/ssl/orders/{id}/reissue
 func ReissueOrder(c *client.Client, orderID int, req *ReissueSSLOrderRequest) (*SSLOrder, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/ssl/orders/%d/reissue", orderID)
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result ReissueSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", fmt.Sprintf("/v1/ssl/orders/%d/reissue", orderID), req, &result); err != nil {
 		return nil, err
 	}
 
@@ -229,26 +107,6 @@ func ReissueOrder(c *client.Client, orderID int, req *ReissueSSLOrderRequest) (*
 //
 // Endpoint: DELETE https://api.openprovider.eu/v1/ssl/orders/{id}
 func CancelOrder(c *client.Client, orderID int) error {
-	path := fmt.Sprintf("/v1/ssl/orders/%d", orderID)
-	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
 	var result CancelSSLOrderResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return err
-	}
-
-	return nil
+	return c.JSON("DELETE", fmt.Sprintf("/v1/ssl/orders/%d", orderID), nil, &result)
 }

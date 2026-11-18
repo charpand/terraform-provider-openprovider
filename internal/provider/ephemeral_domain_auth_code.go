@@ -71,20 +71,7 @@ func (r *DomainAuthCodeEphemeralResource) Schema(_ context.Context, _ ephemeral.
 
 // Configure attaches the API client.
 func (r *DomainAuthCodeEphemeralResource) Configure(_ context.Context, req ephemeral.ConfigureRequest, resp *ephemeral.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Ephemeral Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // Open reads the auth code.

@@ -2,11 +2,6 @@
 package domains
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
@@ -43,30 +38,8 @@ type CreateDomainResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/domains
 func Create(c *client.Client, req *CreateDomainRequest) (*Domain, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := "/v1/domains"
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result CreateDomainResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/domains", req, &result); err != nil {
 		return nil, err
 	}
 

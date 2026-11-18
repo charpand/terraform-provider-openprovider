@@ -2,10 +2,7 @@
 package domains
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -46,12 +43,13 @@ func GetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, erro
 	if authCodeType != "" {
 		path += "?" + url.Values{"auth_code_type": {authCodeType}}.Encode()
 	}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
+
+	var result AuthCodeResponse
+	if err := c.JSON("GET", path, nil, &result); err != nil {
 		return nil, err
 	}
 
-	return doAuthCode(c, req)
+	return &result.Data, nil
 }
 
 // ResetAuthCode replaces the auth code of a domain by ID with a new code via
@@ -60,34 +58,9 @@ func GetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, erro
 //
 // Endpoint: POST https://api.openprovider.eu/v1/domains/{id}/authcode/reset
 func ResetAuthCode(c *client.Client, id int, authCodeType string) (*AuthCode, error) {
-	body, err := json.Marshal(&ResetAuthCodeRequest{ID: id, AuthCodeType: authCodeType})
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/domains/%d/authcode/reset", id)
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	return doAuthCode(c, req)
-}
-
-func doAuthCode(c *client.Client, req *http.Request) (*AuthCode, error) {
-	resp, err := c.Do(req)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result AuthCodeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	err := c.JSON("POST", fmt.Sprintf("/v1/domains/%d/authcode/reset", id), &ResetAuthCodeRequest{ID: id, AuthCodeType: authCodeType}, &result)
+	if err != nil {
 		return nil, err
 	}
 

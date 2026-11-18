@@ -106,20 +106,7 @@ func (d *DNSRecordsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 
 // Configure adds the provider configured client to the data source.
 func (d *DNSRecordsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected DataSource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = c
+	d.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // Read lists the records of the zone.

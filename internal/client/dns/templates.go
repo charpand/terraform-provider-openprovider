@@ -2,10 +2,7 @@
 package dns
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -52,29 +49,8 @@ type createTemplateResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/dns/templates
 func CreateTemplate(c *client.Client, req *CreateTemplateRequest) (int, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return 0, err
-	}
-
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/dns/templates", c.BaseURL), bytes.NewBuffer(body))
-	if err != nil {
-		return 0, err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return 0, err
-	}
-
 	var result createTemplateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/dns/templates", req, &result); err != nil {
 		return 0, err
 	}
 	if result.Code != 0 {
@@ -90,23 +66,8 @@ func CreateTemplate(c *client.Client, req *CreateTemplateRequest) (int, error) {
 //
 // Endpoint: GET https://api.openprovider.eu/v1/dns/templates/{id}
 func GetTemplate(c *client.Client, id int) (*Template, error) {
-	httpReq, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/dns/templates/%d", c.BaseURL, id), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result templateResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", fmt.Sprintf("/v1/dns/templates/%d", id), nil, &result); err != nil {
 		return nil, err
 	}
 	if result.Code != 0 {
@@ -120,21 +81,6 @@ func GetTemplate(c *client.Client, id int) (*Template, error) {
 //
 // Endpoint: DELETE https://api.openprovider.eu/v1/dns/templates/{id}
 func DeleteTemplate(c *client.Client, id int) error {
-	httpReq, err := http.NewRequest("DELETE", fmt.Sprintf("%s/v1/dns/templates/%d", c.BaseURL, id), nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return err
-	}
-
 	var result struct {
 		Code int    `json:"code"`
 		Desc string `json:"desc,omitempty"`
@@ -142,7 +88,7 @@ func DeleteTemplate(c *client.Client, id int) error {
 			Success *bool `json:"success"`
 		} `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("DELETE", fmt.Sprintf("/v1/dns/templates/%d", id), nil, &result); err != nil {
 		return err
 	}
 	if result.Code != 0 {

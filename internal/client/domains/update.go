@@ -2,10 +2,7 @@
 package domains
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -46,34 +43,11 @@ type UpdateDomainResponse struct {
 //
 // Endpoint: PUT https://api.openprovider.eu/v1/domains/{id}
 func Update(c *client.Client, id int, req *UpdateDomainRequest) (*Domain, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/domains/%d", id)
-	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result UpdateDomainResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("PUT", fmt.Sprintf("/v1/domains/%d", id), req, &result); err != nil {
 		return nil, err
 	}
 
-	// The API can refuse an update with a non-zero code in a 2xx response.
 	if result.Code != 0 {
 		return nil, fmt.Errorf("update operation failed with code %d: %s", result.Code, result.Desc)
 	}

@@ -2,9 +2,7 @@
 package nsgroups
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -46,23 +44,8 @@ type GetNSGroupResponse struct {
 
 // List retrieves a list of nameserver groups from the Openprovider API.
 func List(c *client.Client) ([]NSGroup, error) {
-	path := "/v1/dns/nameservers/groups"
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var results ListNSGroupsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+	if err := c.JSON("GET", "/v1/dns/nameservers/groups", nil, &results); err != nil {
 		return nil, err
 	}
 	return results.Data.Results, nil
@@ -73,29 +56,12 @@ func List(c *client.Client) ([]NSGroup, error) {
 // that no longer exists, so a caller can tell "gone" apart from a failed
 // request.
 func Get(c *client.Client, name string) (*NSGroup, error) {
-	path := fmt.Sprintf("/v1/dns/nameservers/groups/%s", name)
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		// `client.Client.Do` turns any non-2xx status into an error and closes
-		// the body before returning, so a 404 is told apart here, from the
-		// status alone, rather than from a body that is no longer there to read.
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result GetNSGroupResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	err := c.JSON("GET", fmt.Sprintf("/v1/dns/nameservers/groups/%s", name), nil, &result)
+	if client.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 

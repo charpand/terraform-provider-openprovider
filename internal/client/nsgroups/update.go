@@ -2,10 +2,7 @@
 package nsgroups
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
@@ -26,29 +23,8 @@ type UpdateNSGroupResponse struct {
 //
 // Endpoint: PUT https://api.openprovider.eu/v1/dns/nameservers/groups/{ns_group}
 func Update(c *client.Client, name string, req *UpdateNSGroupRequest) (*NSGroup, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	path := fmt.Sprintf("/v1/dns/nameservers/groups/%s", name)
-	httpReq, err := http.NewRequest("PUT", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result UpdateNSGroupResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("PUT", fmt.Sprintf("/v1/dns/nameservers/groups/%s", name), req, &result); err != nil {
 		return nil, err
 	}
 

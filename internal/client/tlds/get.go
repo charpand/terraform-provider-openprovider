@@ -2,9 +2,7 @@
 package tlds
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
@@ -31,23 +29,8 @@ type GetTLDResponse struct {
 //
 // Endpoint: GET https://api.openprovider.eu/v1/tlds/{name}
 func Get(c *client.Client, name string) (*TLD, error) {
-	path := fmt.Sprintf("/v1/tlds/%s", url.PathEscape(name))
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result GetTLDResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("GET", fmt.Sprintf("/v1/tlds/%s", url.PathEscape(name)), nil, &result); err != nil {
 		return nil, err
 	}
 

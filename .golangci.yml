@@ -3,6 +3,9 @@ linters:
   enable:
     - misspell
     - revive
+    - errorlint
+    - usestdlibvars
+    - gocritic
   exclusions:
     generated: lax
     paths:

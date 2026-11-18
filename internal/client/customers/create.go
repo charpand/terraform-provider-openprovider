@@ -2,11 +2,6 @@
 package customers
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-
 	"github.com/charpand/terraform-provider-openprovider/internal/client"
 )
 
@@ -33,29 +28,8 @@ type CreateCustomerResponse struct {
 //
 // Endpoint: POST https://api.openprovider.eu/v1/customers
 func Create(c *client.Client, req *CreateCustomerRequest) (string, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return "", err
-	}
-
-	path := "/v1/customers"
-	httpReq, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.BaseURL, path), bytes.NewBuffer(body))
-	if err != nil {
-		return "", err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Do(httpReq)
-	if err != nil {
-		return "", err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var result CreateCustomerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.JSON("POST", "/v1/customers", req, &result); err != nil {
 		return "", err
 	}
 

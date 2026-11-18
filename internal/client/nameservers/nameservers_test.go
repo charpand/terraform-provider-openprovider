@@ -1,6 +1,7 @@
 package nameservers_test
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -42,7 +43,7 @@ func TestGetReportsErrNotFoundOn404(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); err != nameservers.ErrNotFound {
+	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); !errors.Is(err, nameservers.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound on a 404, got %v", err)
 	}
 }
@@ -54,7 +55,7 @@ func TestGetReportsErrNotFoundOnCode399(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); err != nameservers.ErrNotFound {
+	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); !errors.Is(err, nameservers.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound on code 399, got %v", err)
 	}
 }
@@ -66,7 +67,7 @@ func TestGetReportsErrNotFoundOnAnEmptyObject(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); err != nameservers.ErrNotFound {
+	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); !errors.Is(err, nameservers.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound on a 200 with an empty object, got %v", err)
 	}
 }
@@ -78,7 +79,7 @@ func TestGetReportsAnAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); err == nil || err == nameservers.ErrNotFound {
+	if _, err := nameservers.Get(testClient(t, server), "ns1.example.com"); err == nil || errors.Is(err, nameservers.ErrNotFound) {
 		t.Fatalf("expected a non-399 error code to be a plain error, got %v", err)
 	}
 }

@@ -4,6 +4,7 @@ package nameservers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -19,7 +20,7 @@ func Create(c *client.Client, ns *Nameserver) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/dns/nameservers", c.BaseURL), bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/dns/nameservers", c.BaseURL), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ func Update(c *client.Client, name string, ns *Nameserver) error {
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -54,13 +55,13 @@ func Update(c *client.Client, name string, ns *Nameserver) error {
 //
 // Endpoint: DELETE /v1/dns/nameservers/{name}
 func Delete(c *client.Client, name string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
 	if err != nil {
 		return err
 	}
 
 	_, err = do(c, req)
-	if err == ErrNotFound {
+	if errors.Is(err, ErrNotFound) {
 		return nil
 	}
 	return err

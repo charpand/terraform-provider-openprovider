@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -86,20 +87,7 @@ func (r *GlueRecordResource) Schema(_ context.Context, _ resource.SchemaRequest,
 
 // Configure attaches the API client.
 func (r *GlueRecordResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = clientFromProviderData(req.ProviderData, &resp.Diagnostics)
 }
 
 // hostName is the key Openprovider stores the record under.
@@ -190,7 +178,7 @@ func (r *GlueRecordResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	name := state.ID.ValueString()
 	ns, err := nameservers.Get(r.client, name)
-	if err == nameservers.ErrNotFound {
+	if errors.Is(err, nameservers.ErrNotFound) {
 		resp.State.RemoveResource(ctx)
 		return
 	}

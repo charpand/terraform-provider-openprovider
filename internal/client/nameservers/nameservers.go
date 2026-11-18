@@ -42,10 +42,7 @@ var ErrNotFound = fmt.Errorf("nameserver not found")
 func do(c *client.Client, req *http.Request) (json.RawMessage, error) {
 	resp, err := c.Do(req)
 	if err != nil {
-		// `client.Client.Do` turns any non-2xx status into an error and closes
-		// the body before returning, so a 404 is told apart here, from the
-		// status alone, rather than from a body that is no longer there to read.
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if client.IsNotFound(err) {
 			return nil, ErrNotFound
 		}
 		return nil, err
@@ -83,7 +80,7 @@ func do(c *client.Client, req *http.Request) (json.RawMessage, error) {
 //
 // Endpoint: GET /v1/dns/nameservers/{name}
 func Get(c *client.Client, name string) (*Nameserver, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/dns/nameservers/%s", c.BaseURL, name), nil)
 	if err != nil {
 		return nil, err
 	}

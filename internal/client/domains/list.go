@@ -1,9 +1,7 @@
 package domains
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 
@@ -89,27 +87,10 @@ func listOnePage(c *client.Client, opts ListOptions) ([]Domain, int, error) {
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
 	var results ListDomainsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+	if err := c.JSON("GET", path, nil, &results); err != nil {
 		return nil, 0, err
 	}
-	// The API answers a refused listing with a 200 and a non-zero `code`, and
-	// no results. Told apart from an account that holds none of the names
-	// asked for: a caller that reads an empty listing as "not held" would
-	// otherwise drop a held domain.
 	if results.Code != 0 {
 		return nil, 0, fmt.Errorf("domain listing failed with code %d: %s", results.Code, results.Desc)
 	}

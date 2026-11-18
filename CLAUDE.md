@@ -31,7 +31,7 @@ This repository contains a Terraform provider for Openprovider, which includes a
 
 - **Go Guidelines**: Follow [Effective Go](https://golang.org/doc/effective_go.html) and [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments).
 - **API Functions**: All API functions MUST take `*client.Client` as the first parameter.
-- **Response Handling**: Always close response bodies in `defer` statements and handle potential errors.
+- **Response Handling**: Prefer `Client.JSON`. Where a response is read by hand, close the body in a `defer` and handle the error.
 - **Testing Patterns**:
   - Place tests in `*_test.go` files alongside implementation.
   - Use `package <name>_test` for external tests.
@@ -42,32 +42,22 @@ This repository contains a Terraform provider for Openprovider, which includes a
 ## Common Patterns
 
 ### API Function Implementation
+Send the request with `Client.JSON`; it closes the body and decodes the answer. A 404 that means "gone" is `client.IsNotFound(err)`.
 ```go
 func GetResource(c *client.Client, id int) (*Resource, error) {
-	path := fmt.Sprintf("/v1/resource/%d", id)
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", c.BaseURL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if resp != nil {
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	var result ResponseEnvelope
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	err := c.JSON("GET", fmt.Sprintf("/v1/resource/%d", id), nil, &result)
+	if client.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 
 	return &result.Data, nil
 }
 ```
+A reply that needs its own envelope handling can still use `http.NewRequest` with `c.Do`; always close the response body in a `defer`.
 
 ### Mock Testing
 ```go

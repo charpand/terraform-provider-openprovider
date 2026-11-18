@@ -45,7 +45,7 @@ func Login(c HTTPClient, baseURL, ipAddress, username, password string) (*string
 	}
 
 	path := "/v1/auth/login"
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", baseURL, path), bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", baseURL, path), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}

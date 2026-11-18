@@ -2,7 +2,10 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -134,7 +137,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		// without it a refusal reads as a bare status.
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		_ = resp.Body.Close()
-		return resp, fmt.Errorf("api error: status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return resp, &APIError{StatusCode: resp.StatusCode, Body: strings.TrimSpace(string(body))}
 	}
 
 	return resp, nil
@@ -216,4 +219,57 @@ func wait(ctx context.Context, delay time.Duration) error {
 	case <-timer.C:
 		return nil
 	}
+}
+
+// APIError is the error that Do returns for a status outside 2xx. Body is the
+// reason that the API gave, as far as it fits in the first 4 KiB.
+type APIError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("api error: status %d: %s", e.StatusCode, e.Body)
+}
+
+// IsNotFound reports whether err is the API answering 404.
+func IsNotFound(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
+}
+
+// JSON sends one request to the API and decodes the answer.
+//
+// A non-nil in is sent as the JSON body. A non-nil out receives the JSON that
+// the API answers with; with a nil out the answer is dropped. The error is
+// what Do returns, so IsNotFound works on it, or a failure to encode or decode.
+func (c *Client) JSON(method, path string, in, out any) error {
+	var body io.Reader
+	if in != nil {
+		b, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(b)
+	}
+
+	req, err := http.NewRequest(method, c.BaseURL+path, body)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(req)
+	if resp != nil {
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+	}
+	if err != nil {
+		return err
+	}
+
+	if out == nil {
+		return nil
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
 }
