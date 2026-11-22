@@ -2,5 +2,5 @@
 gitleaks = "8.30.1"
 go = "1.27.4"
 golangci-lint = "2.15.0"
-node = "26.13.0"
+node = "26.13.1"
 terraform = "1.17.2"
