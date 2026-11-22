@@ -47,7 +47,7 @@ jobs:
 
       # The Go toolchain is part of what is scanned (its standard library is
       # linked into the binary), so build with the pinned release version.
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           cache: false # see the release job
           install_args: go
@@ -171,7 +171,7 @@ jobs:
           persist-credentials: false
 
       # The Go version pinned in mise.toml, so the build matches CI.
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         if: matrix.language == 'go'
         with:
           install_args: go
@@ -204,7 +204,7 @@ jobs:
           fetch-depth: '0'
           persist-credentials: false
 
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           install_args: gitleaks
           cache: false
